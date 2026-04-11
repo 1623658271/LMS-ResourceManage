@@ -2826,6 +2826,8 @@ function renderSpreadsheet() {
 
   // 计算行合计（对数 or 工资，基于全部员工）
   function calcRowTotal(orderId, modelId) {
+    // 虚拟行（未选择订单/型号）不计算
+    if (orderId == null || modelId == null) return 0;
     let total = 0;
     for (const empId of empIds) {
       const key = `${orderId},${modelId},${empId}`;
@@ -2842,13 +2844,13 @@ function renderSpreadsheet() {
   // 生成分组表格 HTML
   function buildGroupTable(groupIdx, groupEmps, isOnlyGroup) {
     const headerHtml = `<thead><tr>
-      <th class="col-fixed" style="min-width:100px;background:#059669;color:#fff;${isOnlyGroup?'left:0;z-index:21;':''}">订单号</th>
-      <th class="col-fixed-2" style="min-width:90px;background:#059669;color:#fff;${isOnlyGroup?'left:100px;z-index:21;':''}">型号</th>
+      <th class="col-fixed" style="min-width:60px;background:#059669;color:#fff;${isOnlyGroup?'left:0;z-index:21;':''}">操作</th>
+      <th class="col-fixed" style="min-width:100px;background:#059669;color:#fff;${isOnlyGroup?'left:60px;z-index:21;':''}">订单号</th>
+      <th class="col-fixed-2" style="min-width:90px;background:#059669;color:#fff;${isOnlyGroup?'left:160px;z-index:21;':''}">型号</th>
       ${groupEmps.map(e => `<th style="min-width:70px;background:#d1fae5;color:#065f46;">
         <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
-      <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${isOnlyGroup?'left:0;z-index:21;':''}">行合计</th>
-      <th class="col-fixed" style="min-width:60px;${isOnlyGroup?'left:0;z-index:21;':''}">操作</th>
+      <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${isOnlyGroup?'left:60px;z-index:21;':''}">行合计</th>
     </tr></thead>`;
 
     let tbodyHtml = '<tbody>';
@@ -2891,21 +2893,21 @@ function renderSpreadsheet() {
       const orderOptions = `<option value="">-- 订单 --</option>` + orders.map(o => `<option value="${o.id}">${escHtml(o.order_no)}</option>`).join('');
       const modelOptions = availModels.length > 0 ? availModels.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('') : '';
       tbodyHtml += `<tr>
-        <td class="col-fixed" style="background:#d1fae5;${isOnlyGroup?'left:0;z-index:7;':''}">
+        <td class="col-fixed" style="text-align:center;${isOnlyGroup?'left:0;z-index:7;':''}">
+          ${isTemp ? `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteTempRow('${tempRowId}')">删除</button>` : `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteWorkRow('${order_id}','${model_id}')">删除</button>`}
+        </td>
+        <td class="col-fixed" style="background:#d1fae5;${isOnlyGroup?'left:60px;z-index:6;':''}">
           <select class="cell-input order-cell" style="background:#d1fae5;font-weight:600;" data-row-key="${rowKey}" data-temp="${isTemp ? tempRowId : ''}" onchange="onOrderCellChange(this)">
             ${orderOptions}
           </select>
         </td>
-        <td class="col-fixed-2" style="background:#d1fae5;${isOnlyGroup?'left:100px;z-index:6;':''}">
+        <td class="col-fixed-2" style="background:#d1fae5;${isOnlyGroup?'left:160px;z-index:5;':''}">
           <select class="cell-input model-cell" style="background:#d1fae5;font-weight:600;" data-row-key="${rowKey}" data-temp="${isTemp ? tempRowId : ''}" ${availModels.length === 0 ? 'disabled' : ''}>
             ${availModels.length === 0 ? '<option value="">-- 无型号 --</option>' : modelOptions}
           </select>
         </td>
         ${empCells}
-        <td class="col-fixed row-total${isWage?' wage':''}${compactTotal}" style="font-weight:700;text-align:center;${isOnlyGroup?'left:0;z-index:7;':''}">${totalDisplay}</td>
-        <td class="col-fixed" style="text-align:center;${isOnlyGroup?'left:0;z-index:7;':''}">
-          ${isTemp ? `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteTempRow('${tempRowId}')">删除</button>` : `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteWorkRow('${order_id}','${model_id}')">删除</button>`}
-        </td>
+        <td class="col-fixed row-total${isWage?' wage':''}${compactTotal}" style="font-weight:700;text-align:center;background:#fef9c3;color:#92400e;${isOnlyGroup?'left:60px;z-index:6;':''}">${totalDisplay}</td>
       </tr>`;
     });
     tbodyHtml += '</tbody>';
@@ -3004,19 +3006,22 @@ function onOrderCellChange(orderSel) {
   const modelSel = tr.querySelector('.model-cell');
   const tempId = orderSel.dataset.temp;
 
-  // 如果是虚拟行，先移除虚拟状态
+  // 如果是虚拟行，选择订单后只更新下拉选项，不重新渲染
   if (tempId) {
-    _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
-    // 初始化该行所有员工的格子
-    const emps = _state.workEmployees || [];
-    for (const emp of emps) {
-      const key = `${newOrderId}|${newOrderId}|${emp.id}`; // 临时key，等选择型号后更新
-      if (_dirtyCells[key] === undefined) {
-        _dirtyCells[key] = 0;
-      }
+    // 获取新订单关联的型号
+    const models = _state.workOrderModels[String(newOrderId)] || [];
+    if (models.length > 0) {
+      modelSel.innerHTML = '<option value="">--选择型号--</option>' +
+        models.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('');
+      modelSel.disabled = false;
+    } else {
+      modelSel.innerHTML = '<option value="">--无型号--</option>';
+      modelSel.disabled = true;
     }
-    renderSpreadsheet();
-    return;
+    // 标记该行为"已选订单"状态，但不触发重新渲染
+    orderSel.dataset.orderSelected = '1';
+    orderSel.dataset.rowKey = `__ORDER_SEL__|${tempId}`;
+    return; // 不调用 renderSpreadsheet
   }
 
   const oldRowKey = orderSel.dataset.rowKey;
@@ -3063,9 +3068,13 @@ function onModelCellChange(modelSel) {
   const oldRowKey = orderSel.dataset.rowKey;
   const newRowKey = `${orderId}|${modelId}`;
 
-  // 如果是虚拟行，先移除虚拟状态
-  if (tempId) {
-    _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
+  // 如果是虚拟行（可能已选择订单），移除虚拟状态
+  if (tempId || orderSel.dataset.orderSelected === '1') {
+    // 移除虚拟行
+    if (tempId) {
+      _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
+    }
+    orderSel.dataset.orderSelected = '0';
     // 初始化该行所有员工的格子
     const emps = _state.workEmployees || [];
     for (const emp of emps) {
@@ -3074,7 +3083,7 @@ function onModelCellChange(modelSel) {
         _dirtyCells[key] = 0;
       }
     }
-    // 更新 row-key
+    // 更新 row-key 和移除 temp 标记
     orderSel.dataset.rowKey = newRowKey;
     orderSel.dataset.temp = '';
     modelSel.dataset.rowKey = newRowKey;
