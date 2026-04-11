@@ -2744,6 +2744,8 @@ async function loadWorkRecords() {
   _state.workRecords = data.records || [];
   _dirtyCells = {};
   _deletedRowKeys = new Set(); // 重置删除状态
+  _state.tempWorkRows = []; // 重置临时行
+  _tempRowCounter = 0; // 重置临时行计数器
   _state.wageDetail = null;
 
   // 填充订单下拉
@@ -2815,7 +2817,7 @@ function renderSpreadsheet() {
     if (_deletedRowKeys.has(key)) continue; // 跳过已删除的行
     if (!seenKeys.has(key)) { seenKeys.add(key); rows.push({ order_id: r.order_id, model_id: r.model_id }); }
   }
-  // 添加虚拟行（未选择订单/型号的空行）
+  // 添加空行（订单和型号都未选择，用户可以自行选择）
   const tempRows = _state.tempWorkRows || [];
   tempRows.forEach(tempId => {
     rows.push({ temp_id: tempId, order_id: null, model_id: null });
@@ -3112,9 +3114,18 @@ let _tempRowCounter = 0;
 // 已删除行集合（存储已删除的 orderId|modelId 组合），用于防止重新加载时出现
 let _deletedRowKeys = new Set();
 
+// 添加一行（直接创建实体行，用户可以立即选择订单和型号）
 function addWorkRow() {
-  // 添加一行空行（订单和型号都未选择）
+  // 直接添加到 _dirtyCells，创建一个空行（orderId=0, modelId=0 表示待选择）
   const tempId = '__TEMP__' + (_tempRowCounter++);
+  const emps = _state.workEmployees || [];
+  for (const emp of emps) {
+    const key = `0|0|${emp.id}`;
+    if (_dirtyCells[key] === undefined) {
+      _dirtyCells[key] = null; // null 表示已选择但未输入
+    }
+  }
+  // 保存临时行ID，用于渲染时识别
   _state.tempWorkRows = _state.tempWorkRows || [];
   _state.tempWorkRows.push(tempId);
   renderSpreadsheet();
@@ -3125,9 +3136,15 @@ function addWorkRow() {
   }, 50);
 }
 
+// 删除临时行
 function deleteTempRow(tempId) {
-  // 删除虚拟行
   _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
+  // 清除该临时行的所有单元格数据
+  const emps = _state.workEmployees || [];
+  for (const emp of emps) {
+    const key = `0|0|${emp.id}`;
+    delete _dirtyCells[key];
+  }
   renderSpreadsheet();
 }
 
