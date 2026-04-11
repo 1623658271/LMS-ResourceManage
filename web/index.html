@@ -2901,8 +2901,15 @@ function renderSpreadsheet() {
       const compactTotal = String(totalDisplay).length > 8 ? ' compact' : '';
       const tempRowId = isTemp ? row.temp_id : '';
       const rowKey = isTemp ? tempRowId : `${order_id}|${model_id}`;
-      const orderOptions = `<option value="">-- 订单 --</option>` + orders.map(o => `<option value="${o.id}">${escHtml(o.order_no)}</option>`).join('');
-      const modelOptions = availModels.length > 0 ? availModels.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('') : '';
+      // 订单下拉：当前选中的订单需要设置 selected 属性
+      const orderOptions = `<option value="">-- 订单 --</option>` + orders.map(o => 
+        `<option value="${o.id}"${!isTemp && o.id === order_id ? ' selected' : ''}>${escHtml(o.order_no)}</option>`
+      ).join('');
+      // 型号下拉：根据当前选中的订单关联的型号
+      const currentOrderModels = _state.workOrderModels[String(order_id)] || [];
+      const modelOptions = currentOrderModels.length > 0 ? currentOrderModels.map(m => 
+        `<option value="${m.id}"${!isTemp && m.id === model_id ? ' selected' : ''}>${escHtml(m.model_no)}</option>`
+      ).join('') : '';
       tbodyHtml += `<tr ${isTemp ? `data-temp-id="${tempRowId}"` : ''}>
         <td class="col-fixed" style="text-align:center;${isOnlyGroup?'left:0;z-index:7;':''}">
           ${isTemp ? `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteTempRow('${tempRowId}')">删除</button>` : `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteWorkRow('${order_id}','${model_id}')">删除</button>`}
@@ -2913,8 +2920,8 @@ function renderSpreadsheet() {
           </select>
         </td>
         <td class="col-fixed-2" style="background:#d1fae5;${isOnlyGroup?'left:160px;z-index:5;':''}">
-          <select class="cell-input model-cell" style="background:#d1fae5;font-weight:600;" data-row-key="${rowKey}" data-temp="${isTemp ? tempRowId : ''}" ${availModels.length === 0 ? 'disabled' : ''}>
-            ${availModels.length === 0 ? '<option value="">-- 无型号 --</option>' : modelOptions}
+          <select class="cell-input model-cell" style="background:#d1fae5;font-weight:600;" data-row-key="${rowKey}" data-temp="${isTemp ? tempRowId : ''}" ${currentOrderModels.length === 0 ? 'disabled' : ''}>
+            ${currentOrderModels.length === 0 ? '<option value="">-- 无型号 --</option>' : modelOptions}
           </select>
         </td>
         ${empCells}
