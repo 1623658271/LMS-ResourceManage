@@ -2800,19 +2800,28 @@ function renderSpreadsheet() {
   }
 
 
-  // 行（订单+型号），跳过已删除的行
+  // 行（订单+型号），跳过已删除的行和无效的行
   const rows = [];
   const seenKeys = new Set();
+  // 1. 从 _dirtyCells 构建行（只取有效的 orderId 和 modelId）
   for (const key of Object.keys(_dirtyCells)) {
     const parts = key.split('|');
-    if (parts.length === 3 && !seenKeys.has(key)) {
-      const rowKey = `${parts[0]}|${parts[1]}`;
+    if (parts.length === 3) {
+      const orderId = parseInt(parts[0]);
+      const modelId = parseInt(parts[1]);
+      // 跳过 orderId 或 modelId 为 0 的无效行（这些是旧临时行残留）
+      if (orderId === 0 || modelId === 0) continue;
+      const rowKey = `${orderId}|${modelId}`;
       if (_deletedRowKeys.has(rowKey)) continue; // 跳过已删除的行
-      seenKeys.add(key);
-      rows.push({ order_id: parseInt(parts[0]), model_id: parseInt(parts[1]) });
+      if (!seenKeys.has(rowKey)) {
+        seenKeys.add(rowKey);
+        rows.push({ order_id: orderId, model_id: modelId });
+      }
     }
   }
+  // 2. 从数据库记录构建行
   for (const r of records) {
+    if (!r.order_id || !r.model_id) continue; // 跳过无效记录
     const key = `${r.order_id}|${r.model_id}`;
     if (_deletedRowKeys.has(key)) continue; // 跳过已删除的行
     if (!seenKeys.has(key)) { seenKeys.add(key); rows.push({ order_id: r.order_id, model_id: r.model_id }); }
