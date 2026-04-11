@@ -1324,19 +1324,20 @@ tr:hover td { background: #f8fafc; }
                 </label>
               </div>
             </div>
-            <div class="settings-row">
+            <!-- 表格显示方式已固定为单表格模式，隐藏此选项 -->
+            <div class="settings-row" style="display:none;">
               <div class="settings-row-info">
                 <div class="settings-row-label">表格显示方式</div>
                 <div class="settings-row-desc">分表格：超人数自动分组纵向排列；单表格：全部显示横向滚动</div>
               </div>
               <div class="settings-row-control">
                 <select class="settings-select" id="s-table-displayMode" onchange="applySetting('table-displayMode', this.value)">
-                  <option value="grouped" selected>分表格</option>
-                  <option value="single">单表格（横向滚动）</option>
+                  <option value="grouped">分表格</option>
+                  <option value="single" selected>单表格（横向滚动）</option>
                 </select>
               </div>
             </div>
-            <div class="settings-row" id="table-groupSize-row">
+            <div class="settings-row" id="table-groupSize-row" style="display:none;">
               <div class="settings-row-info">
                 <div class="settings-row-label">每组人数（分表格模式）</div>
                 <div class="settings-row-desc">每组显示多少名员工（超出会自动分组）</div>
@@ -1761,7 +1762,7 @@ const DEFAULT_SETTINGS = {
   'table-zebra': false,
   'table-compact': false,
   'table-groupSize': '8',
-  'table-displayMode': 'grouped',
+  'table-displayMode': 'single',  // 固定为单表格模式
   primary: '#3b82f6',
   'sidebar-bg': '#1e293b',
   bg: '#f1f5f9',
@@ -2878,7 +2879,7 @@ function renderSpreadsheet() {
         ${empCells}
         <td class="col-fixed row-total${isWage?' wage':''}${compactTotal}" style="font-weight:700;${isOnlyGroup?'left:0;z-index:7;':''}">${totalDisplay}</td>
         <td class="col-fixed" style="${isOnlyGroup?'left:0;z-index:7;':''}">
-          <button class="btn btn-sm btn-danger" onclick="deleteWorkRow(${order_id},${model_id})">删除</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteWorkRow('${order_id}','${model_id}')">删除</button>
         </td>
       </tr>`;
     });
