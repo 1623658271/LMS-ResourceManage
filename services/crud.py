@@ -527,7 +527,8 @@ def save_work_record(year: int, month: int, order_id: int, model_id: int, emp_id
     # 获取 order_no
     order_row = conn.execute("SELECT order_no FROM orders WHERE id=?", (order_id,)).fetchone()
     order_no = order_row["order_no"] if order_row else ""
-    if qty <= 0:
+    # 只有 qty < 0 时才删除（用于清除负数等无效数据），qty=0 时应该保存（用于标记行存在）
+    if qty < 0:
         conn.execute(
             "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND emp_id=?",
             (year, month, order_id, model_id, emp_id)
