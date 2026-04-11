@@ -2801,36 +2801,43 @@ function renderSpreadsheet() {
 
 
   // 行（订单+型号），跳过已删除的行和无效的行
+  // 允许同一订单+不同型号的多行，但阻止同一订单+同一型号的重复
   const rows = [];
-  const seenKeys = new Set();
-  // 1. 从 _dirtyCells 构建行（只取有效的 orderId 和 modelId）
+  const seenCombos = new Set(); // 用于检测 order_id,model_id 组合重复
+
+  // 1. 添加空行（临时行在最前面）
+  const tempRows = _state.tempWorkRows || [];
+  tempRows.forEach(tempId => {
+    rows.push({ temp_id: tempId, order_id: null, model_id: null });
+  });
+
+  // 2. 从数据库记录构建行（保持数据库顺序）
+  for (const r of records) {
+    if (!r.order_id || !r.model_id) continue;
+    const combo = `${r.order_id},${r.model_id}`;
+    if (_deletedRowKeys.has(combo)) continue;
+    if (!seenCombos.has(combo)) {
+      seenCombos.add(combo);
+      rows.push({ order_id: r.order_id, model_id: r.model_id });
+    }
+  }
+
+  // 3. 从 _dirtyCells 构建行（新增的行）
   for (const key of Object.keys(_dirtyCells)) {
     const parts = key.split('|');
     if (parts.length === 3) {
       const orderId = parseInt(parts[0]);
       const modelId = parseInt(parts[1]);
-      // 跳过 orderId 或 modelId 为 0 的无效行（这些是旧临时行残留）
       if (orderId === 0 || modelId === 0) continue;
-      const rowKey = `${orderId}|${modelId}`;
-      if (_deletedRowKeys.has(rowKey)) continue; // 跳过已删除的行
-      if (!seenKeys.has(rowKey)) {
-        seenKeys.add(rowKey);
+      const combo = `${orderId},${modelId}`;
+      if (_deletedRowKeys.has(combo)) continue;
+      // 允许同一订单+不同型号，但阻止完全重复
+      if (!seenCombos.has(combo)) {
+        seenCombos.add(combo);
         rows.push({ order_id: orderId, model_id: modelId });
       }
     }
   }
-  // 2. 从数据库记录构建行
-  for (const r of records) {
-    if (!r.order_id || !r.model_id) continue; // 跳过无效记录
-    const key = `${r.order_id}|${r.model_id}`;
-    if (_deletedRowKeys.has(key)) continue; // 跳过已删除的行
-    if (!seenKeys.has(key)) { seenKeys.add(key); rows.push({ order_id: r.order_id, model_id: r.model_id }); }
-  }
-  // 添加空行（订单和型号都未选择，用户可以自行选择）
-  const tempRows = _state.tempWorkRows || [];
-  tempRows.forEach(tempId => {
-    rows.push({ temp_id: tempId, order_id: null, model_id: null });
-  });
 
   const empIds = emps.map(e => e.id);
   const totalGroups = Math.ceil(emps.length / empsPerGroup);
@@ -3171,8 +3178,8 @@ function deleteWorkRow(orderId, modelId) {
   fetch(`/api/work-row?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}`, { method: 'DELETE' })
     .then(r => r.json())
     .then(() => {
-      // 清除本地缓存
-      const prefix = `${orderId}|${modelId}|`;
+      // 清除本地缓存（_dirtyCells的key格式是 orderId|modelId|empId）
+      const prefix = `${orderId},${modelId},`;
       for (const key of Object.keys(_dirtyCells)) {
         if (key.startsWith(prefix)) delete _dirtyCells[key];
       }

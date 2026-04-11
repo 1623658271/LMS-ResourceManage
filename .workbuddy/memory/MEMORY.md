@@ -37,3 +37,4 @@
 - **v2.1.13（2026-04-13）**：彻底修复做货编辑：loadWorkRecords时重置tempWorkRows和_tempRowCounter；addWorkRow直接初始化所有员工单元格；deleteTempRow同时清除单元格数据
 - **v2.1.14（2026-04-13）**：彻底修复添加行变多行问题：构建rows时跳过orderId=0或modelId=0的无效行
 - **v2.1.15（2026-04-13）**：修复订单和型号下拉selected属性：保存后重新渲染时正确显示已选择的订单和型号
+- **v2.1.16（2026-04-13）**：修复后端save_work_record逻辑：qty <= 0改为qty < 0才删除，这样quantity=0能正确保存到数据库，临时行才能转换为实际行
