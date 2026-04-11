@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="" />
+    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.workbuddy/memory/MEMORY.md" beforeDir="false" afterPath="$PROJECT_DIR$/.workbuddy/memory/MEMORY.md" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -28,7 +30,7 @@
     &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
 }</component>
-  <component name="RunManager" selected="Python.main">
+  <component name="RunManager" selected="Python.seed_data">
     <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="li_jie_hr" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -73,8 +75,8 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.main" />
         <item itemvalue="Python.seed_data" />
+        <item itemvalue="Python.main" />
       </list>
     </recent_temporary>
   </component>

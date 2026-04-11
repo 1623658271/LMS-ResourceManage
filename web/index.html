@@ -586,8 +586,11 @@ tr:hover td { background: #f8fafc; }
 .member-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 .member-name { font-weight: 600; font-size: 14px; min-width: 70px; }
 .member-gender-badge { font-size: 12px; color: var(--text-muted); min-width: 16px; }
-.member-name-color { font-weight: 600; color: #000; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.member-name-color { font-weight: 600; color: #2563eb; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .member-name-color:hover { color: #fbbf24; }
+/* 成员管理页专用姓名颜色（黑色） */
+.member-list-name-color { font-weight: 600; color: #000; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.member-list-name-color:hover { color: #fbbf24; }
 .dept-large  { font-weight: 600; color: #d97706; }         /* 大部门：橙色 */
 .dept-sub    { color: #059669; }                           /* 小部门：绿色 */
 .member-stats { display: flex; gap: 20px; font-size: 12px; flex: 1; }
@@ -2222,7 +2225,7 @@ async function loadMembers() {
     <div class="member-card">
       <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
       <div class="member-card-info">
-        <span class="member-name member-name-color">${escHtml(emp.name)}</span>
+        <span class="member-name member-list-name-color">${escHtml(emp.name)}</span>
         <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
         <span class="dept-large">${escHtml(emp.dept_name)}</span>
         <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
@@ -3036,11 +3039,10 @@ function onRowHeaderChange(el) {
 
 function addWorkRow() {
   // 直接添加一行空行（不依赖顶部选择器）
-  const orders = _state.workOrders;
-  if (!orders.length) return toast('请先在订单管理中添加订单', 'error');
-  // 用第一个订单的第一型号作为默认值
-  const firstOrderId = orders[0].id;
-  const models = _state.workOrderModels[String(firstOrderId)] || [];
+  // 订单和型号可以为空，保存时会跳过
+  const orders = _state.workOrders || [];
+  const firstOrderId = orders.length > 0 ? orders[0].id : '';
+  const models = firstOrderId ? (_state.workOrderModels[String(firstOrderId)] || []) : [];
   const firstModelId = models.length > 0 ? models[0].id : '';
   const rowKey = `${firstOrderId}|${firstModelId}`;
   _dirtyCells[rowKey] = 0;
