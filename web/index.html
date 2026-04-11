@@ -2829,6 +2829,7 @@ function renderSpreadsheet() {
         <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
       <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${isOnlyGroup?'left:0;z-index:21;':''}">行合计</th>
+      <th class="col-fixed" style="min-width:60px;${isOnlyGroup?'left:0;z-index:21;':''}">操作</th>
     </tr></thead>`;
 
     let tbodyHtml = '<tbody>';
@@ -2876,6 +2877,9 @@ function renderSpreadsheet() {
         </td>
         ${empCells}
         <td class="col-fixed row-total${isWage?' wage':''}${compactTotal}" style="font-weight:700;${isOnlyGroup?'left:0;z-index:7;':''}">${totalDisplay}</td>
+        <td class="col-fixed" style="${isOnlyGroup?'left:0;z-index:7;':''}">
+          <button class="btn btn-sm btn-danger" onclick="deleteWorkRow(${order_id},${model_id})">删除</button>
+        </td>
       </tr>`;
     });
     tbodyHtml += '</tbody>';
@@ -3049,6 +3053,15 @@ function addWorkRow() {
     if (_dirtyCells[key] === undefined) {
       _dirtyCells[key] = 0;
     }
+  }
+  renderSpreadsheet();
+}
+
+function deleteWorkRow(orderId, modelId) {
+  // 删除整行（删除该 orderId|modelId 开头的所有单元格）
+  const prefix = `${orderId}|${modelId}|`;
+  for (const key of Object.keys(_dirtyCells)) {
+    if (key.startsWith(prefix)) delete _dirtyCells[key];
   }
   renderSpreadsheet();
 }
@@ -3887,7 +3900,8 @@ document.getElementById('qcMonth').addEventListener('change', initQuickCalc);
   initMonthPickers();
   await loadMembers();
   document.getElementById('topbarHint').textContent = '立杰人力资源管理系统 v2.0';
-  // DOM 准备好后再应用设置（触发 CSS 变量生效）
+  // 加载保存的设置，再应用（触发 CSS 变量生效）
+  loadSettings();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => applyAllSettings());
   } else {
