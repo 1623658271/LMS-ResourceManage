@@ -555,6 +555,18 @@ def delete_work_record(year: int, month: int, order_id: int, model_id: int, emp_
     return {"ok": True}
 
 
+def delete_work_row(year: int, month: int, order_id: int, model_id: int):
+    """批量删除一整行（同一订单+型号的所有员工记录）"""
+    conn = get_connection()
+    conn.execute(
+        "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=?",
+        (year, month, order_id, model_id)
+    )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
 # ── 人工增扣 ────────────────────────────────────────────
 
 

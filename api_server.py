@@ -222,6 +222,15 @@ async def api_delete_work_record(
     return crud.delete_work_record(year, month, order_id, model_id, emp_id)
 
 
+@app.delete("/api/work-row")
+async def api_delete_work_row(
+    year: int = Query(...), month: int = Query(...),
+    order_id: int = Query(...), model_id: int = Query(...)
+):
+    """批量删除一整行（同一订单+型号的所有员工记录）"""
+    return crud.delete_work_row(year, month, order_id, model_id)
+
+
 # ── 人工增扣 ────────────────────────────────────────────
 
 @app.post("/api/adjustments")

@@ -2892,7 +2892,7 @@ function renderSpreadsheet() {
       const rowKey = isTemp ? tempRowId : `${order_id}|${model_id}`;
       const orderOptions = `<option value="">-- 订单 --</option>` + orders.map(o => `<option value="${o.id}">${escHtml(o.order_no)}</option>`).join('');
       const modelOptions = availModels.length > 0 ? availModels.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('') : '';
-      tbodyHtml += `<tr>
+      tbodyHtml += `<tr ${isTemp ? `data-temp-id="${tempRowId}"` : ''}>
         <td class="col-fixed" style="text-align:center;${isOnlyGroup?'left:0;z-index:7;':''}">
           ${isTemp ? `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteTempRow('${tempRowId}')">删除</button>` : `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteWorkRow('${order_id}','${model_id}')">删除</button>`}
         </td>
@@ -3006,99 +3006,73 @@ function onOrderCellChange(orderSel) {
   const modelSel = tr.querySelector('.model-cell');
   const tempId = orderSel.dataset.temp;
 
-  // 如果是虚拟行，选择订单后只更新下拉选项，不重新渲染
-  if (tempId) {
-    // 获取新订单关联的型号
-    const models = _state.workOrderModels[String(newOrderId)] || [];
-    if (models.length > 0) {
-      modelSel.innerHTML = '<option value="">--选择型号--</option>' +
-        models.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('');
-      modelSel.disabled = false;
-    } else {
-      modelSel.innerHTML = '<option value="">--无型号--</option>';
-      modelSel.disabled = true;
-    }
-    // 标记该行为"已选订单"状态，但不触发重新渲染
-    orderSel.dataset.orderSelected = '1';
-    orderSel.dataset.rowKey = `__ORDER_SEL__|${tempId}`;
-    return; // 不调用 renderSpreadsheet
+  if (!newOrderId) {
+    // 取消选择，清空型号
+    modelSel.innerHTML = '<option value="">-- 订单 --</option>';
+    modelSel.disabled = true;
+    return;
   }
-
-  const oldRowKey = orderSel.dataset.rowKey;
 
   // 获取新订单关联的型号
   const models = _state.workOrderModels[String(newOrderId)] || [];
-
-  // 更新型号下拉
   if (models.length > 0) {
     modelSel.innerHTML = '<option value="">--选择型号--</option>' +
       models.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('');
-    // 自动选中第一个型号
-    modelSel.value = models[0].id;
-    // 更新 data-row-key
-    modelSel.dataset.rowKey = `${newOrderId}|${models[0].id}`;
-    orderSel.dataset.rowKey = `${newOrderId}|${models[0].id}`;
-    modelSel.dataset.origModel = models[0].id;
+    modelSel.disabled = false;
   } else {
     modelSel.innerHTML = '<option value="">--无型号--</option>';
-    modelSel.value = '';
-    modelSel.dataset.rowKey = `${newOrderId}|`;
-    orderSel.dataset.rowKey = `${newOrderId}|`;
-    modelSel.dataset.origModel = '';
+    modelSel.disabled = true;
   }
 
-  // 清除该行旧的所有单元格数据
-  for (const key of Object.keys(_dirtyCells)) {
-    if (key.startsWith(oldRowKey)) delete _dirtyCells[key];
-  }
-
-  // 选中型号后触发保存逻辑
-  if (modelSel.value) {
-    onModelCellChange(modelSel);
+  // 如果是虚拟行，选了型号后直接转为实际行
+  if (tempId && models.length > 0) {
+    // 选中第一个型号并触发转换
+    modelSel.value = models[0].id;
+    onModelCellChange(modelSel, tempId);
+  } else if (models.length === 0) {
+    // 没有型号的订单，只更新下拉状态，不触发转换
   }
 }
 
 // 型号单元格变更
-function onModelCellChange(modelSel) {
+function onModelCellChange(modelSel, explicitTempId) {
   const tr = modelSel.closest('tr');
   const orderSel = tr.querySelector('.order-cell');
   const orderId = parseInt(orderSel.value);
   const modelId = parseInt(modelSel.value);
-  const tempId = modelSel.dataset.temp;
-  const oldRowKey = orderSel.dataset.rowKey;
+  const tempId = explicitTempId || modelSel.dataset.temp;
+
+  if (!orderId || !modelId) return;
+
   const newRowKey = `${orderId}|${modelId}`;
 
-  // 如果是虚拟行（可能已选择订单），移除虚拟状态
-  if (tempId || orderSel.dataset.orderSelected === '1') {
-    // 移除虚拟行
-    if (tempId) {
-      _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
-    }
-    orderSel.dataset.orderSelected = '0';
+  // 如果是虚拟行，移除虚拟状态，转换为实际行
+  if (tempId) {
+    // 从虚拟行列表移除
+    _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
     // 初始化该行所有员工的格子
     const emps = _state.workEmployees || [];
     for (const emp of emps) {
       const key = `${newRowKey}|${emp.id}`;
       if (_dirtyCells[key] === undefined) {
-        _dirtyCells[key] = 0;
+        _dirtyCells[key] = 0;  // 初始化为0，表示有数据行
       }
     }
-    // 更新 row-key 和移除 temp 标记
-    orderSel.dataset.rowKey = newRowKey;
-    orderSel.dataset.temp = '';
-    modelSel.dataset.rowKey = newRowKey;
-    modelSel.dataset.temp = '';
     renderSpreadsheet();
     return;
   }
 
+  // 非虚拟行的正常处理
+  const oldRowKey = orderSel.dataset.rowKey;
   // 更新 row-key
   orderSel.dataset.rowKey = newRowKey;
   modelSel.dataset.rowKey = newRowKey;
 
   // 清除该行旧的所有单元格数据
-  for (const key of Object.keys(_dirtyCells)) {
-    if (key.startsWith(oldRowKey)) delete _dirtyCells[key];
+  if (oldRowKey && oldRowKey !== newRowKey) {
+    for (const key of Object.keys(_dirtyCells)) {
+      if (key.startsWith(oldRowKey)) delete _dirtyCells[key];
+    }
   }
 
   renderSpreadsheet();
@@ -3119,11 +3093,16 @@ let _tempRowCounter = 0;
 let _deletedRowKeys = new Set();
 
 function addWorkRow() {
-  // 直接添加一行空行，用虚拟ID标识（不依赖顶部选择器）
+  // 添加一行空行（订单和型号都未选择）
   const tempId = '__TEMP__' + (_tempRowCounter++);
   _state.tempWorkRows = _state.tempWorkRows || [];
   _state.tempWorkRows.push(tempId);
   renderSpreadsheet();
+  // 聚焦到新行的订单下拉
+  setTimeout(() => {
+    const sel = document.querySelector(`tr[data-temp-id="${tempId}"] .order-cell`);
+    if (sel) sel.focus();
+  }, 50);
 }
 
 function deleteTempRow(tempId) {
@@ -3133,14 +3112,25 @@ function deleteTempRow(tempId) {
 }
 
 function deleteWorkRow(orderId, modelId) {
-  // 删除整行（标记为已删除，并清除对应的单元格数据）
-  const rowKey = `${orderId}|${modelId}`;
-  _deletedRowKeys.add(rowKey);
-  const prefix = `${orderId}|${modelId}|`;
-  for (const key of Object.keys(_dirtyCells)) {
-    if (key.startsWith(prefix)) delete _dirtyCells[key];
-  }
-  renderSpreadsheet();
+  if (!confirm('确定删除这一行数据吗？')) return;
+  const year = _state.currentYear, month = _state.currentMonth;
+  // 使用批量删除 API
+  fetch(`/api/work-row?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}`, { method: 'DELETE' })
+    .then(r => r.json())
+    .then(() => {
+      // 清除本地缓存
+      const prefix = `${orderId}|${modelId}|`;
+      for (const key of Object.keys(_dirtyCells)) {
+        if (key.startsWith(prefix)) delete _dirtyCells[key];
+      }
+      // 从本地 records 中也移除
+      _state.workRecords = _state.workRecords.filter(r =>
+        !(r.order_id === orderId && r.model_id === modelId)
+      );
+      renderSpreadsheet();
+      toast('已删除', 'success');
+    })
+    .catch(err => { console.error(err); toast('删除失败', 'error'); });
 }
 
 async function saveAllWorkRecords() {
@@ -3200,23 +3190,26 @@ async function toggleViewMode() {
 async function autoSaveWorkRecords() {
   const year = _state.currentYear, month = _state.currentMonth;
   let saved = 0;
-  for (const key of Object.keys(_dirtyCells)) {
+  const keysToSave = Object.keys(_dirtyCells);
+  for (const key of keysToSave) {
     const parts = key.split('|');
     if (parts.length === 3) {
       const orderId = parseInt(parts[0]);
       const modelId = parseInt(parts[1]);
       const empId = parseInt(parts[2]);
       const val = _dirtyCells[key];
-      if (val !== undefined && val !== null && val !== '') {
+      if (val !== undefined && val !== null && val !== '' && val > 0) {
         try {
           await post('/api/work-records', { year, month, order_id: orderId, model_id: modelId, emp_id: empId, quantity: val });
           saved++;
-        } catch(e) {}
+        } catch(e) { console.error('保存失败', e); }
       }
+      // 保存后从 _dirtyCells 移除
+      delete _dirtyCells[key];
     }
   }
+  // 只在有保存时更新本地 records
   if (saved > 0) {
-    _dirtyCells = {};
     await loadWorkRecords();
   }
 }
