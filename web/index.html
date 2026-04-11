@@ -3045,20 +3045,40 @@ function onModelCellChange(modelSel, explicitTempId) {
   if (!orderId || !modelId) return;
 
   const newRowKey = `${orderId}|${modelId}`;
+  const year = _state.currentYear, month = _state.currentMonth;
 
   // 如果是虚拟行，移除虚拟状态，转换为实际行
   if (tempId) {
     // 从虚拟行列表移除
     _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
-    // 初始化该行所有员工的格子
+    // 初始化该行所有员工的格子（用 null 标记，表示已选择但未输入）
     const emps = _state.workEmployees || [];
     for (const emp of emps) {
       const key = `${newRowKey}|${emp.id}`;
       if (_dirtyCells[key] === undefined) {
-        _dirtyCells[key] = 0;  // 初始化为0，表示有数据行
+        _dirtyCells[key] = null;  // null 表示已初始化，待输入
       }
     }
-    renderSpreadsheet();
+    // 立即保存第一条记录（quantity=0）标记这行已存在
+    // 保存后重新加载 records，再渲染表格
+    (async () => {
+      try {
+        await post('/api/work-records', {
+          year, month,
+          order_id: orderId,
+          model_id: modelId,
+          emp_id: emps[0]?.id,
+          quantity: 0
+        });
+        // 保存成功后重新加载数据
+        const records = await get(`/api/work-records?year=${year}&month=${month}`);
+        _state.workRecords = records || [];
+        renderSpreadsheet();
+      } catch(e) {
+        console.error('保存行失败', e);
+        renderSpreadsheet();
+      }
+    })();
     return;
   }
 
