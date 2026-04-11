@@ -586,7 +586,7 @@ tr:hover td { background: #f8fafc; }
 .member-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 .member-name { font-weight: 600; font-size: 14px; min-width: 70px; }
 .member-gender-badge { font-size: 12px; color: var(--text-muted); min-width: 16px; }
-.member-name-color { font-weight: 600; color: #60d9fa; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.member-name-color { font-weight: 600; color: #000; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .member-name-color:hover { color: #fbbf24; }
 .dept-large  { font-weight: 600; color: #d97706; }         /* 大部门：橙色 */
 .dept-sub    { color: #059669; }                           /* 小部门：绿色 */
@@ -2274,57 +2274,118 @@ async function batchDeleteMembers() {
   }
 }
 
-// 批量添加成员弹窗
+// 批量添加成员弹窗（大表格模式）
 async function showBatchAddMemberModal() {
   const depts = await get('/api/departments');
   const subs = await get('/api/sub-departments');
+  _state.batchDepts = depts;
+  _state.batchSubs = subs;
+
+  // 生成一行空白行的HTML
+  function makeRowHtml(idx) {
+    const genderOptions = `<option value="男">男</option><option value="女">女</option>`;
+    const deptOptions = `<option value="">--</option>` + depts.map(d => `<option value="${d.id}">${escHtml(d.name)}</option>`).join('');
+    return `<tr data-idx="${idx}">
+      <td class="row-num">${idx}</td>
+      <td><input type="text" class="batch-name" placeholder="姓名" style="width:90px;"></td>
+      <td><select class="batch-gender">${genderOptions}</select></td>
+      <td><select class="batch-dept" onchange="onBatchDeptChange(this)">${deptOptions}</select></td>
+      <td><select class="batch-subdept"><option value="">--先选大部门--</option></select></td>
+      <td class="row-del"><button type="button" onclick="delBatchRow(this)">✕</button></td>
+    </tr>`;
+  }
+
   openModal(`
     <div class="modal-title">批量添加成员</div>
-    <div style="margin-bottom:10px;font-size:12px;color:var(--text-muted);">每行一个姓名，用逗号或换行分隔</div>
-    <div class="form-group" style="margin-bottom:10px;">
-      <label>姓名列表</label>
-      <textarea id="batch-names" rows="5" placeholder="张三&#10;李四&#10;王五"></textarea>
+    <div class="batch-add-toolbar">
+      <button type="button" class="btn btn-sm" onclick="addBatchRow()">+ 添加行</button>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">直接填入姓名和部门，最后点击"批量添加"</span>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>性别</label>
-        <select id="batch-gender"><option value="男">男</option><option value="女">女</option></select>
-      </div>
-      <div class="form-group">
-        <label>大部门</label>
-        <select id="batch-dept" onchange="onDeptChange('batch')">
-          <option value="">-- 选择 --</option>
-          ${depts.map(d => `<option value="${d.id}">${escHtml(d.name)}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-group">
-        <label>小部门</label>
-        <select id="batch-subdept"><option value="">-- 先选大部门 --</option></select>
-      </div>
+    <div style="max-height:400px;overflow:auto;">
+      <table class="batch-add-table">
+        <thead><tr><th style="width:32px;">#</th><th>姓名</th><th style="width:50px;">性别</th><th>大部门</th><th>小部门</th><th style="width:36px;"></th></tr></thead>
+        <tbody id="batchTableBody">
+          ${makeRowHtml(1)}
+        </tbody>
+      </table>
+    </div>
+    <div class="batch-add-add-row">
+      <button type="button" class="btn btn-sm btn-secondary" onclick="addBatchRow()">+ 继续添加行</button>
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="doBatchAddMember()">添加</button>
+      <button class="btn btn-primary" onclick="doBatchAddMember()">批量添加</button>
     </div>
-  `);
+  `, 'batch-add-modal');
 }
 
-// 执行批量添加
+// 批量添加：部门变更时更新小部门
+function onBatchDeptChange(deptSel) {
+  const tr = deptSel.closest('tr');
+  const deptId = parseInt(deptSel.value);
+  const subSel = tr.querySelector('.batch-subdept');
+  const subs = _state.batchSubs.filter(s => s.dept_id === deptId);
+  subSel.innerHTML = `<option value="">--选择--</option>` + subs.map(s => `<option value="${s.id}">${escHtml(s.name)}</option>`).join('');
+}
+
+// 添加一行
+function addBatchRow() {
+  const tbody = document.getElementById('batchTableBody');
+  const rows = tbody.querySelectorAll('tr');
+  const newIdx = rows.length + 1;
+  const depts = _state.batchDepts;
+  const genderOptions = `<option value="男">男</option><option value="女">女</option>`;
+  const deptOptions = `<option value="">--</option>` + depts.map(d => `<option value="${d.id}">${escHtml(d.name)}</option>`).join('');
+  tbody.insertAdjacentHTML('beforeend', `<tr data-idx="${newIdx}">
+    <td class="row-num">${newIdx}</td>
+    <td><input type="text" class="batch-name" placeholder="姓名" style="width:90px;"></td>
+    <td><select class="batch-gender">${genderOptions}</select></td>
+    <td><select class="batch-dept" onchange="onBatchDeptChange(this)">${deptOptions}</select></td>
+    <td><select class="batch-subdept"><option value="">--先选大部门--</option></select></td>
+    <td class="row-del"><button type="button" onclick="delBatchRow(this)">✕</button></td>
+  </tr>`);
+}
+
+// 删除一行
+function delBatchRow(btn) {
+  const tbody = document.getElementById('batchTableBody');
+  if (tbody.querySelectorAll('tr').length <= 1) return; // 至少保留一行
+  btn.closest('tr').remove();
+  // 重新编号
+  tbody.querySelectorAll('tr').forEach((tr, i) => {
+    tr.dataset.idx = i + 1;
+    tr.querySelector('.row-num').textContent = i + 1;
+  });
+}
+
+// 执行批量添加（表格模式）
 async function doBatchAddMember() {
-  const namesText = document.getElementById('batch-names').value.trim();
-  if (!namesText) { showToast('请输入姓名', 'error'); return; }
-  const gender = document.getElementById('batch-gender').value;
-  const deptId = parseInt(document.getElementById('batch-dept').value);
-  const subDeptId = parseInt(document.getElementById('batch-subdept').value);
-  if (!deptId) { showToast('请选择大部门', 'error'); return; }
-  if (!subDeptId) { showToast('请选择小部门', 'error'); return; }
-  const names = namesText.split(/[,;\n]/).map(n => n.trim()).filter(n => n);
-  if (!names.length) { showToast('请输入至少一个姓名', 'error'); return; }
-  let ok = 0, fail = 0;
-  for (const name of names) {
-    const r = await post('/api/employees', { name, gender, sub_department_id: subDeptId });
-    if (r && r.id) ok++; else fail++;
+  const rows = document.querySelectorAll('#batchTableBody tr');
+  const employees = [];
+  let hasValid = false;
+
+  rows.forEach(tr => {
+    const name = tr.querySelector('.batch-name').value.trim();
+    const gender = tr.querySelector('.batch-gender').value;
+    const subDeptId = parseInt(tr.querySelector('.batch-subdept').value);
+    if (name && subDeptId) {
+      employees.push({ name, gender, sub_dept_id: subDeptId });
+      hasValid = true;
+    }
+  });
+
+  if (!hasValid) {
+    showToast('请至少填写一行完整的姓名和部门信息', 'error');
+    return;
   }
+
+  let ok = 0, fail = 0;
+  for (const emp of employees) {
+    const r = await post('/api/employees', emp);
+    if (r && r.ok !== false) ok++;
+    else fail++;
+  }
+
   closeModal();
   showToast(`成功添加 ${ok} 个${fail ? `，失败 ${fail} 个` : ''}`, ok > 0 ? 'success' : 'error');
   if (ok > 0) await loadMembers();
@@ -2711,8 +2772,8 @@ function renderSpreadsheet() {
   const isSingleMode = _currentSettings['table-displayMode'] === 'single';
   const empsPerGroup = isSingleMode ? emps.length : parseInt(_currentSettings['table-groupSize'] || 8);
 
-  if (!emps.length || !orders.length) {
-    wrap.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8"/></svg><div>请先在订单管理中添加订单，然后在做货编辑中选择并添加行</div></div>`;
+  if (!emps.length) {
+    wrap.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8"/></svg><div>请先在成员管理中添加员工</div></div>`;
     return;
   }
 
@@ -2802,12 +2863,12 @@ function renderSpreadsheet() {
       const compactTotal = String(totalDisplay).length > 8 ? ' compact' : '';
       tbodyHtml += `<tr>
         <td class="col-fixed" style="${isOnlyGroup?'left:0;z-index:7;':''}">
-          <select class="cell-input order-cell" data-row-key="${order_id}|${model_id}" onchange="onRowHeaderChange(this)">
+          <select class="cell-input order-cell" data-row-key="${order_id}|${model_id}" data-orig-order="${order_id}" onchange="onOrderCellChange(this)">
             ${orders.map(o => `<option value="${o.id}"${o.id===order_id?' selected':''}>${escHtml(o.order_no)}</option>`).join('')}
           </select>
         </td>
         <td class="col-fixed-2" style="${isOnlyGroup?'left:100px;z-index:6;':''}">
-          <select class="cell-input model-cell" data-row-key="${order_id}|${model_id}" onchange="onRowHeaderChange(this)">
+          <select class="cell-input model-cell" data-row-key="${order_id}|${model_id}" data-orig-model="${model_id}">
             ${availModels.map(m => `<option value="${m.id}"${m.id===model_id?' selected':''}>${escHtml(m.model_no)}</option>`).join('')}
           </select>
         </td>
@@ -2904,6 +2965,66 @@ function onCellKeydown(e, el) {
   }
 }
 
+// 订单单元格变更：更新对应型号下拉选项
+function onOrderCellChange(orderSel) {
+  const newOrderId = parseInt(orderSel.value);
+  const tr = orderSel.closest('tr');
+  const modelSel = tr.querySelector('.model-cell');
+  const oldRowKey = orderSel.dataset.rowKey;
+
+  // 获取新订单关联的型号
+  const models = _state.workOrderModels[String(newOrderId)] || [];
+
+  // 更新型号下拉
+  if (models.length > 0) {
+    modelSel.innerHTML = '<option value="">--选择型号--</option>' +
+      models.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('');
+    // 自动选中第一个型号
+    modelSel.value = models[0].id;
+    // 更新 data-row-key
+    modelSel.dataset.rowKey = `${newOrderId}|${models[0].id}`;
+    orderSel.dataset.rowKey = `${newOrderId}|${models[0].id}`;
+    modelSel.dataset.origModel = models[0].id;
+  } else {
+    modelSel.innerHTML = '<option value="">--无型号--</option>';
+    modelSel.value = '';
+    modelSel.dataset.rowKey = `${newOrderId}|`;
+    orderSel.dataset.rowKey = `${newOrderId}|`;
+    modelSel.dataset.origModel = '';
+  }
+
+  // 清除该行旧的所有单元格数据
+  for (const key of Object.keys(_dirtyCells)) {
+    if (key.startsWith(oldRowKey)) delete _dirtyCells[key];
+  }
+
+  // 选中型号后触发保存逻辑
+  if (modelSel.value) {
+    onModelCellChange(modelSel);
+  }
+}
+
+// 型号单元格变更
+function onModelCellChange(modelSel) {
+  const tr = modelSel.closest('tr');
+  const orderSel = tr.querySelector('.order-cell');
+  const orderId = parseInt(orderSel.value);
+  const modelId = parseInt(modelSel.value);
+  const oldRowKey = orderSel.dataset.rowKey;
+  const newRowKey = `${orderId}|${modelId}`;
+
+  // 更新 row-key
+  orderSel.dataset.rowKey = newRowKey;
+  modelSel.dataset.rowKey = newRowKey;
+
+  // 清除该行旧的所有单元格数据
+  for (const key of Object.keys(_dirtyCells)) {
+    if (key.startsWith(oldRowKey)) delete _dirtyCells[key];
+  }
+
+  renderSpreadsheet();
+}
+
 function onRowHeaderChange(el) {
   const rowKey = el.dataset.rowKey;
   if (!rowKey) return;
@@ -2914,11 +3035,15 @@ function onRowHeaderChange(el) {
 }
 
 function addWorkRow() {
-  const orderId = parseInt(document.getElementById('workOrderSelect').value);
-  const modelId = parseInt(document.getElementById('workModelSelect').value);
-  if (!orderId) return toast('请先选择订单', 'error');
-  if (!modelId) return toast('请先选择型号', 'error');
-  _dirtyCells[`${orderId}|${modelId}|`] = 0;
+  // 直接添加一行空行（不依赖顶部选择器）
+  const orders = _state.workOrders;
+  if (!orders.length) return toast('请先在订单管理中添加订单', 'error');
+  // 用第一个订单的第一型号作为默认值
+  const firstOrderId = orders[0].id;
+  const models = _state.workOrderModels[String(firstOrderId)] || [];
+  const firstModelId = models.length > 0 ? models[0].id : '';
+  const rowKey = `${firstOrderId}|${firstModelId}`;
+  _dirtyCells[rowKey] = 0;
   renderSpreadsheet();
 }
 
