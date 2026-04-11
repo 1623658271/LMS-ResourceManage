@@ -2743,6 +2743,7 @@ async function loadWorkRecords() {
   _state.workOrderModels = data.order_models || {};
   _state.workRecords = data.records || [];
   _dirtyCells = {};
+  _deletedRowKeys = new Set(); // 重置删除状态
   _state.wageDetail = null;
 
   // 填充订单下拉
@@ -2797,18 +2798,21 @@ function renderSpreadsheet() {
   }
 
 
-  // 行（订单+型号）
+  // 行（订单+型号），跳过已删除的行
   const rows = [];
   const seenKeys = new Set();
   for (const key of Object.keys(_dirtyCells)) {
     const parts = key.split('|');
     if (parts.length === 3 && !seenKeys.has(key)) {
+      const rowKey = `${parts[0]}|${parts[1]}`;
+      if (_deletedRowKeys.has(rowKey)) continue; // 跳过已删除的行
       seenKeys.add(key);
       rows.push({ order_id: parseInt(parts[0]), model_id: parseInt(parts[1]) });
     }
   }
   for (const r of records) {
     const key = `${r.order_id}|${r.model_id}`;
+    if (_deletedRowKeys.has(key)) continue; // 跳过已删除的行
     if (!seenKeys.has(key)) { seenKeys.add(key); rows.push({ order_id: r.order_id, model_id: r.model_id }); }
   }
   // 添加虚拟行（未选择订单/型号的空行）
@@ -3102,6 +3106,8 @@ function onRowHeaderChange(el) {
 
 // 虚拟行ID计数器（用于标识未选择订单/型号的空行）
 let _tempRowCounter = 0;
+// 已删除行集合（存储已删除的 orderId|modelId 组合），用于防止重新加载时出现
+let _deletedRowKeys = new Set();
 
 function addWorkRow() {
   // 直接添加一行空行，用虚拟ID标识（不依赖顶部选择器）
@@ -3118,7 +3124,9 @@ function deleteTempRow(tempId) {
 }
 
 function deleteWorkRow(orderId, modelId) {
-  // 删除整行（删除该 orderId|modelId 开头的所有单元格）
+  // 删除整行（标记为已删除，并清除对应的单元格数据）
+  const rowKey = `${orderId}|${modelId}`;
+  _deletedRowKeys.add(rowKey);
   const prefix = `${orderId}|${modelId}|`;
   for (const key of Object.keys(_dirtyCells)) {
     if (key.startsWith(prefix)) delete _dirtyCells[key];
