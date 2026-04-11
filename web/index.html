@@ -674,7 +674,7 @@ tr:hover td { background: #f8fafc; }
 .model-tag.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
 
 /* ============================================================
-   做货编辑 / 工资明细 - Excel 风格表格
+   做货编辑 / 工资明细 - 浅白风格表格（与型号单价表一致）
    ============================================================ */
 .work-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
 
@@ -685,28 +685,27 @@ tr:hover td { background: #f8fafc; }
 .spreadsheet { border-collapse: collapse; font-size: 12px; min-width: 100%; }
 .spreadsheet th {
   position: sticky; top: 0;
-  background: #1e293b; color: #e2e8f0;
-  padding: 7px 9px; border: 1px solid #334155;
-  text-align: center; font-weight: 500;
+  background: #f8fafc; color: var(--text-muted); font-weight: 500;
+  text-align: center; padding: 8px 11px; border-bottom: 2px solid var(--border);
   z-index: 10; white-space: nowrap;
   min-width: 70px; user-select: none;
 }
 .spreadsheet th.col-fixed {
   position: sticky; left: 0; z-index: 21;
-  background: #0f172a; min-width: 100px;
+  background: #f8fafc; min-width: 100px;
 }
 .spreadsheet th.col-fixed-2 {
   position: sticky; left: 100px; z-index: 21;
-  background: #0f172a; min-width: 90px;
+  background: #f8fafc; min-width: 90px;
 }
-.spreadsheet td { border: 1px solid var(--border); padding: 0; text-align: center; height: var(--table-row-height); }
+.spreadsheet td { border: 1px solid var(--border); padding: 0; text-align: center; height: var(--table-row-height); vertical-align: middle; }
 .spreadsheet td.col-fixed {
   position: sticky; left: 0; background: var(--card-bg); z-index: 7;
-  text-align: left; font-weight: 500; color: var(--text);
+  text-align: left; font-weight: 500; color: #000;
 }
 .spreadsheet td.col-fixed-2 {
-  position: sticky; left: 100px; background: var(--bg); z-index: 6;
-  text-align: left; color: var(--primary-dark);
+  position: sticky; left: 100px; background: var(--card-bg); z-index: 6;
+  text-align: left; color: var(--text);
 }
 
 .cell-input {
@@ -741,9 +740,9 @@ tr:hover td { background: #f8fafc; }
 .row-total.wage { background: #dcfce7 !important; color: #15803d; }
 
 .spreadsheet tbody tr:nth-child(even) td { background: #fafbfc; }
-.spreadsheet tbody tr:hover td { background: #f0f7ff !important; }
-.spreadsheet tbody tr:hover td.col-fixed { background: #e0effe !important; }
-.spreadsheet tbody tr:hover td.col-fixed-2 { background: #dbeafe !important; }
+.spreadsheet tbody tr:hover td { background: #f8fafc !important; }
+.spreadsheet tbody tr:hover td.col-fixed { background: #f1f5f9 !important; }
+.spreadsheet tbody tr:hover td.col-fixed-2 { background: #f1f5f9 !important; }
 
 /* 分组表格标签 */
 .table-group-label {
@@ -2827,7 +2826,7 @@ function renderSpreadsheet() {
       <th class="col-fixed" style="min-width:100px;${isOnlyGroup?'left:0;z-index:21;':''}">订单号</th>
       <th class="col-fixed-2" style="min-width:90px;${isOnlyGroup?'left:100px;z-index:21;':''}">型号</th>
       ${groupEmps.map(e => `<th style="min-width:70px;">
-        <span class="member-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
+        <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
       <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${isOnlyGroup?'left:0;z-index:21;':''}">行合计</th>
     </tr></thead>`;
@@ -3039,13 +3038,18 @@ function onRowHeaderChange(el) {
 
 function addWorkRow() {
   // 直接添加一行空行（不依赖顶部选择器）
-  // 订单和型号可以为空，保存时会跳过
   const orders = _state.workOrders || [];
   const firstOrderId = orders.length > 0 ? orders[0].id : '';
   const models = firstOrderId ? (_state.workOrderModels[String(firstOrderId)] || []) : [];
   const firstModelId = models.length > 0 ? models[0].id : '';
-  const rowKey = `${firstOrderId}|${firstModelId}`;
-  _dirtyCells[rowKey] = 0;
+  // 为每个员工初始化一个格子（key格式：orderId|modelId|empId）
+  const emps = _state.workEmployees || [];
+  for (const emp of emps) {
+    const key = `${firstOrderId}|${firstModelId}|${emp.id}`;
+    if (_dirtyCells[key] === undefined) {
+      _dirtyCells[key] = 0;
+    }
+  }
   renderSpreadsheet();
 }
 
@@ -3282,12 +3286,12 @@ function renderQcSpreadsheet() {
   // 构建单张分组表格
   function buildGroupTable(groupIdx, groupEmps, isOnlyGroup) {
     const headerHtml = `<thead><tr>
-      <th class="col-fixed" style="min-width:110px;background:#0f172a;z-index:21;${!isOnlyGroup?'left:0;':''}">型号</th>
-      ${groupEmps.map(e => `<th style="min-width:80px;background:#1e293b;color:#e2e8f0;position:sticky;top:0;z-index:10;">
-        <span class="member-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
+      <th class="col-fixed" style="min-width:110px;z-index:21;${!isOnlyGroup?'left:0;':''}">型号</th>
+      ${groupEmps.map(e => `<th style="min-width:80px;position:sticky;top:0;z-index:10;">
+        <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
       <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;position:sticky;top:0;z-index:10;${!isOnlyGroup?'left:0;':''}">行合计(¥)</th>
-      <th class="col-fixed" style="background:#334155;color:#e2e8f0;min-width:60px;position:sticky;top:0;z-index:10;${!isOnlyGroup?'left:0;':''}">操作</th>
+      <th class="col-fixed" style="min-width:60px;position:sticky;top:0;z-index:10;${!isOnlyGroup?'left:0;':''}">操作</th>
     </tr></thead>`;
 
     let tbodyHtml = '<tbody>';
@@ -3325,8 +3329,8 @@ function renderQcSpreadsheet() {
       const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
 
       tbodyHtml += `<tr>
-        <td class="col-fixed" style="background:#f1f5f9;text-align:left;padding:4px 6px;${!isOnlyGroup?'left:0;z-index:7;':''}">
-          <select class="cell-input model-cell" style="font-weight:700;font-size:12px;padding:5px 6px;min-width:80px;"
+        <td class="col-fixed" style="text-align:left;padding:4px 6px;${!isOnlyGroup?'left:0;z-index:7;':''}">
+          <select class="cell-input model-cell" style="font-weight:600;font-size:12px;padding:5px 6px;min-width:80px;"
             data-row="${rowIdx}" onchange="onQcModelChange(this)">
             ${modelOptions}
           </select>
