@@ -58,10 +58,10 @@ let _undoStack = [];      // 撤销栈
 let _redoStack = [];      // 重做栈
 const MAX_HISTORY = 50;   // 最大历史记录数
 
-// 保存当前状态到历史栈
+// 保存当前状态到历史栈（自动去重）
 function pushHistory(type) {
   let snapshot = null;
-  
+
   if (type === 'work-edit') {
     // 做货编辑：保存行映射数据（从 work-edit.js 获取）
     if (typeof _weRowMap !== 'undefined') {
@@ -80,17 +80,27 @@ function pushHistory(type) {
       timestamp: Date.now()
     };
   }
-  
-  if (snapshot) {
-    _undoStack.push(snapshot);
-    // 限制历史记录数量
-    if (_undoStack.length > MAX_HISTORY) {
-      _undoStack.shift();
+
+  if (!snapshot) return;
+
+  // 去重：如果与上一个状态相同，则不保存
+  const lastSnapshot = _undoStack.length > 0 ? _undoStack[_undoStack.length - 1] : null;
+  if (lastSnapshot && lastSnapshot.type === snapshot.type) {
+    const lastJson = JSON.stringify(lastSnapshot.weRowMap || { rows: lastSnapshot.qcDeptRows, qty: lastSnapshot.qtyData });
+    const currentJson = JSON.stringify(snapshot.weRowMap || { rows: snapshot.qcDeptRows, qty: snapshot.qtyData });
+    if (lastJson === currentJson) {
+      return; // 状态未变化，跳过
     }
-    // 清空重做栈（新操作后重做栈失效）
-    _redoStack = [];
-    updateUndoRedoButtons();
   }
+
+  _undoStack.push(snapshot);
+  // 限制历史记录数量
+  if (_undoStack.length > MAX_HISTORY) {
+    _undoStack.shift();
+  }
+  // 清空重做栈（新操作后重做栈失效）
+  _redoStack = [];
+  updateUndoRedoButtons();
 }
 
 // 撤销操作
