@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="启用快捷计算作为成员真实工资的成员详情页面适配" />
+    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="启用快捷计算作为成员真实工资的成员详情页面适配">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data.db" beforeDir="false" afterPath="$PROJECT_DIR$/data.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/js/quick-calc.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/quick-calc.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/js/state.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/state.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/js/work-edit.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/work-edit.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />

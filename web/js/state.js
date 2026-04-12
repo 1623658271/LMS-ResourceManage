@@ -94,7 +94,7 @@ function pushHistory(type) {
 }
 
 // 撤销操作
-function undo() {
+async function undo() {
   if (_undoStack.length === 0) return;
   
   const currentSnapshot = _undoStack.pop();
@@ -120,12 +120,12 @@ function undo() {
   _redoStack.push(redoSnapshot);
   
   // 恢复到历史状态
-  restoreSnapshot(currentSnapshot);
+  await restoreSnapshot(currentSnapshot);
   updateUndoRedoButtons();
 }
 
 // 重做操作
-function redo() {
+async function redo() {
   if (_redoStack.length === 0) return;
   
   const redoSnapshot = _redoStack.pop();
@@ -151,21 +151,31 @@ function redo() {
   _undoStack.push(currentSnapshot);
   
   // 恢复到重做状态
-  restoreSnapshot(redoSnapshot);
+  await restoreSnapshot(redoSnapshot);
   updateUndoRedoButtons();
 }
 
 // 恢复快照
-function restoreSnapshot(snapshot) {
+async function restoreSnapshot(snapshot) {
   if (snapshot.type === 'work-edit') {
-    if (typeof _weRowMap !== 'undefined' && typeof renderWorkTable === 'function') {
+    if (typeof _weRowMap !== 'undefined' && typeof renderSpreadsheet === 'function') {
       _weRowMap = JSON.parse(JSON.stringify(snapshot.weRowMap));
-      renderWorkTable();
+      renderSpreadsheet();
+      // 撤销/重做后自动保存到数据库
+      if (typeof autoSaveWorkRecords === 'function') {
+        await autoSaveWorkRecords();
+      }
     }
   } else if (snapshot.type === 'quick-calc') {
-    _qcDeptRows = JSON.parse(JSON.stringify(snapshot.qcDeptRows));
-    _qcState.qtyData = JSON.parse(JSON.stringify(snapshot.qtyData));
-    renderQcDeptTables();
+    if (typeof _qcDeptRows !== 'undefined' && typeof renderQcDeptTables === 'function') {
+      _qcDeptRows = JSON.parse(JSON.stringify(snapshot.qcDeptRows));
+      _qcState.qtyData = JSON.parse(JSON.stringify(snapshot.qtyData));
+      renderQcDeptTables();
+      // 撤销/重做后自动保存到数据库
+      if (typeof autoSaveQc === 'function') {
+        await autoSaveQc();
+      }
+    }
   }
 }
 
@@ -204,16 +214,16 @@ function clearHistory() {
 }
 
 // 键盘快捷键监听
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', async (e) => {
   // Ctrl+Z 撤销
   if (e.ctrlKey && e.key === 'z' && !e.shiftKey) {
     e.preventDefault();
-    undo();
+    await undo();
   }
   // Ctrl+Y 重做 或 Ctrl+Shift+Z 重做
   if ((e.ctrlKey && e.key === 'y') || (e.ctrlKey && e.shiftKey && e.key === 'z')) {
     e.preventDefault();
-    redo();
+    await redo();
   }
 });
 

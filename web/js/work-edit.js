@@ -64,6 +64,10 @@ async function loadWorkRecords() {
     _state.wageDetail = null;
   }
 
+  // 保存初始状态到历史栈（清空之前的历史）
+  clearHistory();
+  pushHistory('work-edit');
+
   renderSpreadsheet();
 }
 
@@ -265,7 +269,8 @@ function onWorkCellBlur(el) {
 }
 
 // ─────────────────────────────────────────────────────────
-// onWorkCellChange：单元格输入 → 实时更新显示，但不保存历史
+// onWorkCellChange：单元格输入 → 实时更新显示并保存历史
+// - 每次输入都保存历史（按输入撤销）
 // - 空值视为0存入emps（不删除key，下次渲染显示0）
 // - 显式填0 → 存入0
 // - 非0值 → 存入该值，格子变浅蓝色
@@ -279,7 +284,7 @@ function onWorkCellChange(el) {
 
   if (!_weRowMap[mapKey]) return;
 
-  // 保存历史记录（每次输入都保存，实现暴力撤销）
+  // 每次输入都保存历史（按输入撤销）
   pushHistory('work-edit');
 
   if (val === 0) {
@@ -337,15 +342,14 @@ async function onWorkSelectChange(sel) {
 
   if (newOrderId === oldOrderId && newModelId === oldModelId) return;
 
-  // 保存历史记录（选择变化前）
-  pushHistory('work-edit');
-
   const year = _state.currentYear;
   const month = _state.currentMonth;
   const oldLineId = rowData.lineId;
 
   // 回到"请选择"：只更新状态，保留 lineId（旧 DB 记录不删）
   if (newOrderId === 0 || newModelId === 0) {
+    // 保存历史记录（修改前保存）
+    pushHistory('work-edit');
     rowData.orderId = newOrderId;
     rowData.modelId = newModelId;
     renderSpreadsheet();
@@ -375,6 +379,9 @@ async function onWorkSelectChange(sel) {
     delete _weRowMap[mapKey];
   }
 
+  // 保存历史记录（修改后保存，确保 key 一致）
+  pushHistory('work-edit');
+
   // emps 保留（用户可能已填了对数）
   renderSpreadsheet();
   autoSaveWorkRecords();
@@ -384,9 +391,6 @@ async function onWorkSelectChange(sel) {
 // addWorkRow：新增一行（分配 lineId = ++_weMaxLineId，排在最前）
 // ─────────────────────────────────────────────────────────
 function addWorkRow() {
-  // 保存历史记录（添加行前）
-  pushHistory('work-edit');
-
   const orders = _state.workOrders || [];
   const models = _state.workModels || [];
   const newLineId = ++_weMaxLineId;
@@ -421,6 +425,9 @@ function addWorkRow() {
     }).catch(e => console.error('保存新行失败', e));
   }
 
+  // 保存历史记录（添加行后保存，确保包含新行）
+  pushHistory('work-edit');
+
   renderSpreadsheet();
 
   setTimeout(() => {
@@ -438,12 +445,13 @@ async function deleteWorkRow(rowId) {
   const rowData = _weRowMap[rowId];
   if (!rowData) return;
 
-  // 保存历史记录（删除行前）
-  pushHistory('work-edit');
-
   const { orderId, modelId, lineId } = rowData;
 
   delete _weRowMap[rowId];
+
+  // 保存历史记录（删除行后保存，确保不包含已删除的行）
+  pushHistory('work-edit');
+
   renderSpreadsheet();
 
   if (lineId > 0) {
@@ -541,13 +549,45 @@ async function toggleViewMode() {
 // autoSaveWorkRecords：自动保存每条记录
 // - qty >= 0：保存到 DB（包括 0 值）
 // - qty < 0 或 combo 未完成：不保存（也不删）
+// - 对于撤销操作，需要先获取当前数据库中的所有记录，删除不在 _weRowMap 中的行
 // ─────────────────────────────────────────────────────────
 async function autoSaveWorkRecords() {
   const year = _state.currentYear;
   const month = _state.currentMonth;
   if (!year || !month) return;
 
-  for (const [rowId, rowData] of Object.entries(_weRowMap)) {
+  // 先获取当前数据库中的所有记录
+  let dbRecords = [];
+  try {
+    const data = await get(`/api/work-records?year=${year}&month=${month}`);
+    dbRecords = data.records || [];
+  } catch (e) {
+    console.error('获取现有记录失败', e);
+  }
+
+  // 构建当前 _weRowMap 中的所有行标识
+  const currentRowKeys = new Set();
+  for (const [rowKey, rowData] of Object.entries(_weRowMap)) {
+    const { orderId, modelId, lineId } = rowData;
+    if (lineId > 0) {
+      currentRowKeys.add(`${orderId},${modelId},${lineId}`);
+    }
+  }
+
+  // 删除数据库中不在当前 _weRowMap 中的行（撤销删除行时需要）
+  for (const r of dbRecords) {
+    const dbKey = `${r.order_id},${r.model_id},${r.line_id || 0}`;
+    if (!currentRowKeys.has(dbKey)) {
+      try {
+        await del(`/api/work-row?year=${year}&month=${month}&order_id=${r.order_id}&model_id=${r.model_id}&line_id=${r.line_id || 0}`);
+      } catch (e) {
+        console.error('删除旧记录失败', e);
+      }
+    }
+  }
+
+  // 保存当前 _weRowMap 中的所有记录
+  for (const [rowKey, rowData] of Object.entries(_weRowMap)) {
     const { orderId, modelId, lineId, emps } = rowData;
     // 订单未选：跳过；型号未选(modelId=0)：正常保存（允许未知型号）
 

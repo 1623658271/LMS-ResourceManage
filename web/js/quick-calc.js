@@ -48,6 +48,10 @@ async function initQuickCalc() {
     btn.style.color = '#92400e';
   }
 
+  // 保存初始状态到历史栈（清空之前的历史）
+  clearHistory();
+  pushHistory('quick-calc');
+
   renderQcDeptTables();
 }
 
@@ -228,8 +232,7 @@ function onQcCellFocus(el, type) {
       type: 'quick-calc-price',
       rowKey: rowKey,
       subId: subId,
-      originalValue: currentVal,
-      hasPushedHistory: false
+      originalValue: currentVal
     };
   } else if (type === 'qty') {
     const qtyKey = el.dataset.key;
@@ -238,8 +241,7 @@ function onQcCellFocus(el, type) {
     _editSession = {
       type: 'quick-calc-qty',
       qtyKey: qtyKey,
-      originalValue: currentVal,
-      hasPushedHistory: false
+      originalValue: currentVal
     };
   }
   
@@ -251,27 +253,10 @@ function onQcCellFocus(el, type) {
 
 // ---- 单元格失去焦点 ----
 function onQcCellBlur(el, type) {
-  if (!_editSession) return;
-  
-  let val = 0;
-  let hasChanged = false;
-  
-  if (type === 'price') {
-    const rowKey = el.dataset.rowKey;
-    const subId = parseInt(el.dataset.subId);
-    val = parseFloat(el.value) || 0;
-    hasChanged = val !== _editSession.originalValue;
-  } else if (type === 'qty') {
-    val = parseInt(el.value) || 0;
-    hasChanged = val !== _editSession.originalValue;
-  }
-  
-  // 值变化时保存历史（每个单元格只保存一次）
-  if (hasChanged) {
-    pushHistory('quick-calc');
-  }
-  
   _editSession = null;
+  
+  const rawVal = el.value.trim();
+  const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
   
   // 如果值为0，显示0
   if (val === 0) {
@@ -287,7 +272,8 @@ function onQcPriceInput(el) {
 
   if (!_qcDeptRows[rowKey]) return;
 
-  // 不再在每次输入时保存历史，改为在 blur 时保存
+  // 每次输入都保存历史（按输入撤销）
+  pushHistory('quick-calc');
 
   if (val === 0) {
     _qcDeptRows[rowKey][subId] = 0;
@@ -335,7 +321,8 @@ function onQcQtyInput(el) {
   const val = parseInt(el.value) || 0;
   const rowKey = el.dataset.rowKey;
 
-  // 不再在每次输入时保存历史，改为在 blur 时保存
+  // 每次输入都保存历史（按输入撤销）
+  pushHistory('quick-calc');
 
   if (val === 0) {
     delete _qcState.qtyData[key];
@@ -448,6 +435,10 @@ function addQcDeptRow(deptId) {
     row[sub.id] = 0;
   }
   _qcDeptRows[rowKey] = row;
+
+  // 保存历史记录（添加行后保存，确保包含新行）
+  pushHistory('quick-calc');
+
   renderQcDeptTables();
 }
 
@@ -467,6 +458,8 @@ function removeQcDeptRow(rowKey) {
     for (const sub of deptSubs) {
       row[sub.id] = 0;
     }
+    // 保存历史记录（清空行后保存）
+    pushHistory('quick-calc');
     renderQcDeptTables();
     return;
   }
@@ -478,6 +471,10 @@ function removeQcDeptRow(rowKey) {
   }
 
   delete _qcDeptRows[rowKey];
+
+  // 保存历史记录（删除行后保存，确保不包含已删除的行）
+  pushHistory('quick-calc');
+
   renderQcDeptTables();
   saveQcState();
 }
