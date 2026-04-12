@@ -236,9 +236,6 @@ function onWorkCellFocus(el) {
   const empId = parseInt(el.dataset.emp);
   const currentVal = _weRowMap[mapKey]?.emps[empId] || 0;
 
-  // 保存历史记录（修改前的状态）
-  pushHistory('work-edit');
-
   _editSession = {
     type: 'work-edit',
     mapKey: mapKey,
@@ -256,10 +253,15 @@ function onWorkCellFocus(el) {
 // onWorkCellBlur：单元格失去焦点 → 结束编辑会话
 // ─────────────────────────────────────────────────────────
 function onWorkCellBlur(el) {
-  _editSession = null;
-
   const rawVal = el.value.trim();
   const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
+
+  // 如果值真的变化了，保存历史记录
+  if (_editSession && val !== _editSession.originalValue) {
+    pushHistory('work-edit');
+  }
+
+  _editSession = null;
 
   // 如果值为0，显示0
   if (val === 0) {
