@@ -280,7 +280,7 @@ function onOrderCellChange(orderSel) {
     const modelSel = tr.querySelector('.model-cell');
     const modelId = parseInt(modelSel ? modelSel.value : 0);
     for (const emp of emps) {
-      delete _dirtyCells[`${newOrderId},${modelId},${emp.id}`];
+      delete _dirtyCells[`${newOrderId}|${modelId}|${emp.id}`];
     }
     // 触发自动保存
     autoSaveWorkRecords();
@@ -373,10 +373,10 @@ function deleteTempRow(tempId) {
   const row = tRows.find(r => r.tempId === tempId);
   if (!row) return;
   const { orderId, modelId } = row;
-  // 清除该行所有员工的格子数据
+  // 清除该行所有员工的格子数据（使用管道符格式）
   const emps = _state.workEmployees || [];
   for (const emp of emps) {
-    delete _dirtyCells[`${orderId},${modelId},${emp.id}`];
+    delete _dirtyCells[`${orderId}|${modelId}|${emp.id}`];
   }
   _state.tempWorkRows = tRows.filter(r => r.tempId !== tempId);
   renderSpreadsheet();
