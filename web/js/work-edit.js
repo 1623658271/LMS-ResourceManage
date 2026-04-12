@@ -242,6 +242,12 @@ function onWorkCellChange(el) {
 
   if (!_weRowMap[mapKey]) return;
 
+  // 保存历史记录（首次编辑或值变化时）
+  const oldVal = _weRowMap[mapKey].emps[empId] || 0;
+  if (val !== oldVal) {
+    pushHistory('work-edit');
+  }
+
   if (val === 0) {
     // 空值或显式0：存入0（下次渲染显示0），不清key，颜色保持默认
     _weRowMap[mapKey].emps[empId] = 0;

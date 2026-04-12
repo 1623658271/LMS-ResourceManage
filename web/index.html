@@ -251,6 +251,8 @@
               添加行
             </button>
             <button class="btn btn-secondary btn-sm" onclick="loadWorkRecords()">刷新</button>
+            <button class="btn btn-sm" id="undoBtnWork" style="background:#e0e7ff;color:#3730a3;" onclick="undo()" disabled>↩ 撤销</button>
+            <button class="btn btn-sm" id="redoBtnWork" style="background:#e0e7ff;color:#3730a3;" onclick="redo()" disabled>↪ 重做</button>
             <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
               <button class="btn btn-sm" id="viewModeBtn" onclick="toggleViewMode()" style="background:#fef3c7;color:#92400e;">
                 切换工资视角
@@ -633,6 +635,8 @@
             <button class="btn btn-primary btn-sm" id="qcSaveBtn" onclick="saveQcState()">💾 保存</button>
             <button class="btn btn-sm" style="background:#f1f5f9;color:#475569;" onclick="clearQcInputs()">清空对数</button>
             <button class="btn btn-sm" style="background:#f1f5f9;color:#475569;" onclick="clearQcPrices()">清空单价</button>
+            <button class="btn btn-sm" id="undoBtn" style="background:#e0e7ff;color:#3730a3;" onclick="undo()" disabled>↩ 撤销</button>
+            <button class="btn btn-sm" id="redoBtn" style="background:#e0e7ff;color:#3730a3;" onclick="redo()" disabled>↪ 重做</button>
             <div style="display:flex;gap:6px;align-items:center;">
               <button class="btn btn-sm" id="qcViewModeBtn" onclick="qcToggleViewMode()" style="background:#fef3c7;color:#92400e;">切换工资视角</button>
             </div>

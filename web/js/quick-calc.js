@@ -221,6 +221,12 @@ function onQcPriceInput(el) {
 
   if (!_qcDeptRows[rowKey]) return;
 
+  // 保存历史记录（值变化时）
+  const oldVal = _qcDeptRows[rowKey][subId] || 0;
+  if (val !== oldVal) {
+    pushHistory('quick-calc');
+  }
+
   if (val === 0) {
     _qcDeptRows[rowKey][subId] = 0;
     el.style.background = '';
@@ -266,6 +272,12 @@ function onQcQtyInput(el) {
   if (!key) return;
   const val = parseInt(el.value) || 0;
   const rowKey = el.dataset.rowKey;
+
+  // 保存历史记录（值变化时）
+  const oldVal = _qcState.qtyData[key] || 0;
+  if (val !== oldVal) {
+    pushHistory('quick-calc');
+  }
 
   if (val === 0) {
     delete _qcState.qtyData[key];
