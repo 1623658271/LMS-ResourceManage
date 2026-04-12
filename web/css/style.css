@@ -666,7 +666,7 @@ tr:hover td { background: #f8fafc; }
 /* ============================================================
    型号单价表
    ============================================================ */
-.price-table-wrap { overflow: auto; max-height: calc(100vh - 240px); }
+.price-table-wrap { overflow: auto; }
 
 /* ============================================================
    订单管理
@@ -690,10 +690,21 @@ tr:hover td { background: #f8fafc; }
 /* ============================================================
    做货编辑 / 工资明细 - 浅白风格表格（与型号单价表一致）
    ============================================================ */
-.work-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.work-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--card-bg);
+  padding: 10px 0;
+}
 
 .spreadsheet-wrap {
-  overflow: auto; max-height: calc(100vh - 290px);
+  overflow: auto;
   border: 1px solid var(--border); border-radius: var(--radius); background: #fff;
 }
 .spreadsheet { border-collapse: collapse; font-size: 12px; min-width: 100%; }
@@ -769,7 +780,7 @@ tr:hover td { background: #f8fafc; }
 }
 /* 最后一个分组表格无底部边框 */
 .table-group-wrap { margin-bottom: 12px; }
-.single-scroll-wrap { overflow-x: auto; max-height: 70vh; }
+.single-scroll-wrap { overflow-x: auto; }
 .single-table-mode { min-width: max-content; }
 /* 工资格紧凑显示（数字过长时缩小字号） */
 .cell-input.wage-cell-display { font-size: 11px; }
@@ -790,12 +801,12 @@ tr:hover td { background: #f8fafc; }
    快捷计算 - 按大部门分组的表格
    ============================================================ */
 .quick-calc-wrap {
-  display: flex; gap: 14px; height: calc(100vh - 200px);
+  display: flex; gap: 14px;
 }
 .quick-calc-models {
   width: 200px; flex-shrink: 0;
   background: var(--card-bg); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 12px; overflow-y: auto;
+  border-radius: var(--radius); padding: 12px;
 }
 .quick-calc-models h4 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
 .model-calc-item {
@@ -836,7 +847,6 @@ tr:hover td { background: #f8fafc; }
 }
 .qc-dept-emps::before { content: '成员：'; color: #94a3b8; font-weight: 500; }
 .qc-dept-table-wrap {
-  max-height: 60vh;
   overflow: auto;
 }
 

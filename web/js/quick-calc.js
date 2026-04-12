@@ -99,8 +99,9 @@ function renderQcDeptTables() {
     } else {
       html += `<div class="spreadsheet-wrap qc-dept-table-wrap"><table class="spreadsheet${isWage ? ' wage-view' : ''}">`;
 
-      // 表头 - 只有单价列和成员列，没有型号列
+      // 表头 - 只有单价列和成员列，没有型号列，操作列在最左边
       html += '<thead><tr>';
+      html += `<th style="min-width:60px;background:#059669;color:#fff;position:sticky;top:0;z-index:10;text-align:center;">操作</th>`;
       for (const sub of deptSubs) {
         html += `<th style="min-width:75px;background:#d1fae5;color:#065f46;position:sticky;top:0;z-index:10;text-align:center;">
           ${escHtml(sub.name)}<br><span style="font-size:10px;font-weight:400;color:#6b7280;">单价</span>
@@ -113,7 +114,6 @@ function renderQcDeptTables() {
         </th>`;
       }
       html += `<th style="min-width:70px;background:#fef9c3;color:#92400e;position:sticky;top:0;z-index:10;text-align:center;">行合计</th>`;
-      html += `<th style="min-width:60px;position:sticky;top:0;z-index:10;text-align:center;">操作</th>`;
       html += '</tr></thead>';
 
       // 表体
@@ -134,6 +134,11 @@ function renderQcDeptTables() {
         const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
 
         html += '<tr>';
+
+        // 操作列（删除按钮）- 移到最左边
+        html += `<td style="text-align:center;">
+          <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;" onclick="removeQcDeptRow('${escHtml(rowKey)}')">删除</button>
+        </td>`;
 
         // 各小部门单价列（纯手动输入）
         for (const sub of deptSubs) {
@@ -172,9 +177,12 @@ function renderQcDeptTables() {
                 title="${qty > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
             </td>`;
           } else {
+            // 非0值 → 浅蓝色；0值或空值 → 默认颜色
+            const hasQty = qty > 0;
+            const bgStyle = hasQty ? 'background:#bfdbfe;' : '';
             html += `<td class="emp-cell" style="text-align:center;">
               <input type="number" min="0" class="cell-input qc-qty-input"
-                style="width:65px;text-align:center;"
+                style="width:65px;text-align:center;${bgStyle}"
                 value="${qty || ''}" placeholder="0"
                 data-key="${qtyKey}"
                 data-row-key="${escHtml(rowKey)}"
@@ -191,10 +199,6 @@ function renderQcDeptTables() {
         // 行合计
         html += `<td class="row-total-display${isWage ? ' wage' : ''}${rowCompact}" style="background:#fef9c3;font-weight:700;color:#92400e;text-align:center;">${rowDisplay}</td>`;
 
-        // 操作
-        html += `<td style="text-align:center;">
-          <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;" onclick="removeQcDeptRow('${escHtml(rowKey)}')">删除</button>
-        </td>`;
         html += '</tr>';
       }
       html += '</tbody></table></div>';
@@ -351,10 +355,10 @@ function onQcQtyInput(el) {
   // 实时更新显示，但不保存历史
   if (val === 0) {
     delete _qcState.qtyData[key];
-    el.style.background = '';
+    el.style.background = '';  // 0值恢复默认颜色
   } else {
     _qcState.qtyData[key] = val;
-    el.style.background = '#fef9c3';
+    el.style.background = '#bfdbfe';  // 非0值浅蓝色（与做货编辑一致）
   }
 
   updateDeptRowTotals(rowKey);
