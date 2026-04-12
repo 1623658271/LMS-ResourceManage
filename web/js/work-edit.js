@@ -255,20 +255,20 @@ function onWorkCellFocus(el) {
 // ─────────────────────────────────────────────────────────
 function onWorkCellBlur(el) {
   if (!_editSession) return;
-  
+
   const mapKey = el.dataset.row;
   const empId = parseInt(el.dataset.emp);
   const rawVal = el.value.trim();
   const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
-  
-  // 检查值是否真的变化了
+
+  // 检查值是否真的变化了（与 focus 时的原始值比较）
   if (val !== _editSession.originalValue && !_editSession.hasPushedHistory) {
     pushHistory('work-edit');
     _editSession.hasPushedHistory = true;
   }
-  
+
   _editSession = null;
-  
+
   // 如果值为0，显示0
   if (val === 0) {
     el.value = '0';
