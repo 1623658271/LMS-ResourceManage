@@ -323,7 +323,10 @@ async function onWorkSelectChange(sel) {
   rowData.modelId = newModelId;
 
   // 如果 combo（orderId,modelId）变了，需要把行移到新 key 下（JS 对象不支持 key 重命名）
-  const newKey = `${newOrderId},${newModelId},${rowData.lineId}`;
+  const isNewRow = mapKey.startsWith('new');
+  const newKey = isNewRow
+    ? `new,${newModelId},${rowData.lineId}`  // 新增行 key 格式保持 new 前缀
+    : `${newOrderId},${newModelId},${rowData.lineId}`;
   if (newKey !== mapKey) {
     _weRowMap[newKey] = rowData;
     delete _weRowMap[mapKey];
@@ -344,8 +347,8 @@ function addWorkRow() {
   const rowKey = `new,0,${newLineId}`;
   const numericRowId = _weRowCounter++;
 
-  // 订单默认待选择；型号默认第一个（型号表为空则待选择）
-  const defaultOrderId = 0;
+  // 订单默认"未知"(id=1)；型号默认第一个（型号表为空则待选择）
+  const defaultOrderId = 1;
   const defaultModelId = models.length > 0 ? models[0].id : 0;
 
   _weRowMap[rowKey] = {
@@ -356,6 +359,21 @@ function addWorkRow() {
     lineDbIds: [],
     emps: {}
   };
+
+  // 立即保存一行（用第一个员工的0值作为占位，让行进入数据库）
+  const firstEmp = (_state.workEmployees || [])[0];
+  if (firstEmp) {
+    const empId = firstEmp.id;
+    post('/api/work-records', {
+      year: _state.currentYear,
+      month: _state.currentMonth,
+      order_id: defaultOrderId,
+      model_id: 0,
+      emp_id: empId,
+      quantity: 0,
+      line_id: newLineId
+    }).catch(e => console.error('保存新行失败', e));
+  }
 
   renderSpreadsheet();
 
@@ -482,8 +500,7 @@ async function autoSaveWorkRecords() {
 
   for (const [rowId, rowData] of Object.entries(_weRowMap)) {
     const { orderId, modelId, lineId, emps } = rowData;
-    // 型号未选：不保存（订单未选可以保存）
-    if (modelId === 0) continue;
+    // 订单未选：跳过；型号未选(modelId=0)：正常保存（允许未知型号）
 
     for (const [empId, qty] of Object.entries(emps)) {
       const empNum = parseInt(empId);

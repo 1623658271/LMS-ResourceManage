@@ -72,12 +72,20 @@ def seed():
     print("[seed] 单价设置完成")
 
     # ── 4. 订单 ─────────────────────────────────────────────────────────────
+    # 先插入"未知"订单（id=1），新增行默认归属
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO orders (id, order_no, year, month, remark) VALUES (1, '未知', 0, 0, '新增行默认订单')"
+        )
+    except Exception:
+        pass
+
     orders = [
         ("ORD-001", YEAR, MONTH, "第一批大货", ["A2026", "B2026", "C2026"]),
         ("ORD-002", YEAR, MONTH, "第二批追单", ["C2026", "D2026", "E2026"]),
         ("ORD-003", YEAR, MONTH, "小单",       ["F2026"]),
     ]
-    order_ids = {}
+    order_ids = {"未知": 1}  # 默认已有
     for order_no, year, month, remark, model_nos in orders:
         try:
             oid = conn.execute(

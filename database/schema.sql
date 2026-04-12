@@ -86,18 +86,17 @@ CREATE TABLE IF NOT EXISTS order_models (
 
 -- 做货记录表（每行=某员工在某订单某型号下的做货对数）
 -- line_id：逻辑行号，同 (order_id, model_id) 可以有多行，每行 line_id 递增
+-- order_id/model_id 允许为0（"未知"订单/型号），仅 emp_id 有 FK
 CREATE TABLE IF NOT EXISTS work_records (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year INTEGER NOT NULL,
     month INTEGER NOT NULL,
-    order_id INTEGER NOT NULL,
-    order_no TEXT NOT NULL,
-    model_id INTEGER NOT NULL,
+    order_id INTEGER NOT NULL DEFAULT 1,
+    order_no TEXT NOT NULL DEFAULT '未知',
+    model_id INTEGER NOT NULL DEFAULT 0,
     emp_id INTEGER NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 0,
     line_id INTEGER NOT NULL DEFAULT 0,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
-    FOREIGN KEY (model_id) REFERENCES models(id) ON DELETE CASCADE,
     FOREIGN KEY (emp_id) REFERENCES employees(id) ON DELETE CASCADE,
     UNIQUE(year, month, line_id, order_id, model_id, emp_id)
 );

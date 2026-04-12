@@ -477,7 +477,7 @@ def get_work_records(year: int, month: int):
     rows = conn.execute("""
         SELECT wr.*, m.model_no, e.name AS emp_name, e.sub_dept_id
         FROM work_records wr
-        JOIN models m ON wr.model_id=m.id
+        LEFT JOIN models m ON wr.model_id=m.id
         JOIN employees e ON wr.emp_id=e.id
         WHERE wr.year=? AND wr.month=?
         ORDER BY wr.line_id ASC, wr.id ASC
