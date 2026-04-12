@@ -664,26 +664,20 @@ def delete_price_template(template_id: int):
 
 # ── 快捷计算自动保存 ──────────────────────────────────────
 
-def save_quick_calc(year: int, month: int, qc_model_selects: dict, qty_data: dict,
-                     pt_model_selects: dict, pt_prices: dict):
-    """保存快捷计算主表格+单价编辑的填写状态（按年月覆盖）"""
+def save_quick_calc(year: int, month: int, dept_rows: dict, qty_data: dict):
+    """保存快捷计算大部门分组表格的填写状态（按年月覆盖）"""
     import json
     conn = get_connection()
     conn.execute("""
-        INSERT INTO quick_calc_saves (year, month, qc_model_selects, qty_data,
-                                      pt_model_selects, pt_prices)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO quick_calc_saves (year, month, dept_rows, qty_data)
+        VALUES (?, ?, ?, ?)
         ON CONFLICT(year, month) DO UPDATE SET
-            qc_model_selects = excluded.qc_model_selects,
+            dept_rows = excluded.dept_rows,
             qty_data = excluded.qty_data,
-            pt_model_selects = excluded.pt_model_selects,
-            pt_prices = excluded.pt_prices,
             updated_at = CURRENT_TIMESTAMP
     """, (year, month,
-          json.dumps(qc_model_selects, ensure_ascii=False),
-          json.dumps(qty_data, ensure_ascii=False),
-          json.dumps(pt_model_selects, ensure_ascii=False),
-          json.dumps(pt_prices, ensure_ascii=False)))
+          json.dumps(dept_rows, ensure_ascii=False),
+          json.dumps(qty_data, ensure_ascii=False)))
     conn.commit()
     conn.close()
     return {"ok": True}
@@ -694,8 +688,7 @@ def load_quick_calc(year: int, month: int):
     import json
     conn = get_connection()
     cur = conn.execute(
-        "SELECT qc_model_selects, qty_data, pt_model_selects, pt_prices "
-        "FROM quick_calc_saves WHERE year=? AND month=?",
+        "SELECT dept_rows, qty_data FROM quick_calc_saves WHERE year=? AND month=?",
         (year, month)
     )
     row = cur.fetchone()
@@ -703,10 +696,8 @@ def load_quick_calc(year: int, month: int):
     if not row:
         return None
     return {
-        "qc_model_selects": json.loads(row[0]),
+        "dept_rows": json.loads(row[0]),
         "qty_data": json.loads(row[1]),
-        "pt_model_selects": json.loads(row[2]),
-        "pt_prices": json.loads(row[3]),
     }
 
 

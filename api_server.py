@@ -291,10 +291,8 @@ async def api_save_quick_calc(payload: dict):
     return crud.save_quick_calc(
         year=payload["year"],
         month=payload["month"],
-        qc_model_selects=payload["qc_model_selects"],
-        qty_data=payload["qty_data"],
-        pt_model_selects=payload["pt_model_selects"],
-        pt_prices=payload["pt_prices"],
+        dept_rows=payload.get("dept_rows", {}),
+        qty_data=payload.get("qty_data", {}),
     )
 
 

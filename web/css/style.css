@@ -766,7 +766,7 @@ tr:hover td { background: #f8fafc; }
 .row-add-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
 
 /* ============================================================
-   快捷计算
+   快捷计算 - 按大部门分组的表格
    ============================================================ */
 .quick-calc-wrap {
   display: flex; gap: 14px; height: calc(100vh - 200px);
@@ -788,6 +788,36 @@ tr:hover td { background: #f8fafc; }
   border-radius: 4px; font-size: 12px; margin-bottom: 5px;
 }
 .model-calc-item .mc-sub-prices { font-size: 10px; color: var(--text-muted); }
+
+/* 大部门分区 */
+.qc-dept-section {
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.qc-dept-header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.qc-dept-name {
+  font-size: 15px; font-weight: 700; color: #059669;
+}
+.qc-dept-subs {
+  font-size: 11px; color: #64748b;
+}
+.qc-dept-subs::before { content: '单价：'; color: #94a3b8; font-weight: 500; }
+.qc-dept-emps {
+  font-size: 11px; color: #64748b;
+}
+.qc-dept-emps::before { content: '成员：'; color: #94a3b8; font-weight: 500; }
+.qc-dept-table-wrap {
+  max-height: 60vh;
+  overflow: auto;
+}
 
 /* ============================================================
    单价模板A 表格（与做货编辑样式一致）

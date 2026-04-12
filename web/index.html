@@ -613,38 +613,16 @@
             <div style="display:flex;gap:6px;align-items:center;">
               <button class="btn btn-sm" id="qcViewModeBtn" onclick="qcToggleViewMode()" style="background:#fef3c7;color:#92400e;">切换工资视角</button>
             </div>
-            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-              <select id="qcTemplateSel" style="width:160px;font-size:12px;"><option value="">-- 选择模板 --</option></select>
-              <button class="btn btn-sm" style="background:#f0f9ff;color:#0369a1;" onclick="loadQcTemplate()">加载模板</button>
-              <button class="btn btn-sm btn-danger" id="qcDelTemplateBtn" style="display:none;" onclick="deleteQcTemplate()">删除模板</button>
-            </div>
           </div>
         </div>
 
-        <!-- 主表格：型号行 × 员工列 -->
-        <div class="spreadsheet-wrap" id="qcSpreadsheetWrap">
-          <div style="padding:12px;color:var(--text-muted);font-size:12px;">填入每型号每员工的对数，实时计算工资；Tab 在同行员工格之间跳转</div>
-        </div>
+        <!-- 按大部门分组的多表格 -->
+        <div id="qcDeptTablesWrap"></div>
+
+        <!-- 全厂合计 -->
         <div style="padding:10px 14px;background:#0f172a;color:#fbbf24;font-weight:700;font-size:14px;border-radius:0 0 var(--radius) var(--radius);display:flex;justify-content:space-between;">
           <span>💰 全厂合计</span>
           <span id="qcGrandTotal">¥0.00</span>
-        </div>
-
-        <!-- 分隔线 + 单价编辑 -->
-        <div class="price-template-divider">
-          <div class="pt-divider-line"></div>
-          <div class="pt-divider-label">单价编辑（内嵌型号单价表：型号 × 小部门，可直接编辑，autoSave 自动落库）</div>
-          <div class="pt-divider-line"></div>
-          <button class="btn btn-sm btn-warning" onclick="showSaveTemplateModal()" style="white-space:nowrap;">💾 保存为模板</button>
-        </div>
-
-        <!-- 单价模板表格 -->
-        <div class="spreadsheet-wrap" id="qcPriceTemplateWrap" style="max-height:320px;">
-          <div style="padding:12px;color:var(--text-muted);font-size:12px;">每行选一个型号，填写各小部门的单价，Tab 键在同行的单价格之间跳转，每行单独保存</div>
-        </div>
-        <div style="padding:10px 14px;background:#1e3a5f;color:#93c5fd;font-weight:600;font-size:13px;border-radius:0 0 var(--radius) var(--radius);display:flex;justify-content:space-between;">
-          <span>🏷️ 单价编辑</span>
-          <span id="qcPriceTemplateInfo">共 <span id="qcPriceRowCount">0</span> 个型号</span>
         </div>
       </div>
     </div>

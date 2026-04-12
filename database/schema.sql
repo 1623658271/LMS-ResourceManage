@@ -114,15 +114,13 @@ CREATE TABLE IF NOT EXISTS salary_adjustments (
     UNIQUE(emp_id, year, month)
 );
 
--- 快捷计算保存表（自动保存主表格+单价编辑的填写状态）
+-- 快捷计算保存表（按大部门分组多表格）
 CREATE TABLE IF NOT EXISTS quick_calc_saves (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     year INTEGER NOT NULL,
     month INTEGER NOT NULL,
-    qc_model_selects TEXT NOT NULL DEFAULT '{}',
+    dept_rows TEXT NOT NULL DEFAULT '{}',
     qty_data TEXT NOT NULL DEFAULT '{}',
-    pt_model_selects TEXT NOT NULL DEFAULT '{}',
-    pt_prices TEXT NOT NULL DEFAULT '{}',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(year, month)
 );
