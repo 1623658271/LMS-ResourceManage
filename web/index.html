@@ -2736,16 +2736,21 @@ async function loadWorkRecords() {
   const year = parseInt(document.getElementById('workYear').value);
   const month = parseInt(document.getElementById('workMonth').value);
   _state.currentYear = year; _state.currentMonth = month;
+  // 保存 pending 状态（年月切换和保存后重载时保留）
+  const savedDirty = { ..._dirtyCells };
+  const savedTempRows = [...(_state.tempWorkRows || [])];
+  const savedDeletedKeys = new Set(_deletedRowKeys || []);
+  const savedTempCounter = _tempRowCounter || 0;
   const data = await get(`/api/work-records?year=${year}&month=${month}`);
   _state.workEmployees = data.employees || [];
   _state.workModels = data.models || [];
   _state.workOrders = data.orders || [];
   _state.workOrderModels = data.order_models || {};
   _state.workRecords = data.records || [];
-  _dirtyCells = {};
-  _deletedRowKeys = new Set(); // 重置删除状态
-  _state.tempWorkRows = []; // 重置临时行
-  _tempRowCounter = 0; // 重置临时行计数器
+  _dirtyCells = savedDirty;
+  _deletedRowKeys = savedDeletedKeys;
+  _state.tempWorkRows = savedTempRows;
+  _tempRowCounter = savedTempCounter;
   _state.wageDetail = null;
 
   // 填充订单下拉
@@ -2885,13 +2890,13 @@ function renderSpreadsheet() {
         }
         // 临时行：允许填写（即使未选型号也显示输入格，以便保存）
         const val = _dirtyCells[key] ?? (dataMap[order_id]?.[model_id]?.[emp.id] ?? '');
-        return `<td>
-          <input type="number" min="0" class="cell-input emp-cell"
-            style="width:65px;"
-            value="${val || ''}" placeholder="0"
-            data-key="${key}"
-            onchange="onCellChange(this)" onkeydown="onCellKeydown(event,this)">
-        </td>`;
+          return `<td>
+            <input type="number" min="0" class="cell-input emp-cell"
+              style="width:65px;"
+              value="${val || ''}" placeholder="0"
+              data-key="${key}"
+              onchange="onCellChange(this)" onkeydown="onCellKeydown(event,this)" onblur="clearTimeout(window._workAutoSaveTimer);autoSaveWorkRecords()">
+          </td>`;
       }).join('');
       const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : (isTemp ? '' : rowTotal);
       const compactTotal = String(totalDisplay).length > 8 ? ' compact' : '';
@@ -2954,6 +2959,10 @@ function onCellChange(el) {
   const val = el.value;
   if (val === '' || val === '0') { delete _dirtyCells[key]; el.style.background = ''; }
   else { _dirtyCells[key] = parseInt(val) || 0; el.style.background = '#fef9c3'; }
+  // 防抖自动保存（600ms）
+  clearTimeout(window._workAutoSaveTimer);
+  window._workAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 600);
+}
 
   // 更新当前行所有表格中的行合计（跨分组）
   const parts = key.split('|');
@@ -3119,6 +3128,8 @@ function addWorkRow() {
   setTimeout(() => {
     const sel = document.querySelector(`tr[data-temp-id="${tempId}"] .order-cell`);
     if (sel) sel.focus();
+    // 添加行后静默自动保存（保留 pending 状态，刷新服务端数据）
+    autoSaveWorkRecords();
   }, 50);
 }
 
@@ -3186,31 +3197,24 @@ function deleteWorkRow(rowKey) {
 
 async function saveAllWorkRecords() {
   const year = _state.currentYear, month = _state.currentMonth;
-  const rows = document.querySelectorAll('#spreadsheet tbody tr');
   let saved = 0;
-  for (const tr of rows) {
-    const orderSel = tr.querySelector('.order-cell');
-    const modelSel = tr.querySelector('.model-cell');
-    const orderId = parseInt(orderSel?.value);
-    const modelId = parseInt(modelSel?.value);
-    // 只要有 orderId 就保存（有对数的格子）；modelId 未选时只保存 modelId=0 的格子
+  const keysToSave = Object.keys(_dirtyCells);
+  for (const key of keysToSave) {
+    const parts = key.split('|');
+    if (parts.length !== 3) continue;
+    const orderId = parseInt(parts[0]);
+    const modelId = parseInt(parts[1]);
+    const empId = parseInt(parts[2]);
     if (!orderId) continue;
-    const empCells = tr.querySelectorAll('.emp-cell');
-    for (const inp of empCells) {
-      const key = inp.dataset.key;
-      if (!key) continue;
-      const val = _dirtyCells[key];
-      if (val !== undefined && val !== null && val !== '') {
-        const empId = parseInt(key.split('|')[2]);
-        if (empId) {
-          await post('/api/work-records', { year, month, order_id: orderId, model_id: modelId, emp_id: empId, quantity: val });
-          saved++;
-        }
-      }
+    const val = _dirtyCells[key];
+    if (val !== undefined && val !== null && val !== '' && val > 0) {
+      await post('/api/work-records', { year, month, order_id: orderId, model_id: modelId, emp_id: empId, quantity: val });
+      saved++;
     }
+    delete _dirtyCells[key];
   }
-  _dirtyCells = {};
   toast(`已保存 ${saved} 条记录`, 'success');
+  // 重载服务端数据，loadWorkRecords 自动保留 pending 状态
   await loadWorkRecords();
 }
 
@@ -3256,13 +3260,26 @@ async function autoSaveWorkRecords() {
           saved++;
         } catch(e) { console.error('保存失败', e); }
       }
-      // 保存后从 _dirtyCells 移除
       delete _dirtyCells[key];
     }
   }
-  // 只在有保存时更新本地 records
   if (saved > 0) {
-    await loadWorkRecords();
+    // 重载服务端数据，同时 loadWorkRecords 会自动保留 pending 状态
+    const data = await get(`/api/work-records?year=${year}&month=${month}`);
+    const savedDirty = { ..._dirtyCells };
+    const savedTempRows = [...(_state.tempWorkRows || [])];
+    const savedDeletedKeys = new Set(_deletedRowKeys || []);
+    const savedTempCounter = _tempRowCounter || 0;
+    _state.workEmployees = data.employees || [];
+    _state.workModels = data.models || [];
+    _state.workOrders = data.orders || [];
+    _state.workOrderModels = data.order_models || {};
+    _state.workRecords = data.records || [];
+    _dirtyCells = savedDirty;
+    _deletedRowKeys = savedDeletedKeys;
+    _state.tempWorkRows = savedTempRows;
+    _tempRowCounter = savedTempCounter;
+    renderSpreadsheet();
   }
 }
 
