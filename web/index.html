@@ -2800,15 +2800,14 @@ function renderSpreadsheet() {
   }
 
 
-  // 行（订单+型号），跳过已删除的行和无效的行
-  // 允许同一订单+不同型号的多行，但阻止同一订单+同一型号的重复
+  // 行（订单+型号），跳过已删除的行
+  // 允许任意重复订单+型号组合（允许同一订单+同型号的多行存在）
   const rows = [];
-  const seenCombos = new Set(); // 用于检测 order_id,model_id 组合重复
 
-  // 1. 添加空行（临时行在最前面）
+  // 1. 添加临时行（按对象结构，每行有独立的 orderId/modelId）
   const tempRows = _state.tempWorkRows || [];
-  tempRows.forEach(tempId => {
-    rows.push({ temp_id: tempId, order_id: null, model_id: null });
+  tempRows.forEach(tRow => {
+    rows.push({ temp_id: tRow.tempId, order_id: tRow.orderId, model_id: tRow.modelId });
   });
 
   // 2. 从数据库记录构建行（保持数据库顺序）
@@ -2816,13 +2815,10 @@ function renderSpreadsheet() {
     if (!r.order_id || !r.model_id) continue;
     const combo = `${r.order_id},${r.model_id}`;
     if (_deletedRowKeys.has(combo)) continue;
-    if (!seenCombos.has(combo)) {
-      seenCombos.add(combo);
-      rows.push({ order_id: r.order_id, model_id: r.model_id });
-    }
+    rows.push({ order_id: r.order_id, model_id: r.model_id });
   }
 
-  // 3. 从 _dirtyCells 构建行（新增的行）
+  // 3. 从 _dirtyCells 构建行（新增的实体行）
   for (const key of Object.keys(_dirtyCells)) {
     const parts = key.split('|');
     if (parts.length === 3) {
@@ -2831,11 +2827,7 @@ function renderSpreadsheet() {
       if (orderId === 0 || modelId === 0) continue;
       const combo = `${orderId},${modelId}`;
       if (_deletedRowKeys.has(combo)) continue;
-      // 允许同一订单+不同型号，但阻止完全重复
-      if (!seenCombos.has(combo)) {
-        seenCombos.add(combo);
-        rows.push({ order_id: orderId, model_id: modelId });
-      }
+      rows.push({ order_id: orderId, model_id: modelId });
     }
   }
 
@@ -2879,27 +2871,24 @@ function renderSpreadsheet() {
       const rowTotal = calcRowTotal(order_id, model_id);
       const empCells = groupEmps.map(emp => {
         const key = `${order_id}|${model_id}|${emp.id}`;
-        let displayVal;
+        // 工资视角只对实体行显示
         if (isWage && _state.wageDetail && !isTemp) {
           const wageKey = `${order_id},${model_id},${emp.id}`;
           const wage = _state.wageDetail.wages[wageKey] || 0;
-          displayVal = wage > 0 ? fmtCompact(wage) : '';
+          const displayVal = wage > 0 ? fmtCompact(wage) : '';
           const compactClass = String(displayVal).length > 6 ? ' compact' : '';
           return `<td>
             <div class="cell-input wage-cell-display${compactClass}" data-key="${key}"
               style="width:65px;text-align:right;padding:0 5px;box-sizing:border-box;"
               title="${wage > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
           </td>`;
-        } else if (isTemp) {
-          return `<td></td>`;
-        } else {
-          const val = _dirtyCells[key] ?? (dataMap[order_id]?.[model_id]?.[emp.id] ?? '');
-          displayVal = val;
         }
+        // 临时行：允许填写（即使未选型号也显示输入格，以便保存）
+        const val = _dirtyCells[key] ?? (dataMap[order_id]?.[model_id]?.[emp.id] ?? '');
         return `<td>
           <input type="number" min="0" class="cell-input emp-cell"
             style="width:65px;"
-            value="${displayVal || ''}" placeholder="0"
+            value="${val || ''}" placeholder="0"
             data-key="${key}"
             onchange="onCellChange(this)" onkeydown="onCellKeydown(event,this)">
         </td>`;
@@ -2907,19 +2896,20 @@ function renderSpreadsheet() {
       const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : (isTemp ? '' : rowTotal);
       const compactTotal = String(totalDisplay).length > 8 ? ' compact' : '';
       const tempRowId = isTemp ? row.temp_id : '';
-      const rowKey = isTemp ? tempRowId : `${order_id}|${model_id}`;
-      // 订单下拉：当前选中的订单需要设置 selected 属性
-      const orderOptions = `<option value="">-- 订单 --</option>` + orders.map(o => 
-        `<option value="${o.id}"${!isTemp && o.id === order_id ? ' selected' : ''}>${escHtml(o.order_no)}</option>`
+      // rowKey 含 groupIdx，保证同一订单+型号的多行也各有唯一 key
+      const rowKey = isTemp ? tempRowId : `${order_id}|${model_id}|g${groupIdx}`;
+      // 订单下拉：临时行/实体行都保留已选状态
+      const orderOptions = `<option value="">-- 订单 --</option>` + orders.map(o =>
+        `<option value="${o.id}"${o.id === order_id ? ' selected' : ''}>${escHtml(o.order_no)}</option>`
       ).join('');
-      // 型号下拉：根据当前选中的订单关联的型号
+      // 型号下拉：根据当前选中的订单关联的型号，临时行也显示已选
       const currentOrderModels = _state.workOrderModels[String(order_id)] || [];
-      const modelOptions = currentOrderModels.length > 0 ? currentOrderModels.map(m => 
-        `<option value="${m.id}"${!isTemp && m.id === model_id ? ' selected' : ''}>${escHtml(m.model_no)}</option>`
+      const modelOptions = currentOrderModels.length > 0 ? currentOrderModels.map(m =>
+        `<option value="${m.id}"${m.id === model_id ? ' selected' : ''}>${escHtml(m.model_no)}</option>`
       ).join('') : '';
-      tbodyHtml += `<tr ${isTemp ? `data-temp-id="${tempRowId}"` : ''}>
+      tbodyHtml += `<tr data-row-key="${rowKey}" ${isTemp ? `data-temp-id="${tempRowId}"` : ''}>
         <td class="col-fixed" style="text-align:center;${isOnlyGroup?'left:0;z-index:7;':''}">
-          ${isTemp ? `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteTempRow('${tempRowId}')">删除</button>` : `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteWorkRow('${order_id}','${model_id}')">删除</button>`}
+          ${isTemp ? `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteTempRow('${tempRowId}')">删除</button>` : `<button class="btn btn-sm btn-danger" style="padding:4px 10px;font-size:11px;" onclick="deleteWorkRow('${rowKey}')">删除</button>`}
         </td>
         <td class="col-fixed" style="background:#d1fae5;${isOnlyGroup?'left:60px;z-index:6;':''}">
           <select class="cell-input order-cell" style="background:#d1fae5;font-weight:600;" data-row-key="${rowKey}" data-temp="${isTemp ? tempRowId : ''}" onchange="onOrderCellChange(this)">
@@ -2986,21 +2976,19 @@ function onCellChange(el) {
     return total;
   }
 
-  const rowTotal = calcTotal();
-  const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
-  // 查找当前行（通过 data-row-key 匹配）
-  const rowKey = `${orderId}|${modelId}`;
-  const allTables = document.querySelectorAll('#spreadsheetWrap .spreadsheet');
-  for (const tbl of allTables) {
-    const rowTr = tbl.querySelector(`tr:has(.order-cell[data-row-key="${rowKey}"])`);
-    if (rowTr) {
-      const totalTd = rowTr.querySelector('.row-total');
-      if (totalTd) {
-        totalTd.textContent = totalDisplay;
-        // 紧凑样式
-        if (String(totalDisplay).length > 8) totalTd.classList.add('compact');
-        else totalTd.classList.remove('compact');
-      }
+  // 直接从 DOM 当前行读取所有 input 值来计算行合计（只计算当前分组）
+  const rowTr = el.closest('tr');
+  if (rowTr) {
+    let rowSum = 0;
+    for (const inp of rowTr.querySelectorAll('.emp-cell')) {
+      rowSum += parseInt(inp.value) || 0;
+    }
+    const totalDisplay = rowSum;
+    const totalTd = rowTr.querySelector('.row-total');
+    if (totalTd) {
+      totalTd.textContent = totalDisplay;
+      if (String(totalDisplay).length > 8) totalTd.classList.add('compact');
+      else totalTd.classList.remove('compact');
     }
   }
 }
@@ -3008,119 +2996,103 @@ function onCellChange(el) {
 function onCellKeydown(e, el) {
   if (e.key === 'Tab' && !e.shiftKey) {
     e.preventDefault();
-    const td = el.closest('td');
     const tr = el.closest('tr');
-    // 只在本表内导航（同组员工）
-    const allEmpTds = Array.from(tr.querySelectorAll('td.emp-cell'));
-    const curIdx = allEmpTds.indexOf(td);
+    // 在当前行内导航（同组员工 input）
+    const allEmpInputs = Array.from(tr.querySelectorAll('input.emp-cell'));
+    const curIdx = allEmpInputs.indexOf(el);
     if (curIdx >= 0) {
-      const nextIdx = (curIdx + 1) % allEmpTds.length;
-      const nextInput = allEmpTds[nextIdx].querySelector('input');
-      if (nextInput) nextInput.focus();
+      const nextIdx = (curIdx + 1) % allEmpInputs.length;
+      allEmpInputs[nextIdx].focus();
     } else {
-      const firstEmp = tr.querySelector('.emp-cell');
-      if (firstEmp) { const inp = firstEmp.querySelector('input'); if (inp) inp.focus(); }
+      const firstInput = tr.querySelector('input.emp-cell');
+      if (firstInput) firstInput.focus();
     }
   }
 }
 
-// 订单单元格变更：更新对应型号下拉选项
+// 订单单元格变更：更新型号下拉选项；临时行选了订单后只更新下拉，不自动选型号
+// 订单单元格变更：更新行状态，重新渲染（临时行/实体行统一处理）
 function onOrderCellChange(orderSel) {
   const newOrderId = parseInt(orderSel.value);
   const tr = orderSel.closest('tr');
-  const modelSel = tr.querySelector('.model-cell');
   const tempId = orderSel.dataset.temp;
 
-  if (!newOrderId) {
-    // 取消选择，清空型号
-    modelSel.innerHTML = '<option value="">-- 订单 --</option>';
-    modelSel.disabled = true;
-    return;
-  }
-
-  // 获取新订单关联的型号
-  const models = _state.workOrderModels[String(newOrderId)] || [];
-  if (models.length > 0) {
-    modelSel.innerHTML = '<option value="">--选择型号--</option>' +
-      models.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('');
-    modelSel.disabled = false;
+  if (tempId) {
+    // 临时行：更新该行的 orderId，重新渲染
+    const tRows = _state.tempWorkRows || [];
+    const row = tRows.find(r => r.tempId === tempId);
+    if (row) row.orderId = newOrderId;
+    // 清除该行旧的 _dirtyCells key（所有 orderId/modelId 组合）
+    const emps = _state.workEmployees || [];
+    for (const emp of emps) {
+      for (const [k] of Object.entries(_dirtyCells)) {
+        if (k.endsWith(`|${emp.id}`)) delete _dirtyCells[k];
+      }
+    }
+    renderSpreadsheet();
   } else {
-    modelSel.innerHTML = '<option value="">--无型号--</option>';
-    modelSel.disabled = true;
-  }
-
-  // 如果是虚拟行，选了型号后直接转为实际行
-  if (tempId && models.length > 0) {
-    // 选中第一个型号并触发转换
-    modelSel.value = models[0].id;
-    onModelCellChange(modelSel, tempId);
-  } else if (models.length === 0) {
-    // 没有型号的订单，只更新下拉状态，不触发转换
+    // 实体行：只更新型号下拉选项（重新渲染会处理 rowKey 更新）
+    const modelSel = tr.querySelector('.model-cell');
+    if (!newOrderId) {
+      modelSel.innerHTML = '<option value="">-- 订单 --</option>';
+      modelSel.disabled = true;
+    } else {
+      const models = _state.workOrderModels[String(newOrderId)] || [];
+      if (models.length > 0) {
+        modelSel.innerHTML = '<option value="">-- 选择型号 --</option>' +
+          models.map(m => `<option value="${m.id}">${escHtml(m.model_no)}</option>`).join('');
+        modelSel.disabled = false;
+      } else {
+        modelSel.innerHTML = '<option value="">-- 无型号 --</option>';
+        modelSel.disabled = true;
+      }
+    }
   }
 }
 
-// 型号单元格变更
-function onModelCellChange(modelSel, explicitTempId) {
+// 型号单元格变更：更新行状态，重新渲染
+function onModelCellChange(modelSel) {
   const tr = modelSel.closest('tr');
-  const orderSel = tr.querySelector('.order-cell');
-  const orderId = parseInt(orderSel.value);
-  const modelId = parseInt(modelSel.value);
-  const tempId = explicitTempId || modelSel.dataset.temp;
+  const tempId = modelSel.dataset.temp;
+  const newModelId = parseInt(modelSel.value);
 
-  if (!orderId || !modelId) return;
-
-  const newRowKey = `${orderId}|${modelId}`;
-  const year = _state.currentYear, month = _state.currentMonth;
-
-  // 如果是虚拟行，移除虚拟状态，转换为实际行
   if (tempId) {
-    // 从虚拟行列表移除
-    _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
-    // 初始化该行所有员工的格子（用 null 标记，表示已选择但未输入）
+    // 临时行：更新该行的 modelId，清除旧格子数据，重新渲染
+    const tRows = _state.tempWorkRows || [];
+    const row = tRows.find(r => r.tempId === tempId);
+    if (row) row.modelId = newModelId;
     const emps = _state.workEmployees || [];
     for (const emp of emps) {
-      const key = `${newRowKey}|${emp.id}`;
-      if (_dirtyCells[key] === undefined) {
-        _dirtyCells[key] = null;  // null 表示已初始化，待输入
+      for (const [k] of Object.entries(_dirtyCells)) {
+        if (k.endsWith(`|${emp.id}`)) delete _dirtyCells[k];
       }
     }
-    // 立即保存第一条记录（quantity=0）标记这行已存在
-    // 保存后重新加载 records，再渲染表格
-    (async () => {
-      try {
-        await post('/api/work-records', {
-          year, month,
-          order_id: orderId,
-          model_id: modelId,
-          emp_id: emps[0]?.id,
-          quantity: 0
-        });
-        // 保存成功后重新加载数据
-        const records = await get(`/api/work-records?year=${year}&month=${month}`);
-        _state.workRecords = records || [];
-        renderSpreadsheet();
-      } catch(e) {
-        console.error('保存行失败', e);
-        renderSpreadsheet();
+    renderSpreadsheet();
+  } else {
+    // 实体行：重绑定 _dirtyCells 的 key
+    const orderSel = tr.querySelector('.order-cell');
+    const orderId = parseInt(orderSel.value);
+    const rowKey = tr.dataset.rowKey || '';
+    const oldPrefix = rowKey ? rowKey.replace(/\|g\d+$/, '') + '|' : '';
+    if (oldPrefix && orderId && newModelId) {
+      const newPrefix = `${orderId}|${newModelId}|`;
+      for (const key of Object.keys(_dirtyCells)) {
+        if (key.startsWith(oldPrefix)) {
+          const newKey = newPrefix + key.split('|').slice(3).join('|');
+          _dirtyCells[newKey] = _dirtyCells[key];
+          delete _dirtyCells[key];
+        }
       }
-    })();
-    return;
-  }
-
-  // 非虚拟行的正常处理
-  const oldRowKey = orderSel.dataset.rowKey;
-  // 更新 row-key
-  orderSel.dataset.rowKey = newRowKey;
-  modelSel.dataset.rowKey = newRowKey;
-
-  // 清除该行旧的所有单元格数据
-  if (oldRowKey && oldRowKey !== newRowKey) {
-    for (const key of Object.keys(_dirtyCells)) {
-      if (key.startsWith(oldRowKey)) delete _dirtyCells[key];
+      for (const inp of tr.querySelectorAll('input.emp-cell')) {
+        if (inp.dataset.key && inp.dataset.key.startsWith(oldPrefix)) {
+          const newKey = newPrefix + inp.dataset.key.split('|').slice(3).join('|');
+          inp.dataset.key = newKey;
+        }
+      }
+      tr.dataset.rowKey = `${orderId}|${newModelId}|g0`;
     }
+    renderSpreadsheet();
   }
-
-  renderSpreadsheet();
 }
 
 function onRowHeaderChange(el) {
@@ -3139,20 +3111,11 @@ let _deletedRowKeys = new Set();
 
 // 添加一行（直接创建实体行，用户可以立即选择订单和型号）
 function addWorkRow() {
-  // 直接添加到 _dirtyCells，创建一个空行（orderId=0, modelId=0 表示待选择）
   const tempId = '__TEMP__' + (_tempRowCounter++);
-  const emps = _state.workEmployees || [];
-  for (const emp of emps) {
-    const key = `0|0|${emp.id}`;
-    if (_dirtyCells[key] === undefined) {
-      _dirtyCells[key] = null; // null 表示已选择但未输入
-    }
-  }
-  // 保存临时行ID，用于渲染时识别
   _state.tempWorkRows = _state.tempWorkRows || [];
-  _state.tempWorkRows.push(tempId);
+  // 每行独立存储 orderId=0, modelId=0（待选择）
+  _state.tempWorkRows.push({ tempId, orderId: 0, modelId: 0 });
   renderSpreadsheet();
-  // 聚焦到新行的订单下拉
   setTimeout(() => {
     const sel = document.querySelector(`tr[data-temp-id="${tempId}"] .order-cell`);
     if (sel) sel.focus();
@@ -3161,36 +3124,64 @@ function addWorkRow() {
 
 // 删除临时行
 function deleteTempRow(tempId) {
-  _state.tempWorkRows = (_state.tempWorkRows || []).filter(id => id !== tempId);
-  // 清除该临时行的所有单元格数据
+  _state.tempWorkRows = (_state.tempWorkRows || []).filter(r => r.tempId !== tempId);
+  // 清除该行所有员工的格子数据（所有 orderId/modelId 组合的 key）
   const emps = _state.workEmployees || [];
   for (const emp of emps) {
-    const key = `0|0|${emp.id}`;
-    delete _dirtyCells[key];
+    for (const [k] of Object.entries(_dirtyCells)) {
+      if (k.endsWith(`|${emp.id}`)) delete _dirtyCells[k];
+    }
   }
   renderSpreadsheet();
 }
 
-function deleteWorkRow(orderId, modelId) {
+// rowKey 格式：实体行=`${orderId}|${modelId}|g${groupIdx}`，临时行=`__TEMP__${id}`
+function deleteWorkRow(rowKey) {
   if (!confirm('确定删除这一行数据吗？')) return;
   const year = _state.currentYear, month = _state.currentMonth;
-  // 使用批量删除 API
-  fetch(`/api/work-row?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}`, { method: 'DELETE' })
-    .then(r => r.json())
-    .then(() => {
-      // 清除本地缓存（_dirtyCells的key格式是 orderId|modelId|empId）
-      const prefix = `${orderId},${modelId},`;
-      for (const key of Object.keys(_dirtyCells)) {
-        if (key.startsWith(prefix)) delete _dirtyCells[key];
+
+  if (rowKey.startsWith('__TEMP__')) {
+    // 临时行：清除该行所有员工的格子数据（key 以 |empId 结尾的条目）
+    const tempId = rowKey;
+    const emps = _state.workEmployees || [];
+    for (const emp of emps) {
+      for (const [k] of Object.entries(_dirtyCells)) {
+        if (k.endsWith(`|${emp.id}`)) delete _dirtyCells[k];
       }
-      // 从本地 records 中也移除
-      _state.workRecords = _state.workRecords.filter(r =>
-        !(r.order_id === orderId && r.model_id === modelId)
-      );
-      renderSpreadsheet();
-      toast('已删除', 'success');
-    })
-    .catch(err => { console.error(err); toast('删除失败', 'error'); });
+    }
+    // 从 tempWorkRows 移除（对象结构）
+    _state.tempWorkRows = (_state.tempWorkRows || []).filter(r => r.tempId !== tempId);
+    renderSpreadsheet();
+    toast('已删除', 'success');
+  } else {
+    // 实体行：含 g${groupIdx} 后缀，用 orderId,modelId 调用批量删除 API
+    const parts = rowKey.split('|');
+    if (parts.length !== 3) return;
+    const orderId = parseInt(parts[0]);
+    const modelId = parseInt(parts[1]);
+    if (!orderId || !modelId) return;
+    fetch(`/api/work-row?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}`, { method: 'DELETE' })
+      .then(r => r.json())
+      .then(() => {
+        // 清除 _dirtyCells 中对应行实例的数据（key 中不含 g${groupIdx}，但同一 order|model 可能有多行）
+        // 用 DOM 中该行对应的格子值来判断——先从 DOM 读取当前行的 empId 值
+        const tr = document.querySelector(`tr[data-row-key="${rowKey}"]`);
+        if (tr) {
+          const inputs = tr.querySelectorAll('.emp-cell');
+          for (const inp of inputs) {
+            const key = inp.dataset.key; // 格式：orderId|modelId|empId
+            if (key) delete _dirtyCells[key];
+          }
+        }
+        // 从本地 records 中移除该 order+model 的记录
+        _state.workRecords = _state.workRecords.filter(r =>
+          !(r.order_id === orderId && r.model_id === modelId)
+        );
+        renderSpreadsheet();
+        toast('已删除', 'success');
+      })
+      .catch(err => { console.error(err); toast('删除失败', 'error'); });
+  }
 }
 
 async function saveAllWorkRecords() {
@@ -3202,7 +3193,8 @@ async function saveAllWorkRecords() {
     const modelSel = tr.querySelector('.model-cell');
     const orderId = parseInt(orderSel?.value);
     const modelId = parseInt(modelSel?.value);
-    if (!orderId || !modelId) continue;
+    // 只要有 orderId 就保存（有对数的格子）；modelId 未选时只保存 modelId=0 的格子
+    if (!orderId) continue;
     const empCells = tr.querySelectorAll('.emp-cell');
     for (const inp of empCells) {
       const key = inp.dataset.key;
