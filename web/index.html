@@ -94,7 +94,9 @@
             </div>
           </label>
         </div>
-        <div class="overview-grid">
+        <!-- 常用功能 -->
+        <div style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px 4px;">常用功能</div>
+        <div class="overview-grid" style="margin-bottom:24px;">
           <div class="overview-card" onclick="navigateWithHistory('members')">
             <div class="oc-icon" style="background:#dbeafe;">
               <svg viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" width="26" height="26"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -102,6 +104,25 @@
             <div class="oc-title">成员管理</div>
             <div class="oc-desc">查看/添加/编辑员工档案及工资明细</div>
           </div>
+          <div class="overview-card" onclick="navigateWithHistory('quickcalc')">
+            <div class="oc-icon" style="background:#d1fae5;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" width="26" height="26"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            </div>
+            <div class="oc-title">快捷计算</div>
+            <div class="oc-desc">实时工资计算，支持保存/加载单价模板</div>
+          </div>
+          <div class="overview-card" onclick="navigateWithHistory('salary')">
+            <div class="oc-icon" style="background:#fee2e2;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="26" height="26"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </div>
+            <div class="oc-title">总工资表</div>
+            <div class="oc-desc">按部门汇总全厂工资，含小计和合计</div>
+          </div>
+        </div>
+
+        <!-- 全部功能 -->
+        <div style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px 4px;">全部功能</div>
+        <div class="overview-grid">
           <div class="overview-card" onclick="navigateWithHistory('departments')">
             <div class="oc-icon" style="background:#f1f5f9;">
               <svg viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="2" width="26" height="26"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
@@ -117,32 +138,18 @@
             <div class="oc-desc">添加/管理订单及关联型号</div>
           </div>
           <div class="overview-card" onclick="navigateWithHistory('prices')">
-            <div class="oc-icon" style="background:#d1fae5;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" width="26" height="26"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <div class="oc-icon" style="background:#ede9fe;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="26" height="26"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
             </div>
             <div class="oc-title">型号单价表</div>
             <div class="oc-desc">设置各型号在不同小部门的单价</div>
           </div>
           <div class="overview-card" onclick="navigateWithHistory('work')">
-            <div class="oc-icon" style="background:#ede9fe;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" width="26" height="26"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            <div class="oc-icon" style="background:#fce7f3;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#db2777" stroke-width="2" width="26" height="26"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             </div>
             <div class="oc-title">做货编辑</div>
             <div class="oc-desc">Excel 风格录入做货对数，Tab 跳转</div>
-          </div>
-          <div class="overview-card" onclick="navigateWithHistory('quickcalc')">
-            <div class="oc-icon" style="background:#d1fae5;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" width="26" height="26"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            </div>
-            <div class="oc-title">快捷计算</div>
-            <div class="oc-desc">实时工资计算，支持保存/加载单价模板</div>
-          </div>
-          <div class="overview-card" onclick="navigateWithHistory('salary')">
-            <div class="oc-icon" style="background:#fee2e2;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" width="26" height="26"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            </div>
-            <div class="oc-title">总工资表</div>
-            <div class="oc-desc">按部门汇总全厂工资，含小计和合计</div>
           </div>
         </div>
       </div>
