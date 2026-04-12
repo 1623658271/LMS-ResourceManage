@@ -125,6 +125,12 @@ CREATE TABLE IF NOT EXISTS quick_calc_saves (
     UNIQUE(year, month)
 );
 
+-- 全局设置键值表
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+);
+
 -- 插入默认大部门
 INSERT OR IGNORE INTO departments (id, name) VALUES (1, '面部');
 INSERT OR IGNORE INTO departments (id, name) VALUES (2, '底部');

@@ -47,3 +47,25 @@ let _deletedRowKeys = new Set();
 
 // 当前视图
 let _currentView = 'overview';
+
+// 工资数据源开关（持久化到数据库 + localStorage）
+function toggleQcSalary(enabled) {
+  const val = enabled ? 'true' : 'false';
+  localStorage.setItem('useQcSalary', val);
+  post('/api/app-settings', { key: 'useQcSalary', value: val });
+  document.querySelectorAll('#qcSwitch').forEach(el => el.checked = enabled);
+  showToast(enabled ? '已启用快捷计算作为工资数据源' : '已切换回做货编辑数据源');
+}
+
+async function initQcSwitch() {
+  // 优先从数据库读取，fallback 到 localStorage
+  let saved = false;
+  try {
+    const res = await get('/api/app-settings/useQcSalary');
+    if (res && res.value === 'true') saved = true;
+  } catch(e) {}
+  if (!saved) saved = localStorage.getItem('useQcSalary') === 'true';
+  // 关键：同步到 localStorage，让 getSalarySource() 能读到正确值
+  localStorage.setItem('useQcSalary', saved ? 'true' : 'false');
+  document.querySelectorAll('#qcSwitch').forEach(el => el.checked = saved);
+}

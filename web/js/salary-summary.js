@@ -1,16 +1,24 @@
 // ============================================================
-// 总工资表
+// 总工资表（支持做货编辑/快捷计算两种数据源）
 // ============================================================
+
+// 获取当前工资数据源设置
+function getSalarySource() {
+  return localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
+}
+
 async function loadSalary() {
   const year = parseInt(document.getElementById('salaryYear').value);
   const month = parseInt(document.getElementById('salaryMonth').value);
-  const data = await get(`/api/salary-summary?year=${year}&month=${month}`);
+  const source = getSalarySource();
+  const data = await get(`/api/salary-summary?year=${year}&month=${month}&source=${source}`);
   const content = document.getElementById('salaryContent');
+  const sourceLabel = source === 'qc' ? '（快捷计算数据）' : '';
   if (!data || !data.length) { content.innerHTML = '<div class="empty-state">暂无工资数据</div>'; return; }
   const grandTotalWage = data.reduce((s, d) => s + d.total_wage, 0);
   const grandTotalPairs = data.reduce((s, d) => s + d.total_pairs, 0);
   let html = `<div class="grand-total">
-    <span>🏭 全厂合计</span>
+    <span>🏭 全厂合计${sourceLabel ? ' <span class="qc-badge">快捷计算</span>' : ''}</span>
     <span>对数：<strong>${grandTotalPairs}</strong> &nbsp;|&nbsp; 总工资：<strong>¥${fmt(grandTotalWage)}</strong></span>
   </div>`;
   data.forEach(dept => {

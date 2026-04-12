@@ -71,7 +71,16 @@
     <!-- ===== 资源总览 ===== -->
     <div class="view active" id="view-overview">
       <div class="card">
-        <div class="card-title">快速导航</div>
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+          快速导航
+          <label class="qc-switch-label">
+            <span>启用快捷计算作为工资数据源</span>
+            <div class="qc-switch-wrap">
+              <input type="checkbox" id="qcSwitch" onchange="toggleQcSalary(this.checked)">
+              <span class="qc-switch-slider"></span>
+            </div>
+          </label>
+        </div>
         <div class="overview-grid">
           <div class="overview-card" onclick="navigateTo('members')">
             <div class="oc-icon" style="background:#dbeafe;">
@@ -626,6 +635,7 @@
         </div>
       </div>
     </div>
+
 
   </div>
 </main>

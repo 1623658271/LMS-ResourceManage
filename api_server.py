@@ -253,8 +253,18 @@ async def api_save_adjustment(body: dict):
 # ── 总工资表 ────────────────────────────────────────────
 
 @app.get("/api/salary-summary")
-async def api_get_salary_summary(year: int = Query(...), month: int = Query(...)):
+async def api_get_salary_summary(
+    year: int = Query(...), month: int = Query(...),
+    source: Optional[str] = Query(None)  # "work" 或 "qc"，默认 "work"
+):
+    if source == "qc":
+        return crud.get_qc_salary_summary(year, month)
     return crud.get_salary_summary(year, month)
+
+
+@app.get("/api/qc-salary-summary")
+async def api_get_qc_salary_summary(year: int = Query(...), month: int = Query(...)):
+    return crud.get_qc_salary_summary(year, month)
 
 
 # ── 单价模板 ────────────────────────────────────────────
@@ -307,3 +317,13 @@ async def api_load_quick_calc(year: int, month: int):
 async def api_init():
     init_database()
     return {"ok": True}
+
+
+@app.get("/api/app-settings/{key}")
+async def api_get_app_setting(key: str):
+    return crud.get_app_setting(key)
+
+
+@app.post("/api/app-settings")
+async def api_set_app_setting(body: dict):
+    return crud.set_app_setting(body.get("key", ""), body.get("value", ""))

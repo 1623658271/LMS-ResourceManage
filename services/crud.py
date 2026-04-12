@@ -1,6 +1,23 @@
 """所有数据库 CRUD 操作"""
 from services.db import get_connection
 
+# ── 全局设置 ────────────────────────────────────────────
+
+def get_app_setting(key):
+    conn = get_connection()
+    row = conn.execute("SELECT value FROM app_settings WHERE key=?", (key,)).fetchone()
+    conn.close()
+    if row:
+        return {"value": row[0]}
+    return {"value": ""}
+
+def set_app_setting(key, value):
+    conn = get_connection()
+    conn.execute("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", (key, value))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
 # ── 部门管理 ────────────────────────────────────────────
 
 
@@ -773,6 +790,83 @@ def get_salary_summary(year: int, month: int):
             "total": total
         })
         departments[did]["total_pairs"] += wage["pairs"]
+        departments[did]["total_wage"] += total
+
+    for d in departments.values():
+        d["total_wage"] = round(d["total_wage"], 2)
+
+    return list(departments.values())
+
+
+def get_qc_salary_summary(year: int, month: int):
+    """快捷计算总工资表：从 quick_calc_saves 读取数据，按大部门分组计算每个员工的工资"""
+    saved = load_quick_calc(year, month)
+    if not saved or not saved.get("dept_rows"):
+        return []
+
+    dept_rows = saved["dept_rows"]  # { "deptId_rowIdx": { subDeptId: 单价 } }
+    qty_data = saved["qty_data"]    # { "rowKey,empId": 对数 }
+
+    conn = get_connection()
+    employees = conn.execute("""
+        SELECT e.id, e.name, e.dept_id, e.sub_dept_id,
+               d.name AS dept_name, sd.name AS sub_dept_name
+        FROM employees e
+        JOIN departments d ON e.dept_id=d.id
+        JOIN sub_departments sd ON e.sub_dept_id=sd.id
+        ORDER BY d.id, sd.id, e.id
+    """).fetchall()
+
+    # 获取人工增扣
+    adj_raw = conn.execute("""
+        SELECT emp_id, adj_amount FROM salary_adjustments
+        WHERE year=? AND month=?
+    """, (year, month)).fetchall()
+    adj_map = {r["emp_id"]: r["adj_amount"] for r in adj_raw}
+    conn.close()
+
+    # 按大部门分组
+    departments = {}
+    for emp in employees:
+        did = emp["dept_id"]
+        if did not in departments:
+            departments[did] = {
+                "dept_id": did,
+                "dept_name": emp["dept_name"],
+                "employees": [],
+                "total_pairs": 0,
+                "total_wage": 0
+            }
+
+        # 计算该员工在该月快捷计算中的工资
+        empWage = 0
+        empPairs = 0
+        # 遍历该大部门的所有行
+        for rowKey, row in dept_rows.items():
+            if not rowKey.startswith(str(did) + "_"):
+                continue
+            qtyKey = f"{rowKey},{emp['id']}"
+            qty = qty_data.get(qtyKey, 0)
+            if qty > 0:
+                # 该员工所属小部门的单价（JSON反序列化后key为字符串）
+                subPrice = row.get(str(emp["sub_dept_id"]), 0)
+                empWage += qty * subPrice
+                empPairs += qty
+
+        empWage = round(empWage, 2)
+        adj = adj_map.get(emp["id"], 0)
+        total = round(empWage + adj, 2)
+
+        departments[did]["employees"].append({
+            "emp_id": emp["id"],
+            "name": emp["name"],
+            "sub_dept_name": emp["sub_dept_name"],
+            "pairs": empPairs,
+            "wage": empWage,
+            "adj_amount": adj,
+            "total": total
+        })
+        departments[did]["total_pairs"] += empPairs
         departments[did]["total_wage"] += total
 
     for d in departments.values():
