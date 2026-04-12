@@ -14,4 +14,17 @@
   } else {
     applyAllSettings();
   }
+  // 隐藏加载遮罩
+  hideLoadingOverlay();
 })();
+
+// 隐藏加载遮罩
+function hideLoadingOverlay() {
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 300);
+  }
+}

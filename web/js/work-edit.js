@@ -630,6 +630,29 @@ async function autoSaveWorkRecords() {
 }
 
 // ─────────────────────────────────────────────────────────
+// clearAllWorkQty：清除所有对数（保留行结构，只清空员工对数）
+// ─────────────────────────────────────────────────────────
+async function clearAllWorkQty() {
+  if (!confirm('确定要清除当前所有对数吗？此操作不可撤销。')) return;
+
+  // 保存历史记录（清除前）
+  pushHistory('work-edit');
+
+  // 清空所有行的员工对数
+  for (const rowData of Object.values(_weRowMap)) {
+    rowData.emps = {};
+  }
+
+  // 重新渲染表格
+  renderSpreadsheet();
+
+  // 自动保存到数据库
+  await autoSaveWorkRecords();
+
+  toast('已清除所有对数', 'success');
+}
+
+// ─────────────────────────────────────────────────────────
 // 年月切换
 // ─────────────────────────────────────────────────────────
 document.getElementById('workYear').addEventListener('change', () => {
