@@ -3,6 +3,9 @@
 // ============================================================
 const API = '';
 
+// 编辑会话跟踪（用于单元格级撤销）
+let _editSession = null;
+
 let _state = {
   departments: [],
   subDepartments: [],

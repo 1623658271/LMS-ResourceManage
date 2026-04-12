@@ -159,8 +159,9 @@ function renderSpreadsheet() {
             <input type="number" min="0" class="cell-input" style="width:65px;${bgStyle}"
               value="${displayVal}" placeholder=""
               data-row="${mapKey}" data-emp="${emp.id}"
+              onfocus="onWorkCellFocus(this)"
+              onblur="onWorkCellBlur(this)"
               oninput="onWorkCellChange(this)"
-              onfocus="if(this.value==='0'||this.value==='')this.value=''"
               onkeydown="onWorkCellKeydown(event,this)">
           </td>`;
         }
@@ -228,7 +229,54 @@ function renderSpreadsheet() {
 }
 
 // ─────────────────────────────────────────────────────────
-// onWorkCellChange：单元格输入 → 保存
+// onWorkCellFocus：单元格获得焦点 → 记录编辑会话开始
+// ─────────────────────────────────────────────────────────
+function onWorkCellFocus(el) {
+  const mapKey = el.dataset.row;
+  const empId = parseInt(el.dataset.emp);
+  const currentVal = _weRowMap[mapKey]?.emps[empId] || 0;
+  
+  _editSession = {
+    type: 'work-edit',
+    mapKey: mapKey,
+    empId: empId,
+    originalValue: currentVal,
+    hasPushedHistory: false
+  };
+  
+  // 如果值为0或空，清空输入框方便输入
+  if (el.value === '0' || el.value === '') {
+    el.value = '';
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// onWorkCellBlur：单元格失去焦点 → 结束编辑会话，如有变化则保存历史
+// ─────────────────────────────────────────────────────────
+function onWorkCellBlur(el) {
+  if (!_editSession) return;
+  
+  const mapKey = el.dataset.row;
+  const empId = parseInt(el.dataset.emp);
+  const rawVal = el.value.trim();
+  const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
+  
+  // 检查值是否真的变化了
+  if (val !== _editSession.originalValue && !_editSession.hasPushedHistory) {
+    pushHistory('work-edit');
+    _editSession.hasPushedHistory = true;
+  }
+  
+  _editSession = null;
+  
+  // 如果值为0，显示0
+  if (val === 0) {
+    el.value = '0';
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// onWorkCellChange：单元格输入 → 实时更新显示，但不保存历史
 // - 空值视为0存入emps（不删除key，下次渲染显示0）
 // - 显式填0 → 存入0
 // - 非0值 → 存入该值，格子变浅蓝色
@@ -242,11 +290,7 @@ function onWorkCellChange(el) {
 
   if (!_weRowMap[mapKey]) return;
 
-  // 保存历史记录（首次编辑或值变化时）
-  const oldVal = _weRowMap[mapKey].emps[empId] || 0;
-  if (val !== oldVal) {
-    pushHistory('work-edit');
-  }
+  // 不再在每次输入时保存历史，改为在 blur 时保存
 
   if (val === 0) {
     // 空值或显式0：存入0（下次渲染显示0），不清key，颜色保持默认

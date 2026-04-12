@@ -144,6 +144,8 @@ function renderQcDeptTables() {
                 style="width:65px;text-align:center;font-size:12px;"
                 value="${priceVal || ''}" placeholder="0"
                 data-row-key="${escHtml(rowKey)}" data-sub-id="${sub.id}"
+                onfocus="onQcCellFocus(this, 'price')"
+                onblur="onQcCellBlur(this, 'price')"
                 oninput="onQcPriceInput(this)"
                 onkeydown="onQcPriceTab(event, this)">
             </td>`;
@@ -174,6 +176,8 @@ function renderQcDeptTables() {
                 data-row-key="${escHtml(rowKey)}"
                 data-emp-id="${emp.id}"
                 data-sub-id="${emp.sub_dept_id}"
+                onfocus="onQcCellFocus(this, 'qty')"
+                onblur="onQcCellBlur(this, 'qty')"
                 oninput="onQcQtyInput(this)"
                 onkeydown="onQcQtyTab(event, this)">
             </td>`;
@@ -213,6 +217,69 @@ function renderQcDeptTables() {
   document.getElementById('qcGrandTotal').textContent = '¥' + fmt(grandTotal);
 }
 
+// ---- 单元格获得焦点 ----
+function onQcCellFocus(el, type) {
+  if (type === 'price') {
+    const rowKey = el.dataset.rowKey;
+    const subId = parseInt(el.dataset.subId);
+    const currentVal = _qcDeptRows[rowKey]?.[subId] || 0;
+    
+    _editSession = {
+      type: 'quick-calc-price',
+      rowKey: rowKey,
+      subId: subId,
+      originalValue: currentVal,
+      hasPushedHistory: false
+    };
+  } else if (type === 'qty') {
+    const qtyKey = el.dataset.key;
+    const currentVal = _qcState.qtyData[qtyKey] || 0;
+    
+    _editSession = {
+      type: 'quick-calc-qty',
+      qtyKey: qtyKey,
+      originalValue: currentVal,
+      hasPushedHistory: false
+    };
+  }
+  
+  // 如果值为0或空，清空输入框方便输入
+  if (el.value === '0' || el.value === '') {
+    el.value = '';
+  }
+}
+
+// ---- 单元格失去焦点 ----
+function onQcCellBlur(el, type) {
+  if (!_editSession) return;
+  
+  let val = 0;
+  let hasChanged = false;
+  
+  if (type === 'price') {
+    const rowKey = el.dataset.rowKey;
+    const subId = parseInt(el.dataset.subId);
+    val = parseFloat(el.value) || 0;
+    hasChanged = val !== _editSession.originalValue;
+  } else if (type === 'qty') {
+    val = parseInt(el.value) || 0;
+    hasChanged = val !== _editSession.originalValue;
+  }
+  
+  // 检查值是否真的变化了，且还没保存过历史
+  if (hasChanged && !_editSession.hasPushedHistory) {
+    pushHistory('quick-calc');
+    _editSession.hasPushedHistory = true;
+  }
+  
+  _editSession = null;
+  
+  // 如果值为0，显示0
+  if (val === 0) {
+    el.value = '0';
+  }
+}
+
 // ---- 单价输入变化 ----
 function onQcPriceInput(el) {
   const rowKey = el.dataset.rowKey;
@@ -221,11 +288,7 @@ function onQcPriceInput(el) {
 
   if (!_qcDeptRows[rowKey]) return;
 
-  // 保存历史记录（值变化时）
-  const oldVal = _qcDeptRows[rowKey][subId] || 0;
-  if (val !== oldVal) {
-    pushHistory('quick-calc');
-  }
+  // 不再在每次输入时保存历史，改为在 blur 时保存
 
   if (val === 0) {
     _qcDeptRows[rowKey][subId] = 0;
@@ -273,11 +336,7 @@ function onQcQtyInput(el) {
   const val = parseInt(el.value) || 0;
   const rowKey = el.dataset.rowKey;
 
-  // 保存历史记录（值变化时）
-  const oldVal = _qcState.qtyData[key] || 0;
-  if (val !== oldVal) {
-    pushHistory('quick-calc');
-  }
+  // 不再在每次输入时保存历史，改为在 blur 时保存
 
   if (val === 0) {
     delete _qcState.qtyData[key];
