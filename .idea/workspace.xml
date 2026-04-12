@@ -3,11 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="启用快捷计算作为成员真实工资的成员详情页面适配">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.workbuddy/memory/2026-04-12.md" beforeDir="false" afterPath="$PROJECT_DIR$/.workbuddy/memory/2026-04-12.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data.db" beforeDir="false" afterPath="$PROJECT_DIR$/data.db" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/web/css/style.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/js/nav.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/nav.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
