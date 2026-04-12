@@ -30,7 +30,7 @@ async function loadSalary() {
       <div class="table-wrap"><table>
         <thead><tr><th>姓名</th><th>小部门</th><th class="text-right">做货对数</th><th class="text-right">做货工资</th><th class="text-right">人工增扣</th><th class="text-right">总工资</th></tr></thead>
         <tbody>${dept.employees.map(emp => `<tr>
-          <td><span class="member-name-color">${escHtml(emp.name)}</span></td><td><span class="dept-sub">${escHtml(emp.sub_dept_name)}</span></td>
+          <td><span class="member-name-color" onclick="navigateToMemberDetail(${emp.emp_id})" title="点击查看详情">${escHtml(emp.name)}</span></td><td><span class="dept-sub">${escHtml(emp.sub_dept_name)}</span></td>
           <td class="text-right table-num">${emp.pairs}</td>
           <td class="text-right table-num">¥${fmt(emp.wage)}</td>
           <td class="text-right table-num text-danger">¥${fmt(emp.adj_amount)}</td>

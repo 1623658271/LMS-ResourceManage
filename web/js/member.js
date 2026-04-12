@@ -13,7 +13,7 @@ async function loadMembers() {
     <div class="member-card">
       <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
       <div class="member-card-info">
-        <span class="member-name member-list-name-color">${escHtml(emp.name)}</span>
+        <span class="member-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑">${escHtml(emp.name)}</span>
         <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
         <span class="dept-large">${escHtml(emp.dept_name)}</span>
         <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
