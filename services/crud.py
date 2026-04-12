@@ -480,9 +480,10 @@ def get_work_records(year: int, month: int):
         JOIN models m ON wr.model_id=m.id
         JOIN employees e ON wr.emp_id=e.id
         WHERE wr.year=? AND wr.month=?
-        ORDER BY wr.order_id, wr.model_id
+        ORDER BY wr.line_id ASC, wr.id ASC
     """, (year, month)).fetchall()
 
+    # 所有员工（用于表格列）
     emps = conn.execute("""
         SELECT e.id, e.name, e.sub_dept_id, sd.name AS sub_dept_name
         FROM employees e
@@ -490,78 +491,84 @@ def get_work_records(year: int, month: int):
         ORDER BY e.id
     """).fetchall()
 
-    # 获取当月订单列表
-    orders = conn.execute("""
-        SELECT o.id, o.order_no,
-               (SELECT SUM(wr.quantity) FROM work_records wr WHERE wr.order_id=o.id) AS total_pairs
-        FROM orders o
-        WHERE o.year=? AND o.month=?
-        ORDER BY o.id
-    """, (year, month)).fetchall()
+    # 所有订单
+    orders = conn.execute("SELECT id, order_no FROM orders ORDER BY id").fetchall()
 
-    # 每个订单关联的型号
-    order_models = {}
-    for o in orders:
-        rows2 = conn.execute("""
-            SELECT m.id, m.model_no FROM order_models om
-            JOIN models m ON om.model_id=m.id
-            WHERE om.order_id=?
-        """, (o["id"],)).fetchall()
-        order_models[str(o["id"])] = [dict(r) for r in rows2]
-
+    # 所有型号
     models = conn.execute("SELECT id, model_no FROM models ORDER BY id").fetchall()
-    conn.close()
 
+    # 订单-型号关联
+    order_model_rows = conn.execute("SELECT order_id, model_id FROM order_models").fetchall()
+    order_models = {}
+    for r in order_model_rows:
+        oid = str(r["order_id"])
+        if oid not in order_models:
+            order_models[oid] = []
+        order_models[oid].append({"id": r["model_id"]})
+    # 补充型号名称
+    model_map = {m["id"]: m["model_no"] for m in models}
+    for oid in order_models:
+        for item in order_models[oid]:
+            item["model_no"] = model_map.get(item["id"], "")
+
+    conn.close()
     return {
         "records": [dict(r) for r in rows],
         "employees": [dict(e) for e in emps],
-        "models": [dict(m) for m in models],
         "orders": [dict(o) for o in orders],
-        "order_models": order_models,
+        "models": [dict(m) for m in models],
+        "order_models": order_models
     }
 
 
-def save_work_record(year: int, month: int, order_id: int, model_id: int, emp_id: int, quantity: int):
+def save_work_record(year: int, month: int, order_id: int, model_id: int,
+                      emp_id: int, quantity: int, line_id: int = 0):
     conn = get_connection()
     qty = int(quantity) if quantity else 0
+    line_id = int(line_id) if line_id else 0
     # 获取 order_no
     order_row = conn.execute("SELECT order_no FROM orders WHERE id=?", (order_id,)).fetchone()
     order_no = order_row["order_no"] if order_row else ""
-    # 只有 qty < 0 时才删除（用于清除负数等无效数据），qty=0 时应该保存（用于标记行存在）
+    # qty < 0 时删除
     if qty < 0:
         conn.execute(
-            "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND emp_id=?",
-            (year, month, order_id, model_id, emp_id)
+            "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND emp_id=? AND line_id=?",
+            (year, month, order_id, model_id, emp_id, line_id)
         )
     else:
         conn.execute("""
-            INSERT INTO work_records (year, month, order_id, order_no, model_id, emp_id, quantity)
-            VALUES (?,?,?,?,?,?,?)
-            ON CONFLICT(year, month, order_id, model_id, emp_id)
+            INSERT INTO work_records (year, month, order_id, order_no, model_id, emp_id, quantity, line_id)
+            VALUES (?,?,?,?,?,?,?,?)
+            ON CONFLICT(year, month, line_id, order_id, model_id, emp_id)
             DO UPDATE SET quantity=excluded.quantity, order_no=excluded.order_no
-        """, (year, month, order_id, order_no, model_id, emp_id, qty))
+        """, (year, month, order_id, order_no, model_id, emp_id, qty, line_id))
     conn.commit()
+    saved_row = conn.execute(
+        "SELECT id FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND emp_id=? AND line_id=?",
+        (year, month, order_id, model_id, emp_id, line_id)
+    ).fetchone()
+    saved_id = saved_row["id"] if saved_row else None
     conn.close()
-    return {"ok": True}
+    return {"ok": True, "id": saved_id, "line_id": line_id}
 
 
-def delete_work_record(year: int, month: int, order_id: int, model_id: int, emp_id: int):
+def delete_work_record(year: int, month: int, order_id: int, model_id: int, emp_id: int, line_id: int = 0):
     conn = get_connection()
     conn.execute(
-        "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND emp_id=?",
-        (year, month, order_id, model_id, emp_id)
+        "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND emp_id=? AND line_id=?",
+        (year, month, order_id, model_id, emp_id, line_id)
     )
     conn.commit()
     conn.close()
     return {"ok": True}
 
 
-def delete_work_row(year: int, month: int, order_id: int, model_id: int):
-    """批量删除一整行（同一订单+型号的所有员工记录）"""
+def delete_work_row(year: int, month: int, order_id: int, model_id: int, line_id: int = 0):
+    """批量删除一整行（同一订单+型号+line_id的所有员工记录）"""
     conn = get_connection()
     conn.execute(
-        "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=?",
-        (year, month, order_id, model_id)
+        "DELETE FROM work_records WHERE year=? AND month=? AND order_id=? AND model_id=? AND line_id=?",
+        (year, month, order_id, model_id, line_id)
     )
     conn.commit()
     conn.close()

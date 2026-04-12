@@ -16,10 +16,10 @@ def seed():
     # ── 1. 员工 ─────────────────────────────────────────────────────────────
     employees = [
         ("安勇",  "女", 1, 3), ("杨芳",  "女", 1, 2), ("广蓉",  "女", 1, 3), ("小芳",  "女", 1, 2),
-        ("陈小芳",  "女", 1, 2), ("黄秋燕",  "女", 1, 2), ("周小英",  "女", 1, 2),
-        ("吴月英",  "女", 1, 3), ("赵金凤",  "女", 1, 3),
-        ("孙建国",  "男", 2, 4), ("郑大海",  "男", 2, 4), ("钱大勇",  "男", 2, 4),
-        ("何志强",  "男", 2, 4), ("冯小刚",  "男", 2, 4),
+        ("小兰",  "女", 1, 2), ("珍池",  "女", 1, 3), ("小丽",  "女", 1, 2),
+        ("金华",  "女", 1, 3), ("艳华",  "女", 1, 2),
+        ("蒋军",  "男", 2, 4), ("蒋建",  "男", 2, 4), ("熬波",  "男", 2, 4),
+        ("刘远全",  "男", 2, 4), ("周正海",  "男", 2, 4), ("阿文",  "男", 2, 4),
     ]
     for name, gender, dept_id, sub_dept_id in employees:
         try:
@@ -96,32 +96,51 @@ def seed():
     conn.commit()
     print(f"[seed] 订单 {len(orders)} 个已写入")
 
-    # ── 5. 做货记录（使用 order_id） ──────────────────────────────────────
+    # ── 5. 做货记录（year/month/order_id/model_id/emp_id/quantity/line_id）────────
     all_emps = conn.execute("SELECT id FROM employees ORDER BY id").fetchall()
     all_model_list = list(model_ids.values())
 
     import random
     random.seed(42)
 
+    # 为每个 (order_id, model_id) 组合分配递增的 line_id
+    line_id_counter = {}  # (order_id, model_id) → line_id
+
+    def next_line_id(oid, mid):
+        key = (oid, mid)
+        if key not in line_id_counter:
+            line_id_counter[key] = 0
+        line_id_counter[key] += 1
+        return line_id_counter[key]
+
     for order_no, (_, _, _, _, model_nos) in zip(order_ids.keys(), orders):
         oid = order_ids[order_no]
         for model_no in model_nos:
             model_id = model_ids[model_no]
+            line_id = next_line_id(oid, model_id)
             for emp in all_emps:
                 qty = random.randint(0, 50)
                 if qty == 0:
                     continue
                 try:
                     conn.execute("""
-                        INSERT INTO work_records (year, month, order_id, order_no, model_id, emp_id, quantity)
-                        VALUES (?,?,?,?,?,?,?)
-                    """, (YEAR, MONTH, oid, order_no, model_id, emp["id"], qty))
+                        INSERT INTO work_records
+                            (year, month, order_id, order_no, model_id, emp_id, quantity, line_id)
+                        VALUES (?,?,?,?,?,?,?,?)
+                    """, (YEAR, MONTH, oid, order_no, model_id, emp["id"], qty, line_id))
                 except Exception:
                     pass
 
     # 上月（2026-03）
     prev_emp_ids = [e["id"] for e in all_emps[:5]]
     prev_model_nos = ["A2026", "B2026", "C2026"]
+    prev_line_id_counter = {}
+    def prev_line_id(oid, mid):
+        key = (oid, mid)
+        if key not in prev_line_id_counter:
+            prev_line_id_counter[key] = 0
+        prev_line_id_counter[key] += 1
+        return prev_line_id_counter[key]
     try:
         prev_oid = conn.execute(
             "INSERT INTO orders (order_no, year, month, remark) VALUES (?,?,?,?)",
@@ -132,13 +151,15 @@ def seed():
                 conn.execute("INSERT INTO order_models (order_id, model_id) VALUES (?,?)", (prev_oid, model_ids[mn]))
         for model_no in prev_model_nos:
             model_id = model_ids[model_no]
+            line_id = prev_line_id(prev_oid, model_id)
             for emp_id in prev_emp_ids:
                 qty = random.randint(5, 30)
                 try:
                     conn.execute(
-                        "INSERT INTO work_records (year, month, order_id, order_no, model_id, emp_id, quantity) "
-                        "VALUES (?,?,?,?,?,?,?)",
-                        (2026, 3, prev_oid, "ORD-PREV", model_id, emp_id, qty)
+                        "INSERT INTO work_records "
+                        "(year, month, order_id, order_no, model_id, emp_id, quantity, line_id) "
+                        "VALUES (?,?,?,?,?,?,?,?)",
+                        (2026, 3, prev_oid, "ORD-PREV", model_id, emp_id, qty, line_id)
                     )
                 except Exception:
                     pass

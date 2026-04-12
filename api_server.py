@@ -210,31 +210,34 @@ class WorkRecordBody(BaseModel):
     model_id: int
     emp_id: int
     quantity: int
+    line_id: int = 0   # 逻辑行号，同 (order_id,model_id) 可有多行
 
 
 @app.post("/api/work-records")
 async def api_save_work_record(body: WorkRecordBody):
     return crud.save_work_record(
         body.year, body.month, body.order_id,
-        body.model_id, body.emp_id, body.quantity
+        body.model_id, body.emp_id, body.quantity,
+        body.line_id
     )
 
 
 @app.delete("/api/work-records")
 async def api_delete_work_record(
     year: int = Query(...), month: int = Query(...),
-    order_id: int = Query(...), model_id: int = Query(...), emp_id: int = Query(...)
+    order_id: int = Query(...), model_id: int = Query(...),
+    emp_id: int = Query(...), line_id: int = Query(0)
 ):
-    return crud.delete_work_record(year, month, order_id, model_id, emp_id)
+    return crud.delete_work_record(year, month, order_id, model_id, emp_id, line_id)
 
 
 @app.delete("/api/work-row")
 async def api_delete_work_row(
     year: int = Query(...), month: int = Query(...),
-    order_id: int = Query(...), model_id: int = Query(...)
+    order_id: int = Query(...), model_id: int = Query(...), line_id: int = Query(0)
 ):
-    """批量删除一整行（同一订单+型号的所有员工记录）"""
-    return crud.delete_work_row(year, month, order_id, model_id)
+    """批量删除一整行（同一订单+型号+line_id的所有员工记录）"""
+    return crud.delete_work_row(year, month, order_id, model_id, line_id)
 
 
 # ── 人工增扣 ────────────────────────────────────────────

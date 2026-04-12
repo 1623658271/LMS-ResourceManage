@@ -1,16 +1,26 @@
 // ============================================================
-// 做货编辑（按行存储数据结构）
+// 做货编辑 - 最终版 (v2.2.10)
+// 核心：完全不合并，每条 DB 记录 = 一行
+// - 新增行：rowId=_weRowCounter++，lineId=_weMaxLineId++
+// - DB 行：rowId=r.id，lineId=r.line_id
+// - 排序：lineId DESC（新增行在前，刷新后顺序不变）
 // ============================================================
 
-// 全局状态（按行存储）
-let _workRowData = {};     // { rowIdx: {orderId, modelId, emps: {empId: qty}} }
-let _workRowCounter = 0;   // 自增行ID，保证唯一性
+// 全局状态
+let _weRowMap = {};     // { rowId: { orderId, modelId, lineId, emps: {empId: qty} } }
+let _weRowCounter = 0;  // 新增行的 rowId 起始（正整数递增）
+let _weMaxLineId = 0;   // 当前年月最大 lineId（新增行从这里递增）
 
+// ─────────────────────────────────────────────────────────
+// loadWorkRecords：每条 DB 记录独立一行，不合并
+// ─────────────────────────────────────────────────────────
 async function loadWorkRecords() {
   const year = parseInt(document.getElementById('workYear').value);
   const month = parseInt(document.getElementById('workMonth').value);
   _state.currentYear = year;
   _state.currentMonth = month;
+
+  const wasWageView = _state.viewMode === 'wage';
 
   const data = await get(`/api/work-records?year=${year}&month=${month}`);
   _state.workEmployees = data.employees || [];
@@ -18,35 +28,49 @@ async function loadWorkRecords() {
   _state.workOrders = data.orders || [];
   _state.workOrderModels = data.order_models || {};
   _state.workRecords = data.records || [];
-  _state.wageDetail = null;
 
-  // 重置状态
-  _workRowData = {};
-  _workRowCounter = 0;
+  // 重置
+  _weRowMap = {};
+  _weRowCounter = 0;
+  _weMaxLineId = 0;
 
-  // 从数据库记录恢复（按行分组）
-  const rowsMap = {};  // { "orderId,modelId": rowIdx }
+  // 按 (orderId, modelId, lineId) 分组，同一行的多个员工合并到一个 emps 对象
   for (const r of _state.workRecords) {
     if (!r.order_id || !r.model_id) continue;
-    const comboKey = `${r.order_id},${r.model_id}`;
-    if (rowsMap[comboKey] === undefined) {
-      rowsMap[comboKey] = _workRowCounter++;
-      _workRowData[rowsMap[comboKey]] = {
-        orderId: r.order_id,
-        modelId: r.model_id,
+    const orderId = r.order_id;
+    const modelId = r.model_id;
+    const lineId = r.line_id || 0;
+    const rowKey = `${orderId},${modelId},${lineId}`;  // 逻辑行唯一标识
+    if (lineId > _weMaxLineId) _weMaxLineId = lineId;
+
+    if (!_weRowMap[rowKey]) {
+      _weRowMap[rowKey] = {
+        rowId: orderId * 10000 + modelId * 10 + lineId,  // 稳定数字 ID（供 render/spreadsheet 使用）
+        orderId,
+        modelId,
+        lineId,
+        lineDbIds: [r.id],  // 该行所有 DB 记录 ids（用于删除）
         emps: {}
       };
+    } else {
+      _weRowMap[rowKey].lineDbIds.push(r.id);
     }
-    // 恢复对数数据（绑定在行上）
-    _workRowData[rowsMap[comboKey]].emps[r.emp_id] = r.quantity;
+    _weRowMap[rowKey].emps[r.emp_id] = r.quantity;
+  }
+
+  if (wasWageView) {
+    _state.wageDetail = await get(`/api/wage-detail?year=${year}&month=${month}`);
+  } else {
+    _state.wageDetail = null;
   }
 
   renderSpreadsheet();
 }
 
-// ============================================================
-// 渲染表格（按行存储）
-// ============================================================
+// ─────────────────────────────────────────────────────────
+// renderSpreadsheet：渲染表格
+// 排序：lineId DESC（新增行 lineId 递增，所以新增行在前；DB 行按 lineId 升序）
+// ─────────────────────────────────────────────────────────
 function renderSpreadsheet() {
   const emps = _state.workEmployees;
   const orders = _state.workOrders;
@@ -60,104 +84,126 @@ function renderSpreadsheet() {
     wrap.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8"/></svg><div>请先在成员管理中添加员工</div></div>`;
     return;
   }
+  if (!orders.length) {
+    wrap.innerHTML = `<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 17H7A5 5 0 0 1 7 7h2M15 7h2a5 5 0 1 1 0 10h-2M8 12h8"/></svg><div>请先在订单管理中添加订单</div></div>`;
+    return;
+  }
 
   const totalGroups = Math.ceil(emps.length / empsPerGroup);
 
-  // 计算行合计（基于该行的 emps 数据）
+  // 排序：new 前缀行排最前，其余按 lineId DESC（新增行 lineId 大排前，DB 行 lineId 小排后）
+  const sortedKeys = Object.keys(_weRowMap).sort((a, b) => {
+    const aIsNew = a.startsWith('new');
+    const bIsNew = b.startsWith('new');
+    if (aIsNew && !bIsNew) return -1;
+    if (!aIsNew && bIsNew) return 1;
+    const la = _weRowMap[a] ? _weRowMap[a].lineId : 0;
+    const lb = _weRowMap[b] ? _weRowMap[b].lineId : 0;
+    return lb - la;  // lineId 大的在前
+  });
+
+  function calcCellWage(empId, empSubDeptId, modelId, qty) {
+    if (!qty || qty <= 0) return 0;
+    const priceKey = `${modelId},${empSubDeptId}`;
+    const price = (_state.priceMap || {})[priceKey] || 0;
+    return qty * price;
+  }
+
   function calcRowTotal(rowData) {
-    if (!rowData || !rowData.orderId || !rowData.modelId) return 0;
+    if (!rowData || rowData.orderId === 0 || rowData.modelId === 0) return 0;
     let total = 0;
-    const empsMap = rowData.emps || {};
-    if (isWage && _state.wageDetail) {
-      for (const emp of emps) {
-        const key = `${String(rowData.orderId)},${String(rowData.modelId)},${String(emp.id)}`;
-        total += _state.wageDetail.wages[key] || 0;
-      }
-    } else {
-      for (const emp of emps) {
-        total += empsMap[emp.id] || 0;
-      }
+    for (const emp of emps) {
+      const qty = rowData.emps[emp.id] || 0;
+      total += calcCellWage(emp.id, emp.sub_dept_id, rowData.modelId, qty);
     }
     return total;
   }
 
-  // 构建单张分组表格
   function buildGroupTable(groupIdx, groupEmps, isOnlyGroup) {
-    const stickyLeft = isOnlyGroup ? 'left:0;' : 'left:0;';
+    const stickyStyle = !isOnlyGroup ? 'left:0;' : '';
 
     const headerHtml = `<thead><tr>
-      <th class="col-fixed" style="min-width:50px;background:#059669;color:#fff;${stickyLeft}z-index:21;">操作</th>
-      <th class="col-fixed" style="min-width:100px;background:#059669;color:#fff;${stickyLeft}z-index:20;">订单号</th>
-      <th class="col-fixed" style="min-width:90px;background:#059669;color:#fff;${stickyLeft}z-index:19;">型号</th>
+      <th class="col-fixed" style="min-width:50px;background:#059669;color:#fff;${stickyStyle}z-index:21;">操作</th>
+      <th class="col-fixed" style="min-width:100px;background:#059669;color:#fff;${stickyStyle}z-index:20;">订单号</th>
+      <th class="col-fixed" style="min-width:90px;background:#059669;color:#fff;${stickyStyle}z-index:19;">型号</th>
       ${groupEmps.map(e => `<th style="min-width:70px;background:#d1fae5;color:#065f46;">
         <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
-      <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${stickyLeft}z-index:19;">行合计</th>
+      <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${stickyStyle}z-index:19;">行合计</th>
     </tr></thead>`;
 
     let tbodyHtml = '<tbody>';
-    Object.entries(_workRowData).forEach(([rowIdx, rowData]) => {
+    for (const mapKey of sortedKeys) {
+      const rowData = _weRowMap[mapKey];
+      if (!rowData) continue;
       const { orderId, modelId, emps: empsMap } = rowData;
       const rowTotal = calcRowTotal(rowData);
 
       const empCells = groupEmps.map(emp => {
         const qty = empsMap[emp.id] || 0;
-        if (isWage && _state.wageDetail) {
-          const key = `${String(orderId)},${String(modelId)},${String(emp.id)}`;
-          const wage = _state.wageDetail.wages[key] || 0;
+        if (isWage) {
+          const wage = calcCellWage(emp.id, emp.sub_dept_id, modelId, qty);
           const displayVal = wage > 0 ? fmtCompact(wage) : '';
-          const compactClass = String(displayVal).length > 6 ? ' compact' : '';
+          const compact = String(displayVal).length > 6 ? ' compact' : '';
           return `<td>
-            <div class="cell-input wage-cell-display${compactClass}" style="width:65px;text-align:right;" data-key="${key}"
+            <div class="cell-input wage-cell-display${compact}"
+              style="width:65px;text-align:right;"
               title="${wage > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
           </td>`;
         } else {
           return `<td style="text-align:center;">
             <input type="number" min="0" class="cell-input" style="width:65px;"
-              value="${qty || ''}" placeholder="0" data-row="${rowIdx}" data-emp="${emp.id}"
+              value="${qty > 0 ? qty : ''}" placeholder=""
+              data-row="${mapKey}" data-emp="${emp.id}"
               oninput="onWorkCellChange(this)"
               onkeydown="onWorkCellKeydown(event,this)">
           </td>`;
         }
       }).join('');
 
-      const orderOptions = orders.map(o =>
+      const orderOptions = `<option value="0">请选择</option>` + orders.map(o =>
         `<option value="${o.id}"${o.id === orderId ? ' selected' : ''}>${escHtml(o.order_no)}</option>`
       ).join('');
-      const modelOptions = models.map(m =>
+      const modelOptions = `<option value="0">请选择</option>` + models.map(m =>
         `<option value="${m.id}"${m.id === modelId ? ' selected' : ''}>${escHtml(m.model_no)}</option>`
       ).join('');
 
       const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
-      const compactTotal = String(totalDisplay).length > 8 ? ' compact' : '';
+      const compact = String(totalDisplay).length > 8 ? ' compact' : '';
 
       tbodyHtml += `<tr>
-        <td class="col-fixed" style="text-align:center;${stickyLeft}z-index:7;">
-          <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;"
-            onclick="deleteWorkRow(${rowIdx})">删除</button>
+        <td class="col-fixed" style="text-align:center;${stickyStyle}z-index:7;">
+          <button class="btn btn-sm"
+            style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;"
+            onclick="deleteWorkRow('${mapKey}')">删除</button>
         </td>
-        <td class="col-fixed" style="background:#d1fae5;${stickyLeft}z-index:6;">
-          <select class="cell-input" style="background:#d1fae5;font-weight:600;min-width:80px;"
-            data-row="${rowIdx}" data-type="order" onchange="onWorkSelectChange(this)">
+        <td class="col-fixed" style="background:#d1fae5;${stickyStyle}z-index:6;">
+          <select class="cell-input"
+            style="background:#d1fae5;font-weight:600;min-width:80px;"
+            data-row="${mapKey}" data-type="order"
+            onchange="onWorkSelectChange(this)">
             ${orderOptions}
           </select>
         </td>
-        <td class="col-fixed" style="background:#d1fae5;${stickyLeft}z-index:5;">
-          <select class="cell-input" style="background:#d1fae5;font-weight:600;min-width:70px;"
-            data-row="${rowIdx}" data-type="model" onchange="onWorkSelectChange(this)">
+        <td class="col-fixed" style="background:#d1fae5;${stickyStyle}z-index:5;">
+          <select class="cell-input"
+            style="background:#d1fae5;font-weight:600;min-width:70px;"
+            data-row="${mapKey}" data-type="model"
+            onchange="onWorkSelectChange(this)">
             ${modelOptions}
           </select>
         </td>
         ${empCells}
-        <td class="col-fixed row-total${isWage ? ' wage' : ''}${compactTotal}"
-          style="font-weight:700;text-align:center;background:#fef9c3;color:#92400e;${stickyLeft}z-index:5;">${totalDisplay}</td>
+        <td class="col-fixed row-total${isWage ? ' wage' : ''}${compact}"
+          style="font-weight:700;text-align:center;background:#fef9c3;color:#92400e;${stickyStyle}z-index:5;">
+          ${totalDisplay}
+        </td>
       </tr>`;
-    });
+    }
     tbodyHtml += '</tbody>';
     return `<table class="spreadsheet${isWage?' wage-view':''}${isSingleMode?' single-table-mode':''}">${headerHtml}${tbodyHtml}</table>`;
   }
 
-  // 组装所有分组表格
   let tablesHtml = '';
   for (let g = 0; g < totalGroups; g++) {
     const start = g * empsPerGroup;
@@ -176,74 +222,40 @@ function renderSpreadsheet() {
   wrap.innerHTML = `${tablesHtml}<button class="row-add-btn" onclick="addWorkRow()">+ 添加一行</button>`;
 }
 
-// ============================================================
-// 单元格变更（按行存储）
-// ============================================================
+// ─────────────────────────────────────────────────────────
+// onWorkCellChange：单元格输入 → 保存
+// ─────────────────────────────────────────────────────────
 function onWorkCellChange(el) {
-  const rowIdx = parseInt(el.dataset.row);
+  const mapKey = el.dataset.row;    // 字符串 key（直接透传）
   const empId = parseInt(el.dataset.emp);
-  const val = parseFloat(el.value) || 0;
+  const rawVal = el.value.trim();
+  const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
 
-  if (!_workRowData[rowIdx]) return;
+  if (!_weRowMap[mapKey]) return;
 
-  if (val === 0) {
-    delete _workRowData[rowIdx].emps[empId];
+  if (val <= 0) {
+    delete _weRowMap[mapKey].emps[empId];
     el.style.background = '';
+    el.value = '';
   } else {
-    _workRowData[rowIdx].emps[empId] = val;
+    _weRowMap[mapKey].emps[empId] = val;
     el.style.background = '#fef9c3';
   }
 
-  // 更新该行的行合计（只更新当前表格）
-  updateRowTotal(rowIdx);
-
-  // 防抖自动保存
-  clearTimeout(window._workAutoSaveTimer);
-  window._workAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 300);
+  updateRowTotal(mapKey);
+  clearTimeout(window._weAutoSaveTimer);
+  window._weAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 300);
 }
 
-// 更新行合计
-function updateRowTotal(rowIdx) {
-  const rowData = _workRowData[rowIdx];
-  if (!rowData) return;
-
-  const emps = _state.workEmployees || [];
-  const isWage = _state.viewMode === 'wage';
-  let rowTotal = 0;
-
-  if (isWage && _state.wageDetail) {
-    for (const emp of emps) {
-      const key = `${String(rowData.orderId)},${String(rowData.modelId)},${String(emp.id)}`;
-      rowTotal += _state.wageDetail.wages[key] || 0;
-    }
-  } else {
-    const empsMap = rowData.emps || {};
-    for (const emp of emps) {
-      rowTotal += empsMap[emp.id] || 0;
-    }
-  }
-
-  // 更新所有表格中的行合计
-  const allTables = document.querySelectorAll('#spreadsheetWrap .spreadsheet');
-  for (const tbl of allTables) {
-    const rowTr = tbl.querySelector(`tr:has(input[data-row="${rowIdx}"])`);
-    if (rowTr) {
-      const totalEl = rowTr.querySelector('.row-total');
-      if (totalEl) {
-        const displayVal = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
-        totalEl.textContent = displayVal;
-        totalEl.className = `col-fixed row-total${isWage ? ' wage' : ''}${String(displayVal).length > 8 ? ' compact' : ''}`;
-      }
-    }
-  }
-}
-
+// ─────────────────────────────────────────────────────────
+// onWorkCellKeydown：Tab 键在同行格之间跳转
+// ─────────────────────────────────────────────────────────
 function onWorkCellKeydown(e, el) {
   if (e.key === 'Tab' && !e.shiftKey) {
     e.preventDefault();
-    const rowIdx = el.dataset.row;
+    const rowId = el.dataset.row;
     const allInputs = Array.from(
-      document.querySelectorAll(`#spreadsheetWrap td input[data-row="${rowIdx}"]`)
+      document.querySelectorAll(`#spreadsheetWrap td input[data-row="${rowId}"]`)
     );
     const curIdx = allInputs.indexOf(el);
     if (curIdx >= 0) {
@@ -253,151 +265,242 @@ function onWorkCellKeydown(e, el) {
   }
 }
 
-// ============================================================
-// 下拉变更（订单/型号）- 切换时保留对数数据
-// ============================================================
-function onWorkSelectChange(el) {
-  const rowIdx = parseInt(el.dataset.row);
-  const type = el.dataset.type;
-  const val = parseInt(el.value);
+// ─────────────────────────────────────────────────────────
+// onWorkSelectChange：改订单/型号下拉 → 更新 combo，选了有效 combo 才操作 DB
+// - 回到"请选择"(0)：只更新下拉状态，保留 lineId 和旧 DB 记录（不删）
+// - 选择有效 combo：
+//   - 若旧 combo 也是有效的 → 删旧 DB 记录，autoSave 保存新 combo
+//   - 若旧 combo 无效(lineId=0) → 分配 lineId，autoSave 保存新 combo
+// ─────────────────────────────────────────────────────────
+async function onWorkSelectChange(sel) {
+  const mapKey = sel.dataset.row;    // 直接用字符串 key（不再 parseInt）
+  const type = sel.dataset.type;
+  const newVal = parseInt(sel.value);
+  const rowData = _weRowMap[mapKey];
+  if (!rowData) return;
 
-  if (!_workRowData[rowIdx]) {
-    _workRowData[rowIdx] = { orderId: 0, modelId: 0, emps: {} };
+  const oldOrderId = rowData.orderId;
+  const oldModelId = rowData.modelId;
+  const newOrderId = type === 'order' ? newVal : oldOrderId;
+  const newModelId = type === 'model' ? newVal : oldModelId;
+
+  if (newOrderId === oldOrderId && newModelId === oldModelId) return;
+
+  const year = _state.currentYear;
+  const month = _state.currentMonth;
+  const oldLineId = rowData.lineId;
+
+  // 回到"请选择"：只更新状态，保留 lineId（旧 DB 记录不删）
+  if (newOrderId === 0 || newModelId === 0) {
+    rowData.orderId = newOrderId;
+    rowData.modelId = newModelId;
+    renderSpreadsheet();
+    return;
   }
 
-  const oldOrderId = _workRowData[rowIdx].orderId;
-  const oldModelId = _workRowData[rowIdx].modelId;
-
-  // 更新选择
-  if (type === 'order') {
-    _workRowData[rowIdx].orderId = val;
-  } else if (type === 'model') {
-    _workRowData[rowIdx].modelId = val;
+  // 新 combo 有效：若旧 combo 也有效则删旧记录
+  if (oldOrderId > 0 && oldModelId > 0 && oldLineId > 0) {
+    await del(`/api/work-row?year=${year}&month=${month}&order_id=${oldOrderId}&model_id=${oldModelId}&line_id=${oldLineId}`);
   }
 
-  // 重新渲染
+  // 若 lineId=0（从未保存过的新行），分配一个
+  if (rowData.lineId === 0) {
+    rowData.lineId = ++_weMaxLineId;
+  }
+
+  rowData.orderId = newOrderId;
+  rowData.modelId = newModelId;
+
+  // 如果 combo（orderId,modelId）变了，需要把行移到新 key 下（JS 对象不支持 key 重命名）
+  const newKey = `${newOrderId},${newModelId},${rowData.lineId}`;
+  if (newKey !== mapKey) {
+    _weRowMap[newKey] = rowData;
+    delete _weRowMap[mapKey];
+  }
+
+  // emps 保留（用户可能已填了对数）
   renderSpreadsheet();
-
-  // 立即保存
   autoSaveWorkRecords();
 }
 
-// ============================================================
-// 添加/删除行（按行存储）
-// ============================================================
+// ─────────────────────────────────────────────────────────
+// addWorkRow：新增一行（分配 lineId = ++_weMaxLineId，排在最前）
+// ─────────────────────────────────────────────────────────
 function addWorkRow() {
-  const rowIdx = _workRowCounter++;  // 使用自增ID
-  _workRowData[rowIdx] = { orderId: 0, modelId: 0, emps: {} };  // 空行
+  const newLineId = ++_weMaxLineId;
+  const rowKey = `new,0,${newLineId}`;   // 字符串 key（与 loadWorkRecords 格式一致）
+  const numericRowId = _weRowCounter++;  // 供 spreadsheet 使用的数字 ID
+  _weRowMap[rowKey] = {
+    rowId: numericRowId,
+    orderId: 0,       // 默认未选
+    modelId: 0,       // 默认未选
+    lineId: newLineId,
+    lineDbIds: [],    // 新行暂无 DB 记录
+    emps: {}          // 空对数
+  };
+
   renderSpreadsheet();
-  // 聚焦到新行的订单下拉
+
   setTimeout(() => {
-    const sel = document.querySelector(`#spreadsheetWrap select[data-row="${rowIdx}"][data-type="order"]`);
-    if (sel) sel.focus();
+    const inp = document.querySelector(`#spreadsheetWrap input[data-row="${numericRowId}"]`);
+    if (inp) inp.focus();
   }, 50);
 }
 
-function deleteWorkRow(rowIdx) {
-  if (!confirm('确定删除这一行吗？')) return;
-  if (!_workRowData[rowIdx]) return;
+// ─────────────────────────────────────────────────────────
+// deleteWorkRow：删除一行
+// - lineId > 0（已保存）：调 DELETE /api/work-row 删整行
+// - lineId = 0（新增未保存）：只从 UI 移除
+// ─────────────────────────────────────────────────────────
+async function deleteWorkRow(rowId) {
+  const rowData = _weRowMap[rowId];
+  if (!rowData) return;
 
-  // 删除该行（对数数据随之删除）
-  delete _workRowData[rowIdx];
+  const { orderId, modelId, lineId } = rowData;
 
+  delete _weRowMap[rowId];
   renderSpreadsheet();
-  autoSaveWorkRecords();
-  toast('已删除', 'success');
-}
 
-// ============================================================
-// 保存全部（备用函数，保留）
-// ============================================================
-async function saveAllWorkRecords() {
-  await autoSaveWorkRecords();
-  toast('已保存', 'success');
-}
-
-// ============================================================
-// 自动保存（按行遍历）
-// ============================================================
-async function autoSaveWorkRecords() {
-  const year = _state.currentYear;
-  const month = _state.currentMonth;
-  const toSave = [];
-  const toDelete = [];
-
-  // 遍历每一行
-  for (const [rowIdx, rowData] of Object.entries(_workRowData)) {
-    const { orderId, modelId, emps } = rowData;
-    if (!orderId || !modelId) continue;
-
-    // 遍历该行的每个员工对数
-    for (const [empId, qty] of Object.entries(emps)) {
-      const empIdNum = parseInt(empId);
-      if (qty > 0) {
-        toSave.push({ orderId, modelId, empId: empIdNum, qty });
-      } else {
-        toDelete.push({ orderId, modelId, empId: empIdNum });
-      }
+  if (lineId > 0) {
+    const year = _state.currentYear;
+    const month = _state.currentMonth;
+    try {
+      await del(`/api/work-row?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}&line_id=${lineId}`);
+    } catch (e) {
+      console.error('删除行记录失败', e);
     }
   }
 
-  // 批量保存
-  for (const item of toSave) {
-    try {
-      await post('/api/work-records', {
-        year, month,
-        order_id: item.orderId,
-        model_id: item.modelId,
-        emp_id: item.empId,
-        quantity: item.qty
-      });
-    } catch (e) { console.error('保存失败', e); }
+  toast('已删除', 'success');
+}
+
+// ─────────────────────────────────────────────────────────
+// updateRowTotal：即时更新行合计（不重渲染整表）
+// ─────────────────────────────────────────────────────────
+function updateRowTotal(rowId) {
+  const rowData = _weRowMap[rowId];
+  if (!rowData) return;
+
+  const emps = _state.workEmployees || [];
+  const isWage = _state.viewMode === 'wage';
+  let rowTotal = 0;
+
+  if (isWage) {
+    for (const emp of emps) {
+      const qty = rowData.emps[emp.id] || 0;
+      rowTotal += calcCellWage(emp.id, emp.sub_dept_id, rowData.modelId, qty);
+    }
+  } else {
+    for (const emp of emps) {
+      rowTotal += rowData.emps[emp.id] || 0;
+    }
   }
 
-  // 批量删除
-  for (const item of toDelete) {
-    try {
-      await del(`/api/work-records?year=${year}&month=${month}&order_id=${item.orderId}&model_id=${item.modelId}&emp_id=${item.empId}`);
-    } catch (e) { console.error('删除失败', e); }
+  const displayVal = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
+  const compact = String(displayVal).length > 8 ? ' compact' : '';
+  const allTables = document.querySelectorAll('#spreadsheetWrap .spreadsheet');
+  for (const tbl of allTables) {
+    const rowTr = tbl.querySelector(`tr:has(button[onclick="deleteWorkRow(${rowId})"])`);
+    if (rowTr) {
+      const totalEl = rowTr.querySelector('.row-total');
+      if (totalEl) {
+        totalEl.textContent = displayVal;
+        totalEl.className = `col-fixed row-total${isWage ? ' wage' : ''}${compact}`;
+      }
+    }
   }
 }
 
-// ============================================================
-// 切换工资视角
-// ============================================================
+// ─────────────────────────────────────────────────────────
+// calcCellWage：工资计算
+// ─────────────────────────────────────────────────────────
+function calcCellWage(empId, empSubDeptId, modelId, qty) {
+  if (!qty || qty <= 0) return 0;
+  const priceKey = `${modelId},${empSubDeptId}`;
+  const price = (_state.priceMap || {})[priceKey] || 0;
+  return qty * price;
+}
+
+// ─────────────────────────────────────────────────────────
+// toggleViewMode：切换工资视角
+// ─────────────────────────────────────────────────────────
 async function toggleViewMode() {
-  // 先自动保存
-  await autoSaveWorkRecords();
+  const year = _state.currentYear;
+  const month = _state.currentMonth;
 
   if (_state.viewMode === 'qty') {
-    const year = _state.currentYear, month = _state.currentMonth;
+    await autoSaveWorkRecords();
     _state.wageDetail = await get(`/api/wage-detail?year=${year}&month=${month}`);
+    if (_state.wageDetail && _state.wageDetail.price_map) {
+      _state.priceMap = _state.wageDetail.price_map;
+    }
     _state.viewMode = 'wage';
-    document.getElementById('viewModeBtn').textContent = '切换对数视角';
-    document.getElementById('viewModeBtn').style.background = '#dcfce7';
-    document.getElementById('viewModeBtn').style.color = '#15803d';
+    const btn = document.getElementById('viewModeBtn');
+    btn.textContent = '切换对数视角';
+    btn.style.background = '#dcfce7';
+    btn.style.color = '#15803d';
     toast('工资视角：对数 × 单价', 'info');
   } else {
     _state.viewMode = 'qty';
     _state.wageDetail = null;
-    document.getElementById('viewModeBtn').textContent = '切换工资视角';
-    document.getElementById('viewModeBtn').style.background = '#fef3c7';
-    document.getElementById('viewModeBtn').style.color = '#92400e';
+    const btn = document.getElementById('viewModeBtn');
+    btn.textContent = '切换工资视角';
+    btn.style.background = '#fef3c7';
+    btn.style.color = '#92400e';
     toast('对数视角', 'info');
   }
   renderSpreadsheet();
 }
 
-// ============================================================
-// 初始化
-// ============================================================
+// ─────────────────────────────────────────────────────────
+// autoSaveWorkRecords：自动保存每条记录
+// - lineId = 0（新增行）：INSERT（由 DB 分配 line_id，需处理冲突）
+// - lineId > 0（已保存行）：UPDATE 或 DELETE
+// ─────────────────────────────────────────────────────────
+async function autoSaveWorkRecords() {
+  const year = _state.currentYear;
+  const month = _state.currentMonth;
+  if (!year || !month) return;
+
+  for (const [rowId, rowData] of Object.entries(_weRowMap)) {
+    const { orderId, modelId, lineId, emps } = rowData;
+    // combo 未完成：不保存（也不删）
+    if (orderId === 0 || modelId === 0) continue;
+
+    for (const [empId, qty] of Object.entries(emps)) {
+      const empNum = parseInt(empId);
+      try {
+        if (qty > 0) {
+          await post('/api/work-records', {
+            year, month,
+            order_id: orderId,
+            model_id: modelId,
+            emp_id: empNum,
+            quantity: qty,
+            line_id: lineId
+          });
+        } else {
+          await del(`/api/work-records?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}&emp_id=${empNum}&line_id=${lineId}`);
+        }
+      } catch (e) {
+        console.error('保存做货记录失败', e);
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────
+// 年月切换
+// ─────────────────────────────────────────────────────────
 document.getElementById('workYear').addEventListener('change', () => {
-  _workRowData = {};
-  _workRowCounter = 0;
+  _weRowMap = {};
+  _weRowCounter = 0;
+  _weMaxLineId = 0;
   loadWorkRecords();
 });
 document.getElementById('workMonth').addEventListener('change', () => {
-  _workRowData = {};
-  _workRowCounter = 0;
+  _weRowMap = {};
+  _weRowCounter = 0;
+  _weMaxLineId = 0;
   loadWorkRecords();
 });

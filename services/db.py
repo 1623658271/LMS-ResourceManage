@@ -27,7 +27,9 @@ def init_database():
         cur.execute("PRAGMA table_info(work_records)")
         cols = {row[1] for row in cur.fetchall()}
         needs_migration = 'order_id' not in cols
+        has_line_id = 'line_id' in cols
 
+    # 迁移 1：v1→v2（添加 order_id）
     if needs_migration:
         # 第一步：重命名旧表
         conn.execute("ALTER TABLE work_records RENAME TO _work_records_old")
@@ -73,6 +75,12 @@ def init_database():
         conn.execute("DROP TABLE _work_records_old")
         conn.commit()
         print("[db] v1→v2 数据迁移完成")
+
+    # 迁移 2：添加 line_id 列（已有 work_records 但缺少 line_id）
+    if has_work_records and not has_line_id:
+        cur.execute("ALTER TABLE work_records ADD COLUMN line_id INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+        print("[db] 添加 line_id 列完成")
 
     conn.close()
     print(f"[db] 数据库初始化完成: {DB_PATH}")

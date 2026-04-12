@@ -38,3 +38,18 @@
 - **v2.1.14（2026-04-13）**：彻底修复添加行变多行问题：构建rows时跳过orderId=0或modelId=0的无效行
 - **v2.1.15（2026-04-13）**：修复订单和型号下拉selected属性：保存后重新渲染时正确显示已选择的订单和型号
 - **v2.1.16（2026-04-13）**：修复后端save_work_record逻辑：qty <= 0改为qty < 0才删除，这样quantity=0能正确保存到数据库，临时行才能转换为实际行
+- **JS模块化重构（2026-04-12）**：将 `index.html` 从 ~4000行单体拆分为 13 个独立 `.js` 模块（state/utils/api/nav/member/dept/order/price/work-edit/salary-summary/quick-calc/settings/init），所有 13 个文件均已完整实现并通过语法检查；`initSettingsPage` 从 quick-calc.js 移至 settings.js；添加 `_savedDarkColors` 声明修复 settings.js 深色模式切换 bug
+- **v2.2.1（2026-04-12）**：做货编辑大改
+  1. 移除"保存全部"按钮，改为纯自动保存（300ms防抖）
+  2. 修复autoSaveWorkRecords：正确处理0值（val>0保存，val<=0删除），不在循环内delete
+  3. 修复deleteWorkRow/deleteTempRow：正确清除_dirtyCells防止多出行
+  4. 取消订单→型号强依赖：型号下拉显示所有型号
+  5. 移除头部订单/型号选择器，简化工具栏
+  6. 从_dirtyCells构建行的逻辑移除，防止重复渲染多出行
+  7. 修复key格式不一致：onOrderCellChange和deleteTempRow使用逗号分隔符，改为管道符，与其他地方保持一致
+- **v2.2.2（2026-04-12）**：照搬快捷计算结构重写做货编辑
+  1. 行索引模式：`_workRowSelects = {rowIdx: {orderId, modelId}}`
+  2. 简化状态：删除 tempRows/_dirtyCells/_deletedRowKeys
+  3. 统一 key 格式：`orderId,modelId,empId`（逗号分隔）
+  4. autoSaveWorkRecords：300ms防抖，与快捷计算一致
+  5. Tab 导航、添加/删除行、工资视角切换全部照搬快捷计算
