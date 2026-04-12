@@ -453,6 +453,19 @@ function clearQcInputs() {
   saveQcState();
 }
 
+// ---- 清空单价 ----
+function clearQcPrices() {
+  // 遍历所有行的单价，重置为0
+  for (const rowKey in _qcDeptRows) {
+    const row = _qcDeptRows[rowKey];
+    for (const subDeptId in row) {
+      row[subDeptId] = 0;
+    }
+  }
+  renderQcDeptTables();
+  saveQcState();
+}
+
 // ---- 切换工资视角 ----
 async function qcToggleViewMode() {
   await autoSaveQc();
