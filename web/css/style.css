@@ -131,6 +131,27 @@ h2, h3, .section-title { font-size: var(--font-size-title) !important; }
 .topbar-title { font-size: var(--font-size-h1); font-weight: 600; }
 .topbar-hint { font-size: 12px; color: var(--text-muted); margin-left: auto; }
 
+/* Topbar 返回按钮 */
+.btn-topbar-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.btn-topbar-back:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
 .content { flex: 1; padding: var(--content-padding); overflow-y: auto; }
 
 /* ============================================================

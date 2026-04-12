@@ -22,24 +22,49 @@ function initMonthPickers() {
 }
 
 // ============================================================
-// 导航
+// 导航历史栈
 // ============================================================
-function navigateTo(view) {
-  // 离开做货编辑页面时自动保存
-  if (_currentView === 'work' && view !== 'work') {
-    autoSaveWorkRecords();
+let _navHistory = [];   // 存储跳转前的视图名，[{view, empId?}]
+
+// 更新顶栏返回按钮的可见性
+function _updateBackBtn() {
+  const btn = document.getElementById('topbarBackBtn');
+  if (!btn) return;
+  if (_navHistory.length > 0) {
+    btn.style.display = 'inline-flex';
+  } else {
+    btn.style.display = 'none';
   }
-  // 离开快捷计算页面时自动保存
-  if (_currentView === 'quickcalc' && view !== 'quickcalc') {
-    autoSaveQc();
+}
+
+// 返回上一页
+function goBack() {
+  if (_navHistory.length === 0) return;
+  const prev = _navHistory.pop();
+  if (prev.view === 'member-detail') {
+    // 上一页是成员详情，则直接恢复详情（不再往历史里推）
+    _doNavigateToMemberDetail(prev.empId);
+  } else {
+    _doNavigateTo(prev.view);
   }
-  _currentView = view; // 跟踪当前视图
+  _updateBackBtn();
+}
+
+// ============================================================
+// 导航（内部实现，不推历史）
+// ============================================================
+function _doNavigateTo(view) {
+  if (_currentView === 'work' && view !== 'work') autoSaveWorkRecords();
+  if (_currentView === 'quickcalc' && view !== 'quickcalc') autoSaveQc();
+  _currentView = view;
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelector(`.nav-item[data-view="${view}"]`).classList.add('active');
+  const navEl = document.querySelector(`.nav-item[data-view="${view}"]`);
+  if (navEl) navEl.classList.add('active');
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   const titles = { overview:'资源总览', members:'成员管理', departments:'部门管理',
-    orders:'订单管理', prices:'型号单价表', work:'做货编辑', salary:'总工资表', quickcalc:'快捷计算', 'member-detail':'成员详情', settings:'系统设置' };
+    orders:'订单管理', prices:'型号单价表', work:'做货编辑', salary:'总工资表',
+    quickcalc:'快捷计算', 'member-detail':'成员详情', settings:'系统设置' };
   document.getElementById('topbarTitle').textContent = titles[view] || view;
   if (view === 'members') loadMembers();
   else if (view === 'departments') loadDepartments();
@@ -49,6 +74,26 @@ function navigateTo(view) {
   else if (view === 'salary') loadSalary();
   else if (view === 'quickcalc') initQuickCalc();
   else if (view === 'settings') initSettingsPage();
+}
+
+// ============================================================
+// 导航公开接口（推历史）
+// ============================================================
+function navigateTo(view) {
+  // 从侧边栏点击时清空历史（直接跳到目标页）
+  // 但若是程序内部通过按钮跳转，则由调用者决定是否推历史
+  // 此处统一：navigateTo 总是清空历史（侧边栏点击 / 主页卡片点击），
+  // 有"返回"语义的跳转通过 navigateWithHistory 调用
+  _navHistory = [];
+  _doNavigateTo(view);
+  _updateBackBtn();
+}
+
+// 带历史记录的跳转（会记录来源页，支持返回）
+function navigateWithHistory(view) {
+  _navHistory.push({ view: _currentView });
+  _doNavigateTo(view);
+  _updateBackBtn();
 }
 
 document.querySelectorAll('.nav-item').forEach(el => {
@@ -74,9 +119,9 @@ function closeModal() { document.getElementById('modalOverlay').classList.remove
 function closeModalOnOverlay(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
 
 // ============================================================
-// 成员详情页
+// 成员详情页（内部实现，不推历史）
 // ============================================================
-async function navigateToMemberDetail(empId) {
+async function _doNavigateToMemberDetail(empId) {
   _currentView = 'member-detail';
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -85,10 +130,17 @@ async function navigateToMemberDetail(empId) {
   await loadMemberDetail(empId);
 }
 
+// 带历史记录的成员详情跳转（公开接口）
+async function navigateToMemberDetail(empId) {
+  _navHistory.push({ view: _currentView });
+  await _doNavigateToMemberDetail(empId);
+  _updateBackBtn();
+}
+
 async function loadMemberDetail(empId) {
   const header = document.getElementById('mdHeader');
   const content = document.getElementById('mdContent');
-  header.innerHTML = `<span>成员详情</span><button class="btn btn-sm btn-secondary" onclick="navigateTo('members')">← 返回成员列表</button>`;
+  header.innerHTML = `<span>成员详情</span>`;
   content.innerHTML = '<div class="empty-state">加载中…</div>';
 
   const source = localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
