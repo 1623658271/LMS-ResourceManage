@@ -5,6 +5,7 @@
 // 全局状态（与快捷计算风格一致）
 let _workRowSelects = {};  // { rowIdx: {orderId, modelId} }
 let _workQtyData = {};      // { "orderId,modelId,empId": qty }
+let _workRowCounter = 0;    // 自增行ID，保证唯一性
 
 async function loadWorkRecords() {
   const year = parseInt(document.getElementById('workYear').value);
@@ -20,26 +21,26 @@ async function loadWorkRecords() {
   _state.workRecords = data.records || [];
   _state.wageDetail = null;
 
-  // 初始化行选择状态（如果为空）
-  if (Object.keys(_workRowSelects).length === 0) {
-    _workRowSelects = {};
-    _workQtyData = {};
-    // 从数据库记录恢复
-    const seen = new Set();
-    for (const r of _state.workRecords) {
-      if (!r.order_id || !r.model_id) continue;
-      const combo = `${r.order_id},${r.model_id}`;
-      if (seen.has(combo)) continue;
-      seen.add(combo);
-      const rowIdx = Object.keys(_workRowSelects).length;
-      _workRowSelects[rowIdx] = { orderId: r.order_id, modelId: r.model_id };
-    }
-    // 恢复对数数据
-    for (const r of _state.workRecords) {
-      if (!r.order_id || !r.model_id) continue;
-      const key = `${r.order_id},${r.model_id},${r.emp_id}`;
-      _workQtyData[key] = r.quantity;
-    }
+  // 重置状态
+  _workRowSelects = {};
+  _workQtyData = {};
+  _workRowCounter = 0;
+
+  // 从数据库记录恢复
+  const seen = new Set();
+  for (const r of _state.workRecords) {
+    if (!r.order_id || !r.model_id) continue;
+    const combo = `${r.order_id},${r.model_id}`;
+    if (seen.has(combo)) continue;
+    seen.add(combo);
+    const rowIdx = _workRowCounter++;
+    _workRowSelects[rowIdx] = { orderId: r.order_id, modelId: r.model_id };
+  }
+  // 恢复对数数据
+  for (const r of _state.workRecords) {
+    if (!r.order_id || !r.model_id) continue;
+    const key = `${r.order_id},${r.model_id},${r.emp_id}`;
+    _workQtyData[key] = r.quantity;
   }
 
   renderSpreadsheet();
@@ -276,10 +277,10 @@ function onWorkSelectChange(el) {
 }
 
 // ============================================================
-// 添加/删除行
+// 添加/删除行（使用自增ID保证唯一性）
 // ============================================================
 function addWorkRow() {
-  const rowIdx = Object.keys(_workRowSelects).length;
+  const rowIdx = _workRowCounter++;  // 使用自增ID，不会重复
   _workRowSelects[rowIdx] = { orderId: 0, modelId: 0 };
   renderSpreadsheet();
   // 聚焦到新行的订单下拉
@@ -301,15 +302,8 @@ function deleteWorkRow(rowIdx) {
     delete _workQtyData[key];
   }
 
-  // 从行选择中移除
+  // 从行选择中移除（不重新整理索引，保持其他行不变）
   delete _workRowSelects[rowIdx];
-
-  // 重新整理 rowIdx（保持连续）
-  const newSelects = {};
-  Object.values(_workRowSelects).forEach((sel, i) => {
-    newSelects[i] = sel;
-  });
-  _workRowSelects = newSelects;
 
   renderSpreadsheet();
   autoSaveWorkRecords();
