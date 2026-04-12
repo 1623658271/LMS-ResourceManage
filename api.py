@@ -396,12 +396,22 @@ def init():
     return {"ok": True}
 
 
+def get_db_path():
+    """获取数据库路径（支持 PyInstaller 打包后的环境）"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包后的环境：使用 exe 所在目录
+        return os.path.join(os.path.dirname(sys.executable), 'data.db')
+    else:
+        # 开发环境：使用脚本所在目录
+        return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+
+
 # ── 数据库导入导出 ─────────────────────────────────────────
 
 def export_database():
     """导出数据库文件为 base64 字符串"""
     import base64
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+    db_path = get_db_path()
     if not os.path.exists(db_path):
         return {"ok": False, "error": "数据库文件不存在"}
     
@@ -429,7 +439,7 @@ def import_database(base64_data):
             return {"ok": False, "error": "无效的数据库文件格式"}
         
         # 备份当前数据库
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+        db_path = get_db_path()
         backup_path = db_path + '.backup'
         
         if os.path.exists(db_path):

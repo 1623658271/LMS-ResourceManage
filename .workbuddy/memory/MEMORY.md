@@ -42,7 +42,10 @@
 - **v2.2.4（2026-04-13）**：改进启动脚本（run.bat/run.vbs），添加venv有效性检测和自动重建功能，解决移动文件夹后venv失效的问题；更新README添加便携版说明
 - **v2.2.5（2026-04-13）**：添加 PyInstaller 打包配置（build.bat/build.py），使用 `--hidden-import webview --hidden-import webview.platforms.winforms` 确保 pywebview 正确打包，支持生成无 Python 依赖的独立可执行文件
 - **v2.2.6（2026-04-13）**：系统设置页新增数据库导入导出功能，支持 .db 文件备份和恢复
-- **v2.2.7（2026-04-13）**：修复打包后数据不持久化问题：改用 `--onedir` 模式（文件夹模式）代替 `--onefile`；修改 `services/db.py` 和 `api_server.py` 使用 `sys.executable` 获取 exe 所在目录作为数据库路径
+- **v2.2.7（2026-04-13）**：修复打包后数据不持久化问题：改用 `--onedir` 模式（文件夹模式）代替 `--onefile`；修改 `services/db.py`、`api_server.py` 和 `api.py` 使用 `sys.executable` 获取 exe 所在目录作为数据库路径
+- **v2.2.8（2026-04-13）**：修复设置中的表格字体大小不生效问题：将 `.spreadsheet`、`.batch-add-table`、`.md-records-table`、`.cell-input` 等的硬编码 `font-size` 改为使用 CSS 变量 `var(--table-font-size)`；修复紧凑模式下直接修改 style.fontSize 而不是 CSS 变量的问题；设置页所有涉及 px 值的滑块（字号、行高、侧边栏宽度、内容边距、卡片间距、窗口宽高）支持双击输入自定义 px 值
+- **v2.2.9（2026-04-13）**：系统设置页新增窗口尺寸设置：支持自定义窗口宽度（800-3840px）、高度（600-2160px）、全屏模式切换，设置保存到 window_settings.json，重启程序后生效
+- **v2.2.10（2026-04-13）**：设置页滑块范围扩大两倍；新增"立即全屏"按钮，可实时切换全屏/窗口模式（无需重启），通过 pywebview.api 调用 Python 端 toggle_fullscreen() 实现
 - **JS模块化重构（2026-04-12）**：将 `index.html` 从 ~4000行单体拆分为 13 个独立 `.js` 模块（state/utils/api/nav/member/dept/order/price/work-edit/salary-summary/quick-calc/settings/init），所有 13 个文件均已完整实现并通过语法检查；`initSettingsPage` 从 quick-calc.js 移至 settings.js；添加 `_savedDarkColors` 声明修复 settings.js 深色模式切换 bug
 - **v2.2.1（2026-04-12）**：做货编辑大改
   1. 移除"保存全部"按钮，改为纯自动保存（300ms防抖）

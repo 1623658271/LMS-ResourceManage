@@ -411,3 +411,67 @@ async def api_import_database(body: dict):
     
     except Exception as e:
         return {"ok": False, "error": f"导入失败: {str(e)}"}
+
+
+# ── 窗口设置 ──────────────────────────────────────────────
+
+@app.post("/api/window/settings")
+async def api_set_window_settings(body: dict):
+    """保存窗口设置到配置文件"""
+    import json
+    import sys
+    
+    try:
+        # 获取配置文件路径（与 main.py 保持一致）
+        if getattr(sys, 'frozen', False):
+            config_path = os.path.join(os.path.dirname(sys.executable), 'window_settings.json')
+        else:
+            config_path = os.path.join(BASE_DIR, 'window_settings.json')
+        
+        # 保存窗口设置
+        config = {
+            'width': body.get('width', 1400),
+            'height': body.get('height', 900),
+            'fullscreen': body.get('fullscreen', False)
+        }
+        
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        
+        return {"ok": True}
+    
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/window/settings")
+async def api_get_window_settings():
+    """获取窗口设置"""
+    import json
+    import sys
+    
+    try:
+        # 获取配置文件路径（与 main.py 保持一致）
+        if getattr(sys, 'frozen', False):
+            config_path = os.path.join(os.path.dirname(sys.executable), 'window_settings.json')
+        else:
+            config_path = os.path.join(BASE_DIR, 'window_settings.json')
+        
+        # 读取窗口设置
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            return {"ok": True, "config": config}
+        else:
+            # 返回默认设置
+            return {
+                "ok": True,
+                "config": {
+                    "width": 1400,
+                    "height": 900,
+                    "fullscreen": False
+                }
+            }
+    
+    except Exception as e:
+        return {"ok": False, "error": str(e)}

@@ -22,7 +22,10 @@ const DEFAULT_SETTINGS = {
   text: '#1e293b',
   'sidebar-width': '220',
   'content-padding': '18',
-  'card-gap': '14'
+  'card-gap': '14',
+  'window-width': '1400',
+  'window-height': '900',
+  'window-fullscreen': false
 };
 
 const COLOR_PRESETS = {
@@ -123,11 +126,11 @@ function applySetting(key, value, skipSave = false) {
       if (value) {
         root.style.setProperty('--content-padding', '10px');
         root.style.setProperty('--card-gap', '8px');
-        document.querySelectorAll('.spreadsheet, .settings-preview-table').forEach(t => t.style.fontSize = '11px');
+        root.style.setProperty('--table-font-size', '11px');
       } else {
         root.style.setProperty('--content-padding', _currentSettings['content-padding'] + 'px');
         root.style.setProperty('--card-gap', _currentSettings['card-gap'] + 'px');
-        document.querySelectorAll('.spreadsheet, .settings-preview-table').forEach(t => t.style.fontSize = _currentSettings['table-fontSize'] + 'px');
+        root.style.setProperty('--table-font-size', _currentSettings['table-fontSize'] + 'px');
       }
       break;
     case 'table-displayMode':
@@ -185,6 +188,79 @@ function updateSliderVal(key, value) {
     const suffix = key === 'table-groupSize' ? '人' : 'px';
     valEl.textContent = value + suffix;
   }
+}
+
+// 双击滑块数值输入自定义值
+function editSliderVal(key, el) {
+  const currentVal = parseInt(el.textContent) || 13;
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.value = currentVal;
+  input.style.cssText = 'width:60px;padding:2px 4px;border:1px solid var(--primary);border-radius:4px;font-size:12px;text-align:center;';
+  
+  // 根据设置项设置不同的最小最大值
+  if (key === 'table-groupSize') {
+    input.min = 5;
+    input.max = 50;
+  } else if (key === 'window-width') {
+    input.min = 800;
+    input.max = 3840;
+  } else if (key === 'window-height') {
+    input.min = 600;
+    input.max = 2160;
+  } else if (key === 'sidebar-width') {
+    input.min = 150;
+    input.max = 400;
+  } else if (key === 'content-padding' || key === 'card-gap') {
+    input.min = 0;
+    input.max = 50;
+  } else if (key === 'table-rowHeight') {
+    input.min = 24;
+    input.max = 80;
+  } else {
+    input.min = 8;
+    input.max = 32;
+  }
+  
+  const saveValue = () => {
+    let val = parseInt(input.value);
+    if (isNaN(val)) val = currentVal;
+    // 限制范围
+    const min = parseInt(input.min);
+    const max = parseInt(input.max);
+    val = Math.max(min, Math.min(max, val));
+    
+    // 更新显示
+    const suffix = key === 'table-groupSize' ? '人' : 'px';
+    el.textContent = val + suffix;
+    
+    // 同步更新滑块
+    const slider = document.getElementById('s-' + key);
+    if (slider) {
+      slider.value = val;
+    }
+    
+    // 应用设置
+    applySetting(key, val);
+    _currentSettings[key] = val;
+    saveSettings();
+  };
+  
+  input.onblur = saveValue;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      input.blur();
+    } else if (e.key === 'Escape') {
+      const suffix = key === 'table-groupSize' ? '人' : 'px';
+      el.textContent = currentVal + suffix;
+      el.style.display = '';
+    }
+  };
+  
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
 }
 
 function updateColorHex(key, value) {
@@ -349,6 +425,30 @@ function initSettingsPage() {
   // 设置页面初始化时，同步所有控件的值
   for (const key in _currentSettings) {
     updateControlDisplay(key, _currentSettings[key]);
+  }
+}
+
+// 应用窗口设置
+async function applyWindowSettings() {
+  const width = parseInt(_currentSettings['window-width']) || 1400;
+  const height = parseInt(_currentSettings['window-height']) || 900;
+  const fullscreen = _currentSettings['window-fullscreen'] || false;
+
+  try {
+    // 调用后端 API 设置窗口大小
+    const result = await post('/api/window/settings', {
+      width: width,
+      height: height,
+      fullscreen: fullscreen
+    });
+
+    if (result.ok) {
+      showToast('窗口设置已保存，重启程序后生效', 'success');
+    } else {
+      showToast('设置失败：' + (result.error || '未知错误'), 'error');
+    }
+  } catch (err) {
+    showToast('设置失败：' + err.message, 'error');
   }
 }
 

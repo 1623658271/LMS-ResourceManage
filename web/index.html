@@ -369,29 +369,29 @@
               字体设置
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">基础字号</div><div class="settings-row-desc">全局文字大小</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">基础字号</div><div class="settings-row-desc">全局文字大小（双击输入自定义值）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
                   <input type="range" class="slider-input" id="s-fontSize-base" min="11" max="18" value="13" oninput="updateSliderVal('fontSize-base', this.value); applySetting('fontSize-base', this.value)">
-                  <span class="slider-value" id="s-fontSize-base-val">13px</span>
+                  <span class="slider-value" id="s-fontSize-base-val" ondblclick="editSliderVal('fontSize-base', this)" title="双击输入自定义值">13px</span>
                 </div>
               </div>
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">标题字号</div><div class="settings-row-desc">卡片标题和页面标题</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">标题字号</div><div class="settings-row-desc">卡片标题和页面标题（双击输入自定义值）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-title" min="12" max="20" value="14" oninput="updateSliderVal('fontSize-title', this.value); applySetting('fontSize-title', this.value)">
-                  <span class="slider-value" id="s-fontSize-title-val">14px</span>
+                  <input type="range" class="slider-input" id="s-fontSize-title" min="10" max="40" value="14" oninput="updateSliderVal('fontSize-title', this.value); applySetting('fontSize-title', this.value)">
+                  <span class="slider-value" id="s-fontSize-title-val" ondblclick="editSliderVal('fontSize-title', this)" title="双击输入自定义值">14px</span>
                 </div>
               </div>
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">大标题</div><div class="settings-row-desc">页面主标题字号</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">大标题</div><div class="settings-row-desc">页面主标题字号（双击输入自定义值）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-h1" min="16" max="28" value="20" oninput="updateSliderVal('fontSize-h1', this.value); applySetting('fontSize-h1', this.value)">
-                  <span class="slider-value" id="s-fontSize-h1-val">20px</span>
+                  <input type="range" class="slider-input" id="s-fontSize-h1" min="14" max="56" value="20" oninput="updateSliderVal('fontSize-h1', this.value); applySetting('fontSize-h1', this.value)">
+                  <span class="slider-value" id="s-fontSize-h1-val" ondblclick="editSliderVal('fontSize-h1', this)" title="双击输入自定义值">20px</span>
                 </div>
               </div>
             </div>
@@ -415,20 +415,20 @@
               表格设置
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">表格字号</div><div class="settings-row-desc">表格内文字大小</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">表格字号</div><div class="settings-row-desc">表格内文字大小（双击输入框可自定义）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-table-fontSize" min="10" max="16" value="13" oninput="updateSliderVal('table-fontSize', this.value); applySetting('table-fontSize', this.value)">
-                  <span class="slider-value" id="s-table-fontSize-val">13px</span>
+                  <input type="range" class="slider-input" id="s-table-fontSize" min="8" max="32" value="13" oninput="updateSliderVal('table-fontSize', this.value); applySetting('table-fontSize', this.value)">
+                  <span class="slider-value" id="s-table-fontSize-val" ondblclick="editSliderVal('table-fontSize', this)" title="双击输入自定义值">13px</span>
                 </div>
               </div>
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">行高</div><div class="settings-row-desc">表格行高度</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">行高</div><div class="settings-row-desc">表格行高度（双击输入自定义值）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-table-rowHeight" min="32" max="56" value="40" oninput="updateSliderVal('table-rowHeight', this.value); applySetting('table-rowHeight', this.value)">
-                  <span class="slider-value" id="s-table-rowHeight-val">40px</span>
+                  <input type="range" class="slider-input" id="s-table-rowHeight" min="24" max="112" value="40" oninput="updateSliderVal('table-rowHeight', this.value); applySetting('table-rowHeight', this.value)">
+                  <span class="slider-value" id="s-table-rowHeight-val" ondblclick="editSliderVal('table-rowHeight', this)" title="双击输入自定义值">40px</span>
                 </div>
               </div>
             </div>
@@ -463,7 +463,7 @@
               <div class="settings-row-info"><div class="settings-row-label">每组人数（分表格模式）</div><div class="settings-row-desc">每组显示多少名员工（超出会自动分组）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-table-groupSize" min="4" max="12" value="8" oninput="updateSliderVal('table-groupSize', this.value); applySetting('table-groupSize', this.value)">
+                  <input type="range" class="slider-input" id="s-table-groupSize" min="2" max="24" value="8" oninput="updateSliderVal('table-groupSize', this.value); applySetting('table-groupSize', this.value)">
                   <span class="slider-value" id="s-table-groupSize-val">8人</span>
                 </div>
               </div>
@@ -546,8 +546,8 @@
               <div class="settings-row-info"><div class="settings-row-label">侧边栏宽度</div><div class="settings-row-desc">左侧导航栏宽度</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-sidebar-width" min="160" max="300" value="220" oninput="updateSliderVal('sidebar-width', this.value); applySetting('sidebar-width', this.value)">
-                  <span class="slider-value" id="s-sidebar-width-val">220px</span>
+                  <input type="range" class="slider-input" id="s-sidebar-width" min="120" max="600" value="220" oninput="updateSliderVal('sidebar-width', this.value); applySetting('sidebar-width', this.value)">
+                  <span class="slider-value" id="s-sidebar-width-val" ondblclick="editSliderVal('sidebar-width', this)" title="双击输入自定义值">220px</span>
                 </div>
               </div>
             </div>
@@ -555,19 +555,51 @@
               <div class="settings-row-info"><div class="settings-row-label">内容区内边距</div><div class="settings-row-desc">主内容区域边距</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-content-padding" min="10" max="30" value="18" oninput="updateSliderVal('content-padding', this.value); applySetting('content-padding', this.value)">
-                  <span class="slider-value" id="s-content-padding-val">18px</span>
+                  <input type="range" class="slider-input" id="s-content-padding" min="5" max="60" value="18" oninput="updateSliderVal('content-padding', this.value); applySetting('content-padding', this.value)">
+                  <span class="slider-value" id="s-content-padding-val" ondblclick="editSliderVal('content-padding', this)" title="双击输入自定义值">18px</span>
                 </div>
               </div>
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">卡片间距</div><div class="settings-row-desc">卡片之间的间距</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">卡片间距</div><div class="settings-row-desc">卡片之间的间距（双击输入自定义值）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-card-gap" min="8" max="24" value="14" oninput="updateSliderVal('card-gap', this.value); applySetting('card-gap', this.value)">
-                  <span class="slider-value" id="s-card-gap-val">14px</span>
+                  <input type="range" class="slider-input" id="s-card-gap" min="4" max="48" value="14" oninput="updateSliderVal('card-gap', this.value); applySetting('card-gap', this.value)">
+                  <span class="slider-value" id="s-card-gap-val" ondblclick="editSliderVal('card-gap', this)" title="双击输入自定义值">14px</span>
                 </div>
               </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">窗口宽度</div><div class="settings-row-desc">程序窗口宽度（双击输入自定义值）</div></div>
+              <div class="settings-row-control">
+                <div class="slider-control">
+                  <input type="range" class="slider-input" id="s-window-width" min="800" max="3840" value="1400" step="10" oninput="updateSliderVal('window-width', this.value); applySetting('window-width', this.value)">
+                  <span class="slider-value" id="s-window-width-val" ondblclick="editSliderVal('window-width', this)" title="双击输入自定义值">1400px</span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">窗口高度</div><div class="settings-row-desc">程序窗口高度（双击输入自定义值）</div></div>
+              <div class="settings-row-control">
+                <div class="slider-control">
+                  <input type="range" class="slider-input" id="s-window-height" min="600" max="2160" value="900" step="10" oninput="updateSliderVal('window-height', this.value); applySetting('window-height', this.value)">
+                  <span class="slider-value" id="s-window-height-val" ondblclick="editSliderVal('window-height', this)" title="双击输入自定义值">900px</span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">全屏模式</div><div class="settings-row-desc">启动时以全屏模式运行</div></div>
+              <div class="settings-row-control">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="s-window-fullscreen" onchange="applySetting('window-fullscreen', this.checked)">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">应用窗口设置</div><div class="settings-row-desc">保存窗口尺寸设置（重启后生效）</div></div>
+              <div class="settings-row-control"><button class="btn btn-primary" onclick="applyWindowSettings()">保存</button></div>
             </div>
           </div>
 

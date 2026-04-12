@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="打包">
+    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="打包更新">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.workbuddy/memory/MEMORY.md" beforeDir="false" afterPath="$PROJECT_DIR$/.workbuddy/memory/MEMORY.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/api.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/api_server.py" beforeDir="false" afterPath="$PROJECT_DIR$/api_server.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/services/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/services/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data.db" beforeDir="false" afterPath="$PROJECT_DIR$/data.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/web/css/style.css" beforeDir="false" afterPath="$PROJECT_DIR$/web/css/style.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/web/index.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/js/settings.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/settings.js" afterDir="false" />
     </list>
@@ -166,7 +167,14 @@
       <option name="project" value="LOCAL" />
       <updated>1775998518978</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="打包更新">
+      <created>1776000739315</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1776000739315</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -190,6 +198,7 @@
     <MESSAGE value="小完工" />
     <MESSAGE value="常用功能" />
     <MESSAGE value="打包" />
-    <option name="LAST_COMMIT_MESSAGE" value="打包" />
+    <MESSAGE value="打包更新" />
+    <option name="LAST_COMMIT_MESSAGE" value="打包更新" />
   </component>
 </project>

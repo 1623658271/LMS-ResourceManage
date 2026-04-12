@@ -509,7 +509,7 @@ tr:hover td { background: #f8fafc; }
 .batch-add-toolbar { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; padding: 10px 12px; background: var(--bg); border-radius: var(--radius); flex-wrap: wrap; }
 .batch-add-toolbar label { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .batch-add-toolbar select, .batch-add-toolbar input { font-size: 12px; }
-.batch-add-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.batch-add-table { width: 100%; border-collapse: collapse; font-size: var(--table-font-size); }
 .batch-add-table th, .batch-add-table td { padding: 6px 8px; border: 1px solid var(--border); text-align: left; }
 .batch-add-table th { background: var(--bg); font-weight: 600; white-space: nowrap; }
 .batch-add-table td input, .batch-add-table td select { width: 100%; min-width: 60px; font-size: 12px; padding: 4px 6px; }
@@ -570,7 +570,7 @@ tr:hover td { background: #f8fafc; }
 }
 .dept-tree { flex: 1; overflow-y: auto; padding: 6px 0; }
 .tree-item {
-  padding: 7px 13px; cursor: pointer; font-size: 12px;
+  padding: 7px 13px; cursor: pointer; font-size: var(--font-size-base);
   display: flex; align-items: center; gap: 5px;
   transition: background 0.1s; user-select: none;
 }
@@ -578,20 +578,20 @@ tr:hover td { background: #f8fafc; }
 .tree-item.active { background: var(--primary-light); color: var(--primary-dark); font-weight: 500; }
 .tree-item .del-btn {
   margin-left: auto; opacity: 0; color: var(--danger);
-  cursor: pointer; font-size: 13px; transition: opacity 0.1s;
+  cursor: pointer; font-size: var(--font-size-title); transition: opacity 0.1s;
 }
 .tree-item:hover .del-btn { opacity: 1; }
 .tree-children { padding-left: 18px; }
 .tree-child {
-  padding: 5px 13px; cursor: pointer; font-size: 11px;
+  padding: 5px 13px; cursor: pointer; font-size: calc(var(--font-size-base) - 1px);
   display: flex; align-items: center; gap: 5px;
   color: var(--text-muted); transition: background 0.1s; user-select: none;
 }
 .tree-child:hover { background: #f1f5f9; color: var(--text); }
-.tree-child .del-btn { margin-left: auto; opacity: 0; color: var(--danger); cursor: pointer; font-size: 12px; transition: opacity 0.1s; }
+.tree-child .del-btn { margin-left: auto; opacity: 0; color: var(--danger); cursor: pointer; font-size: var(--font-size-base); transition: opacity 0.1s; }
 .tree-child:hover .del-btn { opacity: 1; }
 .dept-right { flex: 1; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px; overflow-y: auto; }
-.dept-right-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.dept-right-title { font-size: var(--font-size-title); font-weight: 600; margin-bottom: 10px; }
 
 /* ============================================================
    成员管理 - 独占一行列表
@@ -665,7 +665,7 @@ tr:hover td { background: #f8fafc; }
   font-weight: 600;
 }
 .md-month-totals { display: flex; gap: 16px; font-size: 12px; font-weight: 400; }
-.md-records-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.md-records-table { width: 100%; border-collapse: collapse; font-size: var(--table-font-size); }
 .md-records-table th {
   background: #f8fafc; color: var(--text-muted); font-weight: 500;
   padding: 6px 12px; text-align: left; border-bottom: 1px solid var(--border);
@@ -719,7 +719,7 @@ tr:hover td { background: #f8fafc; }
   overflow: auto;
   border: 1px solid var(--border); border-radius: var(--radius); background: #fff;
 }
-.spreadsheet { border-collapse: collapse; font-size: 12px; min-width: 100%; }
+.spreadsheet { border-collapse: collapse; font-size: var(--table-font-size); min-width: 100%; }
 .spreadsheet th {
   position: sticky; top: 0;
   background: #f8fafc; color: var(--text-muted); font-weight: 500;
@@ -748,7 +748,7 @@ tr:hover td { background: #f8fafc; }
 .cell-input {
   width: 100%; padding: 6px 8px;
   border: none; text-align: center;
-  font-size: 12px; font-family: inherit;
+  font-size: var(--table-font-size); font-family: inherit;
   background: transparent; outline: none;
   transition: background 0.1s;
   -moz-appearance: textfield;
@@ -761,7 +761,7 @@ tr:hover td { background: #f8fafc; }
 .cell-input:focus { background: #fff; box-shadow: inset 0 0 0 2px var(--primary); }
 .cell-input.emp-cell { text-align: right; }
 .cell-input.order-cell { text-align: left; font-weight: 600; color: var(--primary-dark); }
-.cell-input.model-cell { text-align: left; color: var(--text); font-size: 11px; }
+.cell-input.model-cell { text-align: left; color: var(--text); font-size: calc(var(--table-font-size) - 1px); }
 
 /* 工资视角样式 */
 .spreadsheet.wage-view .cell-input { color: #15803d; font-weight: 600; }
@@ -795,11 +795,11 @@ tr:hover td { background: #f8fafc; }
 .single-scroll-wrap { overflow-x: auto; }
 .single-table-mode { min-width: max-content; }
 /* 工资格紧凑显示（数字过长时缩小字号） */
-.cell-input.wage-cell-display { font-size: 11px; }
-.cell-input.wage-cell-display.compact { font-size: 10px; }
+.cell-input.wage-cell-display { font-size: calc(var(--table-font-size) - 2px); }
+.cell-input.wage-cell-display.compact { font-size: calc(var(--table-font-size) - 3px); }
 /* 行合计紧凑样式 */
-.row-total-display.compact { font-size: 11px !important; }
-.row-total.compact { font-size: 11px !important; }
+.row-total-display.compact { font-size: calc(var(--table-font-size) - 2px) !important; }
+.row-total.compact { font-size: calc(var(--table-font-size) - 2px) !important; }
 
 .row-add-btn {
   width: 100%; padding: 7px;
