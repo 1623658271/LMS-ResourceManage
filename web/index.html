@@ -2888,8 +2888,9 @@ function renderSpreadsheet() {
               title="${wage > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
           </td>`;
         }
-        // 临时行：允许填写（即使未选型号也显示输入格，以便保存）
-        const val = _dirtyCells[key] ?? (dataMap[order_id]?.[model_id]?.[emp.id] ?? '');
+        } else {
+          // 临时行/实体行都显示输入格
+          const val = _dirtyCells[key] ?? (dataMap[order_id]?.[model_id]?.[emp.id] ?? '');
           return `<td>
             <input type="number" min="0" class="cell-input emp-cell"
               style="width:65px;"
@@ -2897,6 +2898,7 @@ function renderSpreadsheet() {
               data-key="${key}"
               onchange="onCellChange(this)" onkeydown="onCellKeydown(event,this)" onblur="clearTimeout(window._workAutoSaveTimer);autoSaveWorkRecords()">
           </td>`;
+        }
       }).join('');
       const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : (isTemp ? '' : rowTotal);
       const compactTotal = String(totalDisplay).length > 8 ? ' compact' : '';
@@ -3019,7 +3021,6 @@ function onCellKeydown(e, el) {
   }
 }
 
-// 订单单元格变更：更新型号下拉选项；临时行选了订单后只更新下拉，不自动选型号
 // 订单单元格变更：更新行状态，重新渲染（临时行/实体行统一处理）
 function onOrderCellChange(orderSel) {
   const newOrderId = parseInt(orderSel.value);
