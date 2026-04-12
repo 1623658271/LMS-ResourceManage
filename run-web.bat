@@ -9,5 +9,5 @@ if exist "venv\Scripts\activate.bat" (
 :: 安装依赖
 pip install -q -r requirements.txt
 
-:: 启动 FastAPI 服务（后台运行）
-start /min pythonw web_server.py
+:: 启动 FastAPI 服务（完全隐藏窗口）
+pythonw web_server.py
