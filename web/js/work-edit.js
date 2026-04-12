@@ -254,23 +254,42 @@ function onWorkCellFocus(el) {
 }
 
 // ─────────────────────────────────────────────────────────
-// onWorkCellBlur：单元格失去焦点 → 结束编辑会话
+// onWorkCellBlur：单元格失去焦点 → 检查值变化并保存历史
 // ─────────────────────────────────────────────────────────
 function onWorkCellBlur(el) {
-  _editSession = null;
-
+  const mapKey = el.dataset.row;
+  const empId = parseInt(el.dataset.emp);
   const rawVal = el.value.trim();
   const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
+
+  // 检查值是否变化，变化才保存历史（按单元格撤销）
+  let hasChanged = false;
+  if (_editSession && _editSession.type === 'work-edit') {
+    if (_editSession.mapKey === mapKey && _editSession.empId === empId) {
+      if (val !== _editSession.originalValue) {
+        pushHistory('work-edit');
+        hasChanged = true;
+      }
+    }
+  }
+
+  _editSession = null;
 
   // 如果值为0，显示0
   if (val === 0) {
     el.value = '0';
   }
+
+  // 值变化时触发自动保存
+  if (hasChanged) {
+    clearTimeout(window._weAutoSaveTimer);
+    window._weAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 300);
+  }
 }
 
 // ─────────────────────────────────────────────────────────
-// onWorkCellChange：单元格输入 → 实时更新显示并保存历史
-// - 每次输入都保存历史（按输入撤销）
+// onWorkCellChange：单元格输入 → 实时更新显示，blur时才保存历史
+// - 按单元格撤销：focus时记录原始值，blur时如果值变化才保存历史
 // - 空值视为0存入emps（不删除key，下次渲染显示0）
 // - 显式填0 → 存入0
 // - 非0值 → 存入该值，格子变浅蓝色
@@ -284,18 +303,13 @@ function onWorkCellChange(el) {
 
   if (!_weRowMap[mapKey]) return;
 
-  // 每次输入都保存历史（按输入撤销）
-  pushHistory('work-edit');
-
+  // 实时更新显示，但不保存历史
   if (val === 0) {
-    // 空值或显式0：存入0（下次渲染显示0），不清key，颜色保持默认
     _weRowMap[mapKey].emps[empId] = 0;
     el.style.background = '';
-    el.value = '0';
   } else {
-    // 非0正数：存入该值，格子变浅蓝色
     _weRowMap[mapKey].emps[empId] = val;
-    el.style.background = '#bfdbfe';  // 浅蓝色
+    el.style.background = '#bfdbfe';
   }
 
   updateRowTotal(mapKey);

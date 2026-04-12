@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="启用快捷计算作为成员真实工资的成员详情页面适配">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data.db" beforeDir="false" afterPath="$PROJECT_DIR$/data.db" afterDir="false" />
+    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="撤销-新">
       <change beforePath="$PROJECT_DIR$/web/js/quick-calc.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/quick-calc.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/web/js/state.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/state.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/web/js/work-edit.js" beforeDir="false" afterPath="$PROJECT_DIR$/web/js/work-edit.js" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -115,7 +112,14 @@
       <option name="project" value="LOCAL" />
       <updated>1775984320796</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="撤销-新">
+      <created>1775994134611</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1775994134611</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -133,6 +137,7 @@
     <MESSAGE value="全提交" />
     <MESSAGE value="启用快捷计算作为成员真实工资----按钮" />
     <MESSAGE value="启用快捷计算作为成员真实工资的成员详情页面适配" />
-    <option name="LAST_COMMIT_MESSAGE" value="启用快捷计算作为成员真实工资的成员详情页面适配" />
+    <MESSAGE value="撤销-新" />
+    <option name="LAST_COMMIT_MESSAGE" value="撤销-新" />
   </component>
 </project>

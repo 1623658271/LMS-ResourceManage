@@ -253,14 +253,43 @@ function onQcCellFocus(el, type) {
 
 // ---- 单元格失去焦点 ----
 function onQcCellBlur(el, type) {
-  _editSession = null;
-  
   const rawVal = el.value.trim();
   const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
+  
+  // 检查值是否变化，变化才保存历史（按单元格撤销）
+  let hasChanged = false;
+  if (_editSession) {
+    if (type === 'price' && _editSession.type === 'quick-calc-price') {
+      const rowKey = el.dataset.rowKey;
+      const subId = parseInt(el.dataset.subId);
+      if (_editSession.rowKey === rowKey && _editSession.subId === subId) {
+        if (val !== _editSession.originalValue) {
+          pushHistory('quick-calc');
+          hasChanged = true;
+        }
+      }
+    } else if (type === 'qty' && _editSession.type === 'quick-calc-qty') {
+      const qtyKey = el.dataset.key;
+      if (_editSession.qtyKey === qtyKey) {
+        if (val !== _editSession.originalValue) {
+          pushHistory('quick-calc');
+          hasChanged = true;
+        }
+      }
+    }
+  }
+  
+  _editSession = null;
   
   // 如果值为0，显示0
   if (val === 0) {
     el.value = '0';
+  }
+
+  // 值变化时触发自动保存
+  if (hasChanged) {
+    clearTimeout(window._qcAutoSaveTimer);
+    window._qcAutoSaveTimer = setTimeout(() => autoSaveQc(), 500);
   }
 }
 
@@ -272,9 +301,7 @@ function onQcPriceInput(el) {
 
   if (!_qcDeptRows[rowKey]) return;
 
-  // 每次输入都保存历史（按输入撤销）
-  pushHistory('quick-calc');
-
+  // 实时更新显示，但不保存历史
   if (val === 0) {
     _qcDeptRows[rowKey][subId] = 0;
     el.style.background = '';
@@ -321,9 +348,7 @@ function onQcQtyInput(el) {
   const val = parseInt(el.value) || 0;
   const rowKey = el.dataset.rowKey;
 
-  // 每次输入都保存历史（按输入撤销）
-  pushHistory('quick-calc');
-
+  // 实时更新显示，但不保存历史
   if (val === 0) {
     delete _qcState.qtyData[key];
     el.style.background = '';
