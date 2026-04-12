@@ -266,10 +266,9 @@ function onQcCellBlur(el, type) {
     hasChanged = val !== _editSession.originalValue;
   }
   
-  // 检查值是否真的变化了，且还没保存过历史
-  if (hasChanged && !_editSession.hasPushedHistory) {
+  // 值变化时保存历史（每个单元格只保存一次）
+  if (hasChanged) {
     pushHistory('quick-calc');
-    _editSession.hasPushedHistory = true;
   }
   
   _editSession = null;
