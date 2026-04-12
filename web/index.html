@@ -2887,9 +2887,7 @@ function renderSpreadsheet() {
               style="width:65px;text-align:right;padding:0 5px;box-sizing:border-box;"
               title="${wage > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
           </td>`;
-        }
         } else {
-          // 临时行/实体行都显示输入格
           const val = _dirtyCells[key] ?? (dataMap[order_id]?.[model_id]?.[emp.id] ?? '');
           return `<td>
             <input type="number" min="0" class="cell-input emp-cell"
@@ -2961,33 +2959,14 @@ function onCellChange(el) {
   const val = el.value;
   if (val === '' || val === '0') { delete _dirtyCells[key]; el.style.background = ''; }
   else { _dirtyCells[key] = parseInt(val) || 0; el.style.background = '#fef9c3'; }
-  // 防抖自动保存（600ms）
-  clearTimeout(window._workAutoSaveTimer);
-  window._workAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 600);
-}
 
   // 更新当前行所有表格中的行合计（跨分组）
   const parts = key.split('|');
   if (parts.length !== 3) return;
   const orderId = parseInt(parts[0]);
   const modelId = parseInt(parts[1]);
-  const isWage = _state.viewMode === 'wage';
 
-  function calcTotal() {
-    let total = 0;
-    for (const emp of _state.workEmployees) {
-      if (isWage && _state.wageDetail) {
-        const wageKey = `${orderId},${modelId},${emp.id}`;
-        total += _state.wageDetail.wages[wageKey] || 0;
-      } else {
-        const qty = _dirtyCells[`${orderId}|${modelId}|${emp.id}`] ?? 0;
-        total += qty;
-      }
-    }
-    return total;
-  }
-
-  // 直接从 DOM 当前行读取所有 input 值来计算行合计（只计算当前分组）
+  // 从 DOM 当前行读取所有 input 值来计算行合计
   const rowTr = el.closest('tr');
   if (rowTr) {
     let rowSum = 0;
@@ -3002,6 +2981,10 @@ function onCellChange(el) {
       else totalTd.classList.remove('compact');
     }
   }
+
+  // 防抖自动保存（600ms）
+  clearTimeout(window._workAutoSaveTimer);
+  window._workAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 600);
 }
 
 function onCellKeydown(e, el) {
