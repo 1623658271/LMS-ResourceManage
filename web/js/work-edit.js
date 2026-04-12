@@ -347,6 +347,9 @@ async function onWorkSelectChange(sel) {
 
   if (newOrderId === oldOrderId && newModelId === oldModelId) return;
 
+  // 保存历史记录（选择变化前）
+  pushHistory('work-edit');
+
   const year = _state.currentYear;
   const month = _state.currentMonth;
   const oldLineId = rowData.lineId;
@@ -391,6 +394,9 @@ async function onWorkSelectChange(sel) {
 // addWorkRow：新增一行（分配 lineId = ++_weMaxLineId，排在最前）
 // ─────────────────────────────────────────────────────────
 function addWorkRow() {
+  // 保存历史记录（添加行前）
+  pushHistory('work-edit');
+
   const orders = _state.workOrders || [];
   const models = _state.workModels || [];
   const newLineId = ++_weMaxLineId;
@@ -441,6 +447,9 @@ function addWorkRow() {
 async function deleteWorkRow(rowId) {
   const rowData = _weRowMap[rowId];
   if (!rowData) return;
+
+  // 保存历史记录（删除行前）
+  pushHistory('work-edit');
 
   const { orderId, modelId, lineId } = rowData;
 
