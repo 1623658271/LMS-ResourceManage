@@ -1,8 +1,8 @@
 # 立杰人力资源管理系统 — API 接口文档
 
-> **基础 URL**: `http://localhost:8688`
-> **Content-Type**: `application/json`
-> **数据库**: SQLite（data.db），所有接口返回 JSON
+> **基础 URL**: `http://localhost:8765`  
+> **Content-Type**: `application/json`  
+> **数据库**: SQLite（data.db），所有接口返回 JSON  
 > **通用约定**:
 > - 成功写操作返回 `{"ok": true, ...}`
 > - 失败写操作返回 `{"ok": false, "error": "错误描述"}`
@@ -22,7 +22,7 @@
 | `employees` | 员工 | `id`, FK→departments, FK→sub_departments |
 | `orders` | 订单 | `id` |
 | `order_models` | 订单-型号关联 | `id`, FK→orders, FK→models |
-| `work_records` | 做货记录（对数） | `id`, FK→employees, UNIQUE(year,month,line_id,order_id,model_id,emp_id) |
+| `work_records` | 做货记录（对数） | `id`, FK→employees, FK→orders, FK→models |
 | `salary_adjustments` | 人工增扣 | `id`, FK→employees, UNIQUE(emp_id,year,month) |
 | `quick_calc_saves` | 快捷计算保存 | `id`, UNIQUE(year,month) |
 | `app_settings` | 全局设置键值 | `key` |
@@ -162,7 +162,7 @@ DELETE /api/employees/{emp_id}
 GET /api/employees/{emp_id}/detail?year=2026&month=4
 ```
 
-**响应**（source=work，从做货编辑计算）:
+**响应**:
 ```json
 {
   "wage": 1234.56,
@@ -520,7 +520,7 @@ GET /api/wage-detail?year=2026&month=4
 }
 ```
 
-> `quantities` 和 `wages` 的 key 格式为 `"order_id,model_id,emp_id"`（字符串）
+> `quantities` 和 `wages` 的 key 格式为 `"order_id,model_id,emp_id"`（字符串）  
 > `price_map` 的 key 格式为 `"model_id,sub_dept_id"`
 
 ---
@@ -615,7 +615,7 @@ GET /api/price-templates
 POST /api/price-templates
 Body: {
   "name": "模板1",
-  "items": [{"model_id": 1, "sub_dept_id": 1, "unit_price": 1.1}]
+  "items": [{"model_id": 1, "sub_dept_id": 1, "unit_price": 0.8}]
 }
 ```
 
@@ -673,3 +673,15 @@ GET /api/init
 
 - 大部门：面部(id=1)、底部(id=2)
 - 小部门：衣车(id=1, 面部)、折面(id=2, 面部)、折边(id=3, 面部)、底部(id=4, 底部)
+
+### 前端状态管理
+
+- **撤销/重做**: 使用 `state.js` 中的 `pushHistory()` / `undo()` / `redo()`
+- **历史栈**: `_historyStack` 存储状态快照，支持 `clearHistory()` 重置
+- **自动保存**: 做货编辑和快捷计算均支持 300ms 防抖自动保存
+
+### 表格显示优化
+
+- 员工超过 8 人时自动拆分为多个独立表格纵向排列
+- 大额工资使用紧凑格式（<1万显示 ¥1234.56，≥1万显示 ¥1.2万）
+- 支持工资视角切换，实时显示每个格子的工资
