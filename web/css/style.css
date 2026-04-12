@@ -883,6 +883,25 @@ tr:hover td { background: #f8fafc; }
 .qc-switch-wrap input:checked + .qc-switch-slider { background: #3b82f6; }
 .qc-switch-wrap input:checked + .qc-switch-slider::before { transform: translateX(18px); }
 
+/* 返回主页按钮 - 大且醒目 */
+.btn-back-home {
+  font-size: 15px;
+  font-weight: 600;
+  padding: 8px 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.3);
+  transition: all 0.2s;
+}
+.btn-back-home:hover {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+  box-shadow: 0 4px 12px rgba(59,130,246,0.5);
+  transform: translateY(-1px);
+}
+
 /* 总工资表的快捷计算数据源标记 */
 .qc-badge {
   display: inline-block; background: #3b82f6; color: #fff;
