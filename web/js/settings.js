@@ -268,6 +268,83 @@ function clearQuickCalcSaves() {
   }
 }
 
+// ── 数据库导入导出 ─────────────────────────────────────────
+
+async function exportDatabase() {
+  try {
+    const result = await get('/api/database/export');
+    if (result.ok) {
+      // 将 base64 数据转换为文件下载
+      const byteCharacters = atob(result.data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'application/x-sqlite3' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `li_jie_hr_backup_${new Date().toISOString().slice(0,10)}.db`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      showToast('数据库已导出', 'success');
+    } else {
+      showToast('导出失败：' + result.error, 'error');
+    }
+  } catch (err) {
+    showToast('导出失败：' + err.message, 'error');
+  }
+}
+
+async function importDatabase(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  if (!confirm('警告：导入数据库将覆盖当前所有数据！\n\n建议先导出当前数据库作为备份。\n\n确定要继续吗？')) {
+    input.value = '';
+    return;
+  }
+  
+  try {
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        // 将文件转换为 base64
+        const arrayBuffer = e.target.result;
+        const bytes = new Uint8Array(arrayBuffer);
+        let binary = '';
+        for (let i = 0; i < bytes.byteLength; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        const base64Data = btoa(binary);
+        
+        // 调用 API 导入
+        const result = await post('/api/database/import', { data: base64Data });
+        
+        if (result.ok) {
+          showToast('数据库导入成功，请刷新页面', 'success');
+          // 延迟刷新页面
+          setTimeout(() => {
+            location.reload();
+          }, 1500);
+        } else {
+          showToast('导入失败：' + result.error, 'error');
+        }
+      } catch (err) {
+        showToast('导入失败：' + err.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } catch (err) {
+    showToast('读取文件失败：' + err.message, 'error');
+  }
+  
+  input.value = '';
+}
+
 function initSettingsPage() {
   // 设置页面初始化时，同步所有控件的值
   for (const key in _currentSettings) {

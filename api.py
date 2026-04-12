@@ -394,3 +394,67 @@ def get_salary_summary(year, month):
 def init():
     init_database()
     return {"ok": True}
+
+
+# ── 数据库导入导出 ─────────────────────────────────────────
+
+def export_database():
+    """导出数据库文件为 base64 字符串"""
+    import base64
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+    if not os.path.exists(db_path):
+        return {"ok": False, "error": "数据库文件不存在"}
+    
+    with open(db_path, 'rb') as f:
+        data = f.read()
+    
+    return {
+        "ok": True,
+        "data": base64.b64encode(data).decode('utf-8'),
+        "filename": "li_jie_hr_backup.db"
+    }
+
+
+def import_database(base64_data):
+    """从 base64 字符串导入数据库"""
+    import base64
+    import shutil
+    
+    try:
+        # 解码数据
+        data = base64.b64decode(base64_data)
+        
+        # 验证是否为有效的 SQLite 数据库
+        if not data.startswith(b'SQLite format 3'):
+            return {"ok": False, "error": "无效的数据库文件格式"}
+        
+        # 备份当前数据库
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.db')
+        backup_path = db_path + '.backup'
+        
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, backup_path)
+        
+        # 写入新数据库
+        with open(db_path, 'wb') as f:
+            f.write(data)
+        
+        # 验证新数据库可以正常打开
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.execute("SELECT 1 FROM departments LIMIT 1")
+            conn.close()
+        except sqlite3.Error as e:
+            # 恢复备份
+            if os.path.exists(backup_path):
+                shutil.copy2(backup_path, db_path)
+            return {"ok": False, "error": f"数据库验证失败: {str(e)}"}
+        
+        # 删除备份
+        if os.path.exists(backup_path):
+            os.remove(backup_path)
+        
+        return {"ok": True}
+    
+    except Exception as e:
+        return {"ok": False, "error": f"导入失败: {str(e)}"}

@@ -596,6 +596,17 @@
               <div class="settings-row-info"><div class="settings-row-label">清除快捷计算保存</div><div class="settings-row-desc">删除快捷计算的自动保存数据</div></div>
               <div class="settings-row-control"><span class="settings-reset" onclick="clearQuickCalcSaves()">清除</span></div>
             </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">导入数据库</div><div class="settings-row-desc">从 .db 文件导入数据（将覆盖当前数据）</div></div>
+              <div class="settings-row-control">
+                <button class="btn btn-secondary" onclick="document.getElementById('importDbInput').click()">导入</button>
+                <input type="file" id="importDbInput" accept=".db" style="display:none" onchange="importDatabase(this)">
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">导出数据库</div><div class="settings-row-desc">将当前数据库导出为 .db 文件</div></div>
+              <div class="settings-row-control"><button class="btn btn-secondary" onclick="exportDatabase()">导出</button></div>
+            </div>
           </div>
 
           <!-- 预览 -->

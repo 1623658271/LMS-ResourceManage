@@ -40,7 +40,9 @@
 - **v2.1.15（2026-04-13）**：修复订单和型号下拉selected属性：保存后重新渲染时正确显示已选择的订单和型号
 - **v2.1.16（2026-04-13）**：修复后端save_work_record逻辑：qty <= 0改为qty < 0才删除，这样quantity=0能正确保存到数据库，临时行才能转换为实际行
 - **v2.2.4（2026-04-13）**：改进启动脚本（run.bat/run.vbs），添加venv有效性检测和自动重建功能，解决移动文件夹后venv失效的问题；更新README添加便携版说明
-- **v2.2.5（2026-04-13）**：添加 PyInstaller 打包配置（build.bat/build.py/build.spec），支持打包成无 Python 依赖的独立可执行文件
+- **v2.2.5（2026-04-13）**：添加 PyInstaller 打包配置（build.bat/build.py），使用 `--hidden-import webview --hidden-import webview.platforms.winforms` 确保 pywebview 正确打包，支持生成无 Python 依赖的独立可执行文件
+- **v2.2.6（2026-04-13）**：系统设置页新增数据库导入导出功能，支持 .db 文件备份和恢复
+- **v2.2.7（2026-04-13）**：修复打包后数据不持久化问题：改用 `--onedir` 模式（文件夹模式）代替 `--onefile`；修改 `services/db.py` 和 `api_server.py` 使用 `sys.executable` 获取 exe 所在目录作为数据库路径
 - **JS模块化重构（2026-04-12）**：将 `index.html` 从 ~4000行单体拆分为 13 个独立 `.js` 模块（state/utils/api/nav/member/dept/order/price/work-edit/salary-summary/quick-calc/settings/init），所有 13 个文件均已完整实现并通过语法检查；`initSettingsPage` 从 quick-calc.js 移至 settings.js；添加 `_savedDarkColors` 声明修复 settings.js 深色模式切换 bug
 - **v2.2.1（2026-04-12）**：做货编辑大改
   1. 移除"保存全部"按钮，改为纯自动保存（300ms防抖）

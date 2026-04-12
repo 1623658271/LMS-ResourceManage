@@ -1,8 +1,20 @@
 """数据库连接管理"""
 import sqlite3
 import os
+import sys
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def get_base_dir():
+    """获取项目根目录（支持 PyInstaller 打包后的环境）"""
+    if getattr(sys, 'frozen', False):
+        # PyInstaller 打包后的环境：使用 exe 所在目录
+        return os.path.dirname(sys.executable)
+    else:
+        # 开发环境：使用脚本所在目录
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+BASE_DIR = get_base_dir()
 DB_PATH = os.path.join(BASE_DIR, "data.db")
 SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "database", "schema.sql")
 

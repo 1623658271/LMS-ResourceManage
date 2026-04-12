@@ -327,3 +327,87 @@ async def api_get_app_setting(key: str):
 @app.post("/api/app-settings")
 async def api_set_app_setting(body: dict):
     return crud.set_app_setting(body.get("key", ""), body.get("value", ""))
+
+
+# ── 数据库导入导出 ─────────────────────────────────────────
+
+@app.get("/api/database/export")
+async def api_export_database():
+    """导出数据库文件为 base64 字符串"""
+    import base64
+    import sys
+    
+    # 获取数据库路径（支持 PyInstaller 打包后的环境）
+    if getattr(sys, 'frozen', False):
+        db_path = os.path.join(os.path.dirname(sys.executable), 'data.db')
+    else:
+        db_path = os.path.join(BASE_DIR, 'data.db')
+    
+    if not os.path.exists(db_path):
+        return {"ok": False, "error": "数据库文件不存在"}
+    
+    with open(db_path, 'rb') as f:
+        data = f.read()
+    
+    return {
+        "ok": True,
+        "data": base64.b64encode(data).decode('utf-8'),
+        "filename": "li_jie_hr_backup.db"
+    }
+
+
+@app.post("/api/database/import")
+async def api_import_database(body: dict):
+    """从 base64 字符串导入数据库"""
+    import base64
+    import shutil
+    import sqlite3
+    import sys
+    
+    try:
+        base64_data = body.get("data", "")
+        if not base64_data:
+            return {"ok": False, "error": "没有提供数据"}
+        
+        # 解码数据
+        data = base64.b64decode(base64_data)
+        
+        # 验证是否为有效的 SQLite 数据库
+        if not data.startswith(b'SQLite format 3'):
+            return {"ok": False, "error": "无效的数据库文件格式"}
+        
+        # 获取数据库路径（支持 PyInstaller 打包后的环境）
+        if getattr(sys, 'frozen', False):
+            db_path = os.path.join(os.path.dirname(sys.executable), 'data.db')
+        else:
+            db_path = os.path.join(BASE_DIR, 'data.db')
+        
+        # 备份当前数据库
+        backup_path = db_path + '.backup'
+        
+        if os.path.exists(db_path):
+            shutil.copy2(db_path, backup_path)
+        
+        # 写入新数据库
+        with open(db_path, 'wb') as f:
+            f.write(data)
+        
+        # 验证新数据库可以正常打开
+        try:
+            conn = sqlite3.connect(db_path)
+            conn.execute("SELECT 1 FROM departments LIMIT 1")
+            conn.close()
+        except sqlite3.Error as e:
+            # 恢复备份
+            if os.path.exists(backup_path):
+                shutil.copy2(backup_path, db_path)
+            return {"ok": False, "error": f"数据库验证失败: {str(e)}"}
+        
+        # 删除备份
+        if os.path.exists(backup_path):
+            os.remove(backup_path)
+        
+        return {"ok": True}
+    
+    except Exception as e:
+        return {"ok": False, "error": f"导入失败: {str(e)}"}
