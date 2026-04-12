@@ -91,7 +91,8 @@ function renderSpreadsheet() {
     if (orderId == null || modelId == null) return 0;
     let total = 0;
     for (const empId of empIds) {
-      const key = `${orderId},${modelId},${empId}`;
+      // 统一用字符串 key，与后端 wage_map 格式一致
+      const key = `${String(orderId)},${String(modelId)},${String(empId)}`;
       if (isWage && _state.wageDetail) {
         total += _state.wageDetail.wages[key] || 0;
       } else {
@@ -124,7 +125,8 @@ function renderSpreadsheet() {
         const key = `${order_id}|${model_id}|${emp.id}`;
         // 工资视角只对实体行显示
         if (isWage && _state.wageDetail && !isTemp) {
-          const wageKey = `${order_id},${model_id},${emp.id}`;
+          // 统一用字符串 key，与后端 wage_map 格式一致
+          const wageKey = `${String(order_id)},${String(model_id)},${String(emp.id)}`;
           const wage = _state.wageDetail.wages[wageKey] || 0;
           const displayVal = wage > 0 ? fmtCompact(wage) : '';
           const compactClass = String(displayVal).length > 6 ? ' compact' : '';
