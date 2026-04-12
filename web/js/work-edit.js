@@ -253,15 +253,10 @@ function onWorkCellFocus(el) {
 // onWorkCellBlur：单元格失去焦点 → 结束编辑会话
 // ─────────────────────────────────────────────────────────
 function onWorkCellBlur(el) {
+  _editSession = null;
+
   const rawVal = el.value.trim();
   const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
-
-  // 如果值真的变化了，保存历史记录
-  if (_editSession && val !== _editSession.originalValue) {
-    pushHistory('work-edit');
-  }
-
-  _editSession = null;
 
   // 如果值为0，显示0
   if (val === 0) {
@@ -284,7 +279,8 @@ function onWorkCellChange(el) {
 
   if (!_weRowMap[mapKey]) return;
 
-  // 不再在每次输入时保存历史，改为在 blur 时保存
+  // 保存历史记录（每次输入都保存，实现暴力撤销）
+  pushHistory('work-edit');
 
   if (val === 0) {
     // 空值或显式0：存入0（下次渲染显示0），不清key，颜色保持默认

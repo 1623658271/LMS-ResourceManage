@@ -58,7 +58,7 @@ let _undoStack = [];      // 撤销栈
 let _redoStack = [];      // 重做栈
 const MAX_HISTORY = 50;   // 最大历史记录数
 
-// 保存当前状态到历史栈（自动去重）
+// 保存当前状态到历史栈（每次操作都保存，不去重）
 function pushHistory(type) {
   let snapshot = null;
 
@@ -82,16 +82,6 @@ function pushHistory(type) {
   }
 
   if (!snapshot) return;
-
-  // 去重：如果与上一个状态相同，则不保存
-  const lastSnapshot = _undoStack.length > 0 ? _undoStack[_undoStack.length - 1] : null;
-  if (lastSnapshot && lastSnapshot.type === snapshot.type) {
-    const lastJson = JSON.stringify(lastSnapshot.weRowMap || { rows: lastSnapshot.qcDeptRows, qty: lastSnapshot.qtyData });
-    const currentJson = JSON.stringify(snapshot.weRowMap || { rows: snapshot.qcDeptRows, qty: snapshot.qtyData });
-    if (lastJson === currentJson) {
-      return; // 状态未变化，跳过
-    }
-  }
 
   _undoStack.push(snapshot);
   // 限制历史记录数量
