@@ -185,8 +185,10 @@ def get_employee_detail(emp_id: int, year: int, month: int):
     }
 
 
-def get_employee_work_history(emp_id: int):
-    """获取指定员工自入职以来的所有做货记录（按年月汇总）"""
+def get_employee_work_history(emp_id: int, source: str = "work"):
+    """获取指定员工自入职以来的所有做货记录（按年月汇总）
+    source='work' 从做货编辑读取，source='qc' 从快捷计算读取
+    """
     conn = get_connection()
 
     # 获取员工基本信息
@@ -201,7 +203,12 @@ def get_employee_work_history(emp_id: int):
         conn.close()
         return None
 
-    # 获取该员工所有年月有数据的月份
+    if source == "qc":
+        result = _get_employee_qc_history(conn, emp)
+        conn.close()
+        return result
+
+    # 原有逻辑：从做货编辑读取
     months = conn.execute("""
         SELECT DISTINCT year, month FROM work_records
         WHERE emp_id=? ORDER BY year DESC, month DESC
@@ -233,6 +240,7 @@ def get_employee_work_history(emp_id: int):
 
         month_wage = round(sum(r["line_wage"] or 0 for r in records), 2)
         adj_data = dict(adj) if adj else {"adj_quantity": 0, "adj_amount": 0, "reason": ""}
+        reason_val = adj_data.get("reason", "") or adj_data.get("adj_reason", "")
 
         history.append({
             "year": year,
@@ -242,11 +250,74 @@ def get_employee_work_history(emp_id: int):
             "total_pairs": sum(r["quantity"] for r in records),
             "adj_quantity": adj_data["adj_quantity"],
             "adj_amount": adj_data["adj_amount"],
-            "adj_reason": adj_data["reason"],
+            "adj_reason": reason_val,
             "total": round(month_wage + adj_data["adj_amount"], 2),
         })
 
     conn.close()
+    return {
+        "employee": dict(emp),
+        "history": history,
+    }
+
+
+def _get_employee_qc_history(conn, emp):
+    """从快捷计算数据中获取单个员工的月度工资历史"""
+    emp_id = emp["id"]
+    dept_id = emp["dept_id"]
+    sub_dept_id = str(emp["sub_dept_id"])
+
+    # 获取所有有快捷计算数据的年月
+    months = conn.execute("""
+        SELECT DISTINCT year, month FROM quick_calc_saves
+        ORDER BY year DESC, month DESC
+    """).fetchall()
+
+    history = []
+    for m in months:
+        year, month = m["year"], m["month"]
+        saved = load_quick_calc(year, month)
+        if not saved or not saved.get("dept_rows"):
+            continue
+
+        dept_rows = saved["dept_rows"]
+        qty_data = saved["qty_data"]
+
+        # 计算该员工在该月快捷计算中的工资
+        empWage = 0
+        empPairs = 0
+        for rowKey, row in dept_rows.items():
+            if not rowKey.startswith(str(dept_id) + "_"):
+                continue
+            qtyKey = f"{rowKey},{emp_id}"
+            qty = qty_data.get(qtyKey, 0)
+            if qty > 0:
+                subPrice = row.get(sub_dept_id, 0)
+                empWage += qty * subPrice
+                empPairs += qty
+
+        empWage = round(empWage, 2)
+
+        # 该月增扣
+        adj = conn.execute(
+            "SELECT * FROM salary_adjustments WHERE emp_id=? AND year=? AND month=?",
+            (emp_id, year, month)
+        ).fetchone()
+        adj_data = dict(adj) if adj else {"adj_quantity": 0, "adj_amount": 0, "reason": ""}
+        reason_val = adj_data.get("reason", "") or adj_data.get("adj_reason", "")
+
+        history.append({
+            "year": year,
+            "month": month,
+            "records": [],  # 快捷计算没有逐条明细
+            "month_wage": empWage,
+            "total_pairs": empPairs,
+            "adj_quantity": adj_data["adj_quantity"],
+            "adj_amount": adj_data["adj_amount"],
+            "adj_reason": reason_val,
+            "total": round(empWage + adj_data["adj_amount"], 2),
+        })
+
     return {
         "employee": dict(emp),
         "history": history,

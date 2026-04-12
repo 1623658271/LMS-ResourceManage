@@ -91,7 +91,8 @@ async function loadMemberDetail(empId) {
   header.innerHTML = `<span>成员详情</span><button class="btn btn-sm btn-secondary" onclick="navigateTo('members')">← 返回成员列表</button>`;
   content.innerHTML = '<div class="empty-state">加载中…</div>';
 
-  const data = await get(`/api/employees/${empId}/work-history`);
+  const source = localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
+  const data = await get(`/api/employees/${empId}/work-history?source=${source}`);
   if (!data) { content.innerHTML = '<div class="empty-state">未找到该成员</div>'; return; }
 
   const emp = data.employee;

@@ -104,8 +104,8 @@ async def api_employee_detail(emp_id: int, year: int = Query(...), month: int = 
 
 
 @app.get("/api/employees/{emp_id}/work-history")
-async def api_employee_work_history(emp_id: int):
-    return crud.get_employee_work_history(emp_id)
+async def api_employee_work_history(emp_id: int, source: str = "work"):
+    return crud.get_employee_work_history(emp_id, source)
 
 
 # ── 订单管理 ────────────────────────────────────────────
