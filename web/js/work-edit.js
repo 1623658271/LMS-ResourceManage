@@ -110,7 +110,7 @@ function renderSpreadsheet() {
   }
 
   function calcRowTotal(rowData) {
-    if (!rowData || rowData.orderId === 0 || rowData.modelId === 0) return 0;
+    if (!rowData || rowData.modelId === 0) return 0;
     let total = 0;
     for (const emp of emps) {
       const qty = rowData.emps[emp.id] || 0;
@@ -160,6 +160,7 @@ function renderSpreadsheet() {
               value="${displayVal}" placeholder=""
               data-row="${mapKey}" data-emp="${emp.id}"
               oninput="onWorkCellChange(this)"
+              onfocus="if(this.value==='0'||this.value==='')this.value=''"
               onkeydown="onWorkCellKeydown(event,this)">
           </td>`;
         }
@@ -481,8 +482,8 @@ async function autoSaveWorkRecords() {
 
   for (const [rowId, rowData] of Object.entries(_weRowMap)) {
     const { orderId, modelId, lineId, emps } = rowData;
-    // combo 未完成：不保存（也不删）
-    if (orderId === 0 || modelId === 0) continue;
+    // 型号未选：不保存（订单未选可以保存）
+    if (modelId === 0) continue;
 
     for (const [empId, qty] of Object.entries(emps)) {
       const empNum = parseInt(empId);
