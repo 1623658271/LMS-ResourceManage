@@ -151,9 +151,13 @@ function renderSpreadsheet() {
               title="${wage > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
           </td>`;
         } else {
+          // 非0值 → 浅蓝色；0值或空值 → 默认颜色
+          const hasQty = qty > 0;
+          const displayVal = qty >= 0 ? qty : '';
+          const bgStyle = hasQty ? 'background:#bfdbfe;' : 'background:;';
           return `<td style="text-align:center;">
-            <input type="number" min="0" class="cell-input" style="width:65px;"
-              value="${qty > 0 ? qty : ''}" placeholder=""
+            <input type="number" min="0" class="cell-input" style="width:65px;${bgStyle}"
+              value="${displayVal}" placeholder=""
               data-row="${mapKey}" data-emp="${emp.id}"
               oninput="onWorkCellChange(this)"
               onkeydown="onWorkCellKeydown(event,this)">
@@ -224,22 +228,28 @@ function renderSpreadsheet() {
 
 // ─────────────────────────────────────────────────────────
 // onWorkCellChange：单元格输入 → 保存
+// - 空值视为0存入emps（不删除key，下次渲染显示0）
+// - 显式填0 → 存入0
+// - 非0值 → 存入该值，格子变浅蓝色
+// - 0值 → 保留key（下次渲染显示0），默认颜色
 // ─────────────────────────────────────────────────────────
 function onWorkCellChange(el) {
-  const mapKey = el.dataset.row;    // 字符串 key（直接透传）
+  const mapKey = el.dataset.row;
   const empId = parseInt(el.dataset.emp);
   const rawVal = el.value.trim();
   const val = rawVal === '' ? 0 : (parseInt(rawVal) || 0);
 
   if (!_weRowMap[mapKey]) return;
 
-  if (val <= 0) {
-    delete _weRowMap[mapKey].emps[empId];
+  if (val === 0) {
+    // 空值或显式0：存入0（下次渲染显示0），不清key，颜色保持默认
+    _weRowMap[mapKey].emps[empId] = 0;
     el.style.background = '';
-    el.value = '';
+    el.value = '0';
   } else {
+    // 非0正数：存入该值，格子变浅蓝色
     _weRowMap[mapKey].emps[empId] = val;
-    el.style.background = '#fef9c3';
+    el.style.background = '#bfdbfe';  // 浅蓝色
   }
 
   updateRowTotal(mapKey);
@@ -327,16 +337,23 @@ async function onWorkSelectChange(sel) {
 // addWorkRow：新增一行（分配 lineId = ++_weMaxLineId，排在最前）
 // ─────────────────────────────────────────────────────────
 function addWorkRow() {
+  const orders = _state.workOrders || [];
+  const models = _state.workModels || [];
   const newLineId = ++_weMaxLineId;
-  const rowKey = `new,0,${newLineId}`;   // 字符串 key（与 loadWorkRecords 格式一致）
-  const numericRowId = _weRowCounter++;  // 供 spreadsheet 使用的数字 ID
+  const rowKey = `new,0,${newLineId}`;
+  const numericRowId = _weRowCounter++;
+
+  // 订单默认待选择；型号默认第一个（型号表为空则待选择）
+  const defaultOrderId = 0;
+  const defaultModelId = models.length > 0 ? models[0].id : 0;
+
   _weRowMap[rowKey] = {
     rowId: numericRowId,
-    orderId: 0,       // 默认未选
-    modelId: 0,       // 默认未选
+    orderId: defaultOrderId,
+    modelId: defaultModelId,
     lineId: newLineId,
-    lineDbIds: [],    // 新行暂无 DB 记录
-    emps: {}          // 空对数
+    lineDbIds: [],
+    emps: {}
   };
 
   renderSpreadsheet();
@@ -454,8 +471,8 @@ async function toggleViewMode() {
 
 // ─────────────────────────────────────────────────────────
 // autoSaveWorkRecords：自动保存每条记录
-// - lineId = 0（新增行）：INSERT（由 DB 分配 line_id，需处理冲突）
-// - lineId > 0（已保存行）：UPDATE 或 DELETE
+// - qty >= 0：保存到 DB（包括 0 值）
+// - qty < 0 或 combo 未完成：不保存（也不删）
 // ─────────────────────────────────────────────────────────
 async function autoSaveWorkRecords() {
   const year = _state.currentYear;
@@ -470,7 +487,8 @@ async function autoSaveWorkRecords() {
     for (const [empId, qty] of Object.entries(emps)) {
       const empNum = parseInt(empId);
       try {
-        if (qty > 0) {
+        if (qty >= 0) {
+          // 0值也保存到DB（表示格子有填过0），负数跳过
           await post('/api/work-records', {
             year, month,
             order_id: orderId,
@@ -480,6 +498,7 @@ async function autoSaveWorkRecords() {
             line_id: lineId
           });
         } else {
+          // 负数视为无效，删除该记录
           await del(`/api/work-records?year=${year}&month=${month}&order_id=${orderId}&model_id=${modelId}&emp_id=${empNum}&line_id=${lineId}`);
         }
       } catch (e) {
