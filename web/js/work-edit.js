@@ -1,11 +1,10 @@
 // ============================================================
-// 做货编辑（照搬快捷计算结构）
+// 做货编辑（按行存储数据结构）
 // ============================================================
 
-// 全局状态（与快捷计算风格一致）
-let _workRowSelects = {};  // { rowIdx: {orderId, modelId} }
-let _workQtyData = {};      // { "orderId,modelId,empId": qty }
-let _workRowCounter = 0;    // 自增行ID，保证唯一性
+// 全局状态（按行存储）
+let _workRowData = {};     // { rowIdx: {orderId, modelId, emps: {empId: qty}} }
+let _workRowCounter = 0;   // 自增行ID，保证唯一性
 
 async function loadWorkRecords() {
   const year = parseInt(document.getElementById('workYear').value);
@@ -22,32 +21,31 @@ async function loadWorkRecords() {
   _state.wageDetail = null;
 
   // 重置状态
-  _workRowSelects = {};
-  _workQtyData = {};
+  _workRowData = {};
   _workRowCounter = 0;
 
-  // 从数据库记录恢复
-  const seen = new Set();
+  // 从数据库记录恢复（按行分组）
+  const rowsMap = {};  // { "orderId,modelId": rowIdx }
   for (const r of _state.workRecords) {
     if (!r.order_id || !r.model_id) continue;
-    const combo = `${r.order_id},${r.model_id}`;
-    if (seen.has(combo)) continue;
-    seen.add(combo);
-    const rowIdx = _workRowCounter++;
-    _workRowSelects[rowIdx] = { orderId: r.order_id, modelId: r.model_id };
-  }
-  // 恢复对数数据
-  for (const r of _state.workRecords) {
-    if (!r.order_id || !r.model_id) continue;
-    const key = `${r.order_id},${r.model_id},${r.emp_id}`;
-    _workQtyData[key] = r.quantity;
+    const comboKey = `${r.order_id},${r.model_id}`;
+    if (rowsMap[comboKey] === undefined) {
+      rowsMap[comboKey] = _workRowCounter++;
+      _workRowData[rowsMap[comboKey]] = {
+        orderId: r.order_id,
+        modelId: r.model_id,
+        emps: {}
+      };
+    }
+    // 恢复对数数据（绑定在行上）
+    _workRowData[rowsMap[comboKey]].emps[r.emp_id] = r.quantity;
   }
 
   renderSpreadsheet();
 }
 
 // ============================================================
-// 渲染表格（照搬快捷计算结构：行索引模式）
+// 渲染表格（按行存储）
 // ============================================================
 function renderSpreadsheet() {
   const emps = _state.workEmployees;
@@ -65,16 +63,19 @@ function renderSpreadsheet() {
 
   const totalGroups = Math.ceil(emps.length / empsPerGroup);
 
-  // 计算行合计（基于全部员工）
-  function calcRowTotal(orderId, modelId) {
-    if (!orderId || !modelId) return 0;
+  // 计算行合计（基于该行的 emps 数据）
+  function calcRowTotal(rowData) {
+    if (!rowData || !rowData.orderId || !rowData.modelId) return 0;
     let total = 0;
-    for (const emp of emps) {
-      const key = `${orderId},${modelId},${emp.id}`;
-      if (isWage && _state.wageDetail) {
+    const empsMap = rowData.emps || {};
+    if (isWage && _state.wageDetail) {
+      for (const emp of emps) {
+        const key = `${String(rowData.orderId)},${String(rowData.modelId)},${String(emp.id)}`;
         total += _state.wageDetail.wages[key] || 0;
-      } else {
-        total += _workQtyData[key] || 0;
+      }
+    } else {
+      for (const emp of emps) {
+        total += empsMap[emp.id] || 0;
       }
     }
     return total;
@@ -95,14 +96,14 @@ function renderSpreadsheet() {
     </tr></thead>`;
 
     let tbodyHtml = '<tbody>';
-    Object.entries(_workRowSelects).forEach(([rowIdx, sel]) => {
-      const { orderId, modelId } = sel;
-      const rowTotal = calcRowTotal(orderId, modelId);
+    Object.entries(_workRowData).forEach(([rowIdx, rowData]) => {
+      const { orderId, modelId, emps: empsMap } = rowData;
+      const rowTotal = calcRowTotal(rowData);
 
       const empCells = groupEmps.map(emp => {
-        const key = `${orderId},${modelId},${emp.id}`;
-        const qty = _workQtyData[key] || 0;
+        const qty = empsMap[emp.id] || 0;
         if (isWage && _state.wageDetail) {
+          const key = `${String(orderId)},${String(modelId)},${String(emp.id)}`;
           const wage = _state.wageDetail.wages[key] || 0;
           const displayVal = wage > 0 ? fmtCompact(wage) : '';
           const compactClass = String(displayVal).length > 6 ? ' compact' : '';
@@ -113,8 +114,7 @@ function renderSpreadsheet() {
         } else {
           return `<td style="text-align:center;">
             <input type="number" min="0" class="cell-input" style="width:65px;"
-              value="${qty || ''}" placeholder="0" data-key="${key}"
-              data-row="${rowIdx}"
+              value="${qty || ''}" placeholder="0" data-row="${rowIdx}" data-emp="${emp.id}"
               oninput="onWorkCellChange(this)"
               onkeydown="onWorkCellKeydown(event,this)">
           </td>`;
@@ -177,29 +177,50 @@ function renderSpreadsheet() {
 }
 
 // ============================================================
-// 单元格变更（照搬快捷计算）
+// 单元格变更（按行存储）
 // ============================================================
 function onWorkCellChange(el) {
-  const key = el.dataset.key;
-  if (!key) return;
-  const val = parseInt(el.value) || 0;
+  const rowIdx = parseInt(el.dataset.row);
+  const empId = parseInt(el.dataset.emp);
+  const val = parseFloat(el.value) || 0;
+
+  if (!_workRowData[rowIdx]) return;
+
   if (val === 0) {
-    delete _workQtyData[key];
+    delete _workRowData[rowIdx].emps[empId];
     el.style.background = '';
   } else {
-    _workQtyData[key] = val;
+    _workRowData[rowIdx].emps[empId] = val;
     el.style.background = '#fef9c3';
   }
 
-  // 更新所有分组表格中的行合计
-  const rowIdx = el.dataset.row;
-  const sel = _workRowSelects[rowIdx];
-  if (!sel) return;
-  const emps = _state.workEmployees;
+  // 更新该行的行合计（只更新当前表格）
+  updateRowTotal(rowIdx);
+
+  // 防抖自动保存
+  clearTimeout(window._workAutoSaveTimer);
+  window._workAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 300);
+}
+
+// 更新行合计
+function updateRowTotal(rowIdx) {
+  const rowData = _workRowData[rowIdx];
+  if (!rowData) return;
+
+  const emps = _state.workEmployees || [];
+  const isWage = _state.viewMode === 'wage';
   let rowTotal = 0;
-  for (const emp of emps) {
-    const k = `${sel.orderId},${sel.modelId},${emp.id}`;
-    rowTotal += _workQtyData[k] || 0;
+
+  if (isWage && _state.wageDetail) {
+    for (const emp of emps) {
+      const key = `${String(rowData.orderId)},${String(rowData.modelId)},${String(emp.id)}`;
+      rowTotal += _state.wageDetail.wages[key] || 0;
+    }
+  } else {
+    const empsMap = rowData.emps || {};
+    for (const emp of emps) {
+      rowTotal += empsMap[emp.id] || 0;
+    }
   }
 
   // 更新所有表格中的行合计
@@ -209,15 +230,12 @@ function onWorkCellChange(el) {
     if (rowTr) {
       const totalEl = rowTr.querySelector('.row-total');
       if (totalEl) {
-        totalEl.textContent = rowTotal;
-        totalEl.className = `col-fixed row-total${String(rowTotal).length > 8 ? ' compact' : ''}`;
+        const displayVal = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
+        totalEl.textContent = displayVal;
+        totalEl.className = `col-fixed row-total${isWage ? ' wage' : ''}${String(displayVal).length > 8 ? ' compact' : ''}`;
       }
     }
   }
-
-  // 防抖自动保存
-  clearTimeout(window._workAutoSaveTimer);
-  window._workAutoSaveTimer = setTimeout(() => autoSaveWorkRecords(), 300);
 }
 
 function onWorkCellKeydown(e, el) {
@@ -236,52 +254,39 @@ function onWorkCellKeydown(e, el) {
 }
 
 // ============================================================
-// 下拉变更（订单/型号）- 切换时迁移对数数据
+// 下拉变更（订单/型号）- 切换时清空该行对数
 // ============================================================
 function onWorkSelectChange(el) {
-  const rowIdx = el.dataset.row;
+  const rowIdx = parseInt(el.dataset.row);
   const type = el.dataset.type;
   const val = parseInt(el.value);
 
-  if (!_workRowSelects[rowIdx]) {
-    _workRowSelects[rowIdx] = { orderId: 0, modelId: 0 };
+  if (!_workRowData[rowIdx]) {
+    _workRowData[rowIdx] = { orderId: 0, modelId: 0, emps: {} };
   }
 
-  const oldSel = { ..._workRowSelects[rowIdx] };
-  const emps = _state.workEmployees || [];
+  // 切换订单或型号时，清空该行的所有对数（符合用户预期）
+  _workRowData[rowIdx].emps = {};
 
   if (type === 'order') {
-    _workRowSelects[rowIdx].orderId = val;
+    _workRowData[rowIdx].orderId = val;
   } else if (type === 'model') {
-    _workRowSelects[rowIdx].modelId = val;
+    _workRowData[rowIdx].modelId = val;
   }
 
-  const newSel = _workRowSelects[rowIdx];
-
-  // 迁移该行的对数数据（旧key → 新key）
-  if (oldSel.orderId && oldSel.modelId && (oldSel.orderId !== newSel.orderId || oldSel.modelId !== newSel.modelId)) {
-    for (const emp of emps) {
-      const oldKey = `${oldSel.orderId},${oldSel.modelId},${emp.id}`;
-      const newKey = `${newSel.orderId},${newSel.modelId},${emp.id}`;
-      if (_workQtyData[oldKey] !== undefined) {
-        _workQtyData[newKey] = _workQtyData[oldKey];
-        delete _workQtyData[oldKey];
-      }
-    }
-  }
-
-  // 更新行合计显示
+  // 重新渲染（显示空表格）
   renderSpreadsheet();
-  // 触发自动保存
+
+  // 立即保存（清空后的状态）
   autoSaveWorkRecords();
 }
 
 // ============================================================
-// 添加/删除行（使用自增ID保证唯一性）
+// 添加/删除行（按行存储）
 // ============================================================
 function addWorkRow() {
-  const rowIdx = _workRowCounter++;  // 使用自增ID，不会重复
-  _workRowSelects[rowIdx] = { orderId: 0, modelId: 0 };
+  const rowIdx = _workRowCounter++;  // 使用自增ID
+  _workRowData[rowIdx] = { orderId: 0, modelId: 0, emps: {} };  // 空行
   renderSpreadsheet();
   // 聚焦到新行的订单下拉
   setTimeout(() => {
@@ -292,18 +297,10 @@ function addWorkRow() {
 
 function deleteWorkRow(rowIdx) {
   if (!confirm('确定删除这一行吗？')) return;
-  const sel = _workRowSelects[rowIdx];
-  if (!sel) return;
+  if (!_workRowData[rowIdx]) return;
 
-  // 删除该行的对数数据
-  const emps = _state.workEmployees || [];
-  for (const emp of emps) {
-    const key = `${sel.orderId},${sel.modelId},${emp.id}`;
-    delete _workQtyData[key];
-  }
-
-  // 从行选择中移除（不重新整理索引，保持其他行不变）
-  delete _workRowSelects[rowIdx];
+  // 删除该行（对数数据随之删除）
+  delete _workRowData[rowIdx];
 
   renderSpreadsheet();
   autoSaveWorkRecords();
@@ -319,7 +316,7 @@ async function saveAllWorkRecords() {
 }
 
 // ============================================================
-// 自动保存（照搬快捷计算）
+// 自动保存（按行遍历）
 // ============================================================
 async function autoSaveWorkRecords() {
   const year = _state.currentYear;
@@ -327,15 +324,19 @@ async function autoSaveWorkRecords() {
   const toSave = [];
   const toDelete = [];
 
-  for (const [key, qty] of Object.entries(_workQtyData)) {
-    const parts = key.split(',');
-    if (parts.length !== 3) continue;
-    const [orderId, modelId, empId] = parts.map(Number);
+  // 遍历每一行
+  for (const [rowIdx, rowData] of Object.entries(_workRowData)) {
+    const { orderId, modelId, emps } = rowData;
     if (!orderId || !modelId) continue;
-    if (qty > 0) {
-      toSave.push({ orderId, modelId, empId, qty });
-    } else {
-      toDelete.push({ orderId, modelId, empId });
+
+    // 遍历该行的每个员工对数
+    for (const [empId, qty] of Object.entries(emps)) {
+      const empIdNum = parseInt(empId);
+      if (qty > 0) {
+        toSave.push({ orderId, modelId, empId: empIdNum, qty });
+      } else {
+        toDelete.push({ orderId, modelId, empId: empIdNum });
+      }
     }
   }
 
@@ -390,13 +391,12 @@ async function toggleViewMode() {
 // 初始化
 // ============================================================
 document.getElementById('workYear').addEventListener('change', () => {
-  // 切换年月时重置行状态
-  _workRowSelects = {};
-  _workQtyData = {};
+  _workRowData = {};
+  _workRowCounter = 0;
   loadWorkRecords();
 });
 document.getElementById('workMonth').addEventListener('change', () => {
-  _workRowSelects = {};
-  _workQtyData = {};
+  _workRowData = {};
+  _workRowCounter = 0;
   loadWorkRecords();
 });
