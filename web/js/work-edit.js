@@ -347,8 +347,8 @@ function addWorkRow() {
   const rowKey = `new,0,${newLineId}`;
   const numericRowId = _weRowCounter++;
 
-  // 订单默认"未知"(id=1)；型号默认第一个（型号表为空则待选择）
-  const defaultOrderId = 1;
+  // 订单默认"未知"(id=999999)；型号默认第一个（型号表为空则待选择）
+  const defaultOrderId = 999999;
   const defaultModelId = models.length > 0 ? models[0].id : 0;
 
   _weRowMap[rowKey] = {
@@ -368,7 +368,7 @@ function addWorkRow() {
       year: _state.currentYear,
       month: _state.currentMonth,
       order_id: defaultOrderId,
-      model_id: 0,
+      model_id: defaultModelId,
       emp_id: empId,
       quantity: 0,
       line_id: newLineId
