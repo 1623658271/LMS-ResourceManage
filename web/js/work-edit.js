@@ -235,7 +235,7 @@ function onWorkCellKeydown(e, el) {
 }
 
 // ============================================================
-// 下拉变更（订单/型号）
+// 下拉变更（订单/型号）- 切换时迁移对数数据
 // ============================================================
 function onWorkSelectChange(el) {
   const rowIdx = el.dataset.row;
@@ -246,10 +246,27 @@ function onWorkSelectChange(el) {
     _workRowSelects[rowIdx] = { orderId: 0, modelId: 0 };
   }
 
+  const oldSel = { ..._workRowSelects[rowIdx] };
+  const emps = _state.workEmployees || [];
+
   if (type === 'order') {
     _workRowSelects[rowIdx].orderId = val;
   } else if (type === 'model') {
     _workRowSelects[rowIdx].modelId = val;
+  }
+
+  const newSel = _workRowSelects[rowIdx];
+
+  // 迁移该行的对数数据（旧key → 新key）
+  if (oldSel.orderId && oldSel.modelId && (oldSel.orderId !== newSel.orderId || oldSel.modelId !== newSel.modelId)) {
+    for (const emp of emps) {
+      const oldKey = `${oldSel.orderId},${oldSel.modelId},${emp.id}`;
+      const newKey = `${newSel.orderId},${newSel.modelId},${emp.id}`;
+      if (_workQtyData[oldKey] !== undefined) {
+        _workQtyData[newKey] = _workQtyData[oldKey];
+        delete _workQtyData[oldKey];
+      }
+    }
   }
 
   // 更新行合计显示
