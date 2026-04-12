@@ -254,7 +254,7 @@ function onWorkCellKeydown(e, el) {
 }
 
 // ============================================================
-// 下拉变更（订单/型号）- 切换时清空该行对数
+// 下拉变更（订单/型号）- 切换时保留对数数据
 // ============================================================
 function onWorkSelectChange(el) {
   const rowIdx = parseInt(el.dataset.row);
@@ -265,19 +265,20 @@ function onWorkSelectChange(el) {
     _workRowData[rowIdx] = { orderId: 0, modelId: 0, emps: {} };
   }
 
-  // 切换订单或型号时，清空该行的所有对数（符合用户预期）
-  _workRowData[rowIdx].emps = {};
+  const oldOrderId = _workRowData[rowIdx].orderId;
+  const oldModelId = _workRowData[rowIdx].modelId;
 
+  // 更新选择
   if (type === 'order') {
     _workRowData[rowIdx].orderId = val;
   } else if (type === 'model') {
     _workRowData[rowIdx].modelId = val;
   }
 
-  // 重新渲染（显示空表格）
+  // 重新渲染
   renderSpreadsheet();
 
-  // 立即保存（清空后的状态）
+  // 立即保存
   autoSaveWorkRecords();
 }
 
