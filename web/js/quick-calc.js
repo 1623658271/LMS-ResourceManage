@@ -352,11 +352,28 @@ function onQcCellKeydown(e, el) {
   }
 }
 
-// 快捷计算主表格：型号切换
+// 快捷计算主表格：型号切换（迁移对数数据）
 function onQcModelChange(sel) {
   const rowIdx = sel.dataset.row;
-  _qcModelSelects[rowIdx] = sel.value;  // 存 modelName（字符串）
+  const oldModelName = _qcModelSelects[rowIdx];
+  const newModelName = sel.value;
+
+  if (oldModelName && oldModelName !== newModelName) {
+    // 迁移该行所有员工的对数数据（旧型号 → 新型号）
+    const emps = _qcState.employees || [];
+    for (const emp of emps) {
+      const oldKey = `${emp.id},${oldModelName}`;
+      const newKey = `${emp.id},${newModelName}`;
+      if (_qcState.qtyData[oldKey] !== undefined) {
+        _qcState.qtyData[newKey] = _qcState.qtyData[oldKey];
+        delete _qcState.qtyData[oldKey];
+      }
+    }
+  }
+
+  _qcModelSelects[rowIdx] = newModelName;  // 存 modelName（字符串）
   renderQcSpreadsheet();
+  saveQcState();  // 立即保存
 }
 
 // 快捷计算主表格：新增一行（始终选单价编辑第一个型号）
