@@ -24,6 +24,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── 挂载静态文件（前端页面） ───────────────────────────
+# 挂载 JS 目录
+app.mount("/js", StaticFiles(directory=os.path.join(WEB_DIR, "js")), name="js")
+# 挂载 CSS 目录
+app.mount("/css", StaticFiles(directory=os.path.join(WEB_DIR, "css")), name="css")
+
 
 # ── 挂载静态文件（前端页面） ───────────────────────────
 @app.get("/")
@@ -296,7 +302,7 @@ async def api_load_quick_calc(year: int, month: int):
 
 # ── 初始化 ────────────────────────────────────────────
 
-@ app.get("/api/init")
+@app.get("/api/init")
 async def api_init():
     init_database()
     return {"ok": True}
