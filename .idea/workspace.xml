@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="打包更新" />
+    <list default="true" id="36b822be-0a97-4448-bcb9-8e5ddf693771" name="Changes" comment="更新" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -165,7 +165,14 @@
       <option name="project" value="LOCAL" />
       <updated>1776000739315</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="更新">
+      <created>1776067594015</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1776067594015</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -190,6 +197,7 @@
     <MESSAGE value="常用功能" />
     <MESSAGE value="打包" />
     <MESSAGE value="打包更新" />
-    <option name="LAST_COMMIT_MESSAGE" value="打包更新" />
+    <MESSAGE value="更新" />
+    <option name="LAST_COMMIT_MESSAGE" value="更新" />
   </component>
 </project>
