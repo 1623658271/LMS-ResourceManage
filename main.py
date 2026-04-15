@@ -65,11 +65,31 @@ if __name__ == "__main__":
     win_settings = get_window_settings()
     
     # 创建 pywebview 窗口
+    # 计算窗口位置：水平居中，垂直顶部对齐（避免被任务栏遮挡）
+    import ctypes
+    try:
+        # 获取主屏幕分辨率
+        user32 = ctypes.windll.user32
+        screen_width = user32.GetSystemMetrics(0)
+        screen_height = user32.GetSystemMetrics(1)
+        
+        win_width = win_settings.get('width', 1400)
+        win_height = win_settings.get('height', 900)
+        
+        # 计算居中位置
+        x = max(0, (screen_width - win_width) // 2)
+        y = 0  # 从屏幕顶部开始，避免被任务栏遮挡
+    except Exception:
+        x = 100
+        y = 0
+    
     window = webview.create_window(
         title="立杰人力资源管理系统",
         url="http://127.0.0.1:8765",
         width=win_settings.get('width', 1400),
         height=win_settings.get('height', 900),
+        x=x,
+        y=y,
         fullscreen=win_settings.get('fullscreen', False),
         min_size=(1000, 680),
         resizable=True,
