@@ -8,6 +8,9 @@ const DEFAULT_SETTINGS = {
   'fontSize-base': '13',
   'fontSize-title': '14',
   'fontSize-h1': '20',
+  'fontSize-members': '13',
+  'fontSize-deptTree': '13',
+  'fontSize-sidebar': '14',
   fontFamily: "'Microsoft YaHei', 'PingFang SC', sans-serif",
   'table-fontSize': '13',
   'table-rowHeight': '40',
@@ -101,9 +104,22 @@ function applySetting(key, value, skipSave = false) {
       root.style.setProperty('--font-family', "'" + value.replace(/'/g, "\\'") + "'");
       break;
     case 'fontSize-base':
+      root.style.setProperty('--font-size-base', value + 'px');
+      break;
     case 'fontSize-title':
+      root.style.setProperty('--font-size-title', value + 'px');
+      break;
+    case 'fontSize-members':
+      root.style.setProperty('--font-size-members', value + 'px');
+      break;
+    case 'fontSize-deptTree':
+      root.style.setProperty('--font-size-dept-tree', value + 'px');
+      break;
+    case 'fontSize-sidebar':
+      root.style.setProperty('--font-size-sidebar', value + 'px');
+      break;
     case 'fontSize-h1':
-      root.style.setProperty('--font-size-' + key.split('-')[1], value + 'px');
+      root.style.setProperty('--font-size-h1', value + 'px');
       break;
     case 'table-fontSize':
       root.style.setProperty('--table-font-size', value + 'px');

@@ -432,6 +432,33 @@
               </div>
             </div>
             <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">成员管理字体</div><div class="settings-row-desc">成员列表和详情页字体大小</div></div>
+              <div class="settings-row-control">
+                <div class="slider-control">
+                  <input type="range" class="slider-input" id="s-fontSize-members" min="10" max="20" value="13" oninput="updateSliderVal('fontSize-members', this.value); applySetting('fontSize-members', this.value)">
+                  <span class="slider-value" id="s-fontSize-members-val" ondblclick="editSliderVal('fontSize-members', this)" title="双击输入自定义值">13px</span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">部门树字体</div><div class="settings-row-desc">部门管理页面的部门树字体大小</div></div>
+              <div class="settings-row-control">
+                <div class="slider-control">
+                  <input type="range" class="slider-input" id="s-fontSize-deptTree" min="10" max="20" value="13" oninput="updateSliderVal('fontSize-deptTree', this.value); applySetting('fontSize-deptTree', this.value)">
+                  <span class="slider-value" id="s-fontSize-deptTree-val" ondblclick="editSliderVal('fontSize-deptTree', this)" title="双击输入自定义值">13px</span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">导航栏字体</div><div class="settings-row-desc">左侧导航菜单字体大小</div></div>
+              <div class="settings-row-control">
+                <div class="slider-control">
+                  <input type="range" class="slider-input" id="s-fontSize-sidebar" min="10" max="20" value="14" oninput="updateSliderVal('fontSize-sidebar', this.value); applySetting('fontSize-sidebar', this.value)">
+                  <span class="slider-value" id="s-fontSize-sidebar-val" ondblclick="editSliderVal('fontSize-sidebar', this)" title="双击输入自定义值">14px</span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
               <div class="settings-row-info"><div class="settings-row-label">字体族</div><div class="settings-row-desc">系统字体</div></div>
               <div class="settings-row-control">
                 <select class="settings-select" id="s-fontFamily" onchange="applySetting('fontFamily', this.value)">
