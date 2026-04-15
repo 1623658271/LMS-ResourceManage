@@ -597,20 +597,38 @@
               </div>
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">窗口宽度</div><div class="settings-row-desc">程序窗口宽度（双击输入自定义值）</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">窗口尺寸</div><div class="settings-row-desc">选择预设分辨率（双击右侧数值可自定义）</div></div>
               <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-window-width" min="800" max="3840" value="1400" step="10" oninput="updateSliderVal('window-width', this.value); applySetting('window-width', this.value)">
-                  <span class="slider-value" id="s-window-width-val" ondblclick="editSliderVal('window-width', this)" title="双击输入自定义值">1400px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">窗口高度</div><div class="settings-row-desc">程序窗口高度（双击输入自定义值）</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-window-height" min="600" max="2160" value="900" step="10" oninput="updateSliderVal('window-height', this.value); applySetting('window-height', this.value)">
-                  <span class="slider-value" id="s-window-height-val" ondblclick="editSliderVal('window-height', this)" title="双击输入自定义值">900px</span>
+                <div class="resolution-control" style="display:flex;align-items:center;gap:8px;">
+                  <select id="s-window-resolution" onchange="onResolutionChange(this.value)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:14px;cursor:pointer;min-width:140px;">
+                    <option value="2560x1600">2560 × 1600 (推荐)</option>
+                    <option value="2560x1440">2560 × 1440</option>
+                    <option value="2048x1536">2048 × 1536</option>
+                    <option value="2048x1152">2048 × 1152</option>
+                    <option value="1920x1440">1920 × 1440</option>
+                    <option value="1920x1200">1920 × 1200</option>
+                    <option value="1920x1080">1920 × 1080</option>
+                    <option value="1856x1392">1856 × 1392</option>
+                    <option value="1792x1344">1792 × 1344</option>
+                    <option value="1680x1050">1680 × 1050</option>
+                    <option value="1600x1200">1600 × 1200</option>
+                    <option value="1600x900">1600 × 900</option>
+                    <option value="1440x900">1440 × 900</option>
+                    <option value="1400x1050">1400 × 1050</option>
+                    <option value="1366x768">1366 × 768</option>
+                    <option value="1360x768">1360 × 768</option>
+                    <option value="1280x1024">1280 × 1024</option>
+                    <option value="1280x960">1280 × 960</option>
+                    <option value="1280x800">1280 × 800</option>
+                    <option value="1280x768">1280 × 768</option>
+                    <option value="1280x720">1280 × 720</option>
+                    <option value="1280x600">1280 × 600</option>
+                    <option value="1152x864">1152 × 864</option>
+                    <option value="1024x768">1024 × 768</option>
+                    <option value="800x600">800 × 600</option>
+                    <option value="custom">自定义</option>
+                  </select>
+                  <span id="s-window-res-val" ondblclick="editResolutionVal(this)" title="双击输入自定义值" style="font-size:14px;color:#475569;cursor:text;padding:4px 8px;border-radius:4px;transition:background 0.2s;">1400 × 900</span>
                 </div>
               </div>
             </div>

@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS = {
   'card-gap': '14',
   'window-width': '1400',
   'window-height': '900',
+  'window-resolution': '1400x900',
   'window-fullscreen': false,
   'window-maximized': false
 };
@@ -264,6 +265,123 @@ function editSliderVal(key, el) {
   input.select();
 }
 
+// 分辨率预设列表
+const RESOLUTION_PRESETS = [
+  { w: 2560, h: 1600, label: '2560 × 1600 (推荐)' },
+  { w: 2560, h: 1440, label: '2560 × 1440' },
+  { w: 2048, h: 1536, label: '2048 × 1536' },
+  { w: 2048, h: 1152, label: '2048 × 1152' },
+  { w: 1920, h: 1440, label: '1920 × 1440' },
+  { w: 1920, h: 1200, label: '1920 × 1200' },
+  { w: 1920, h: 1080, label: '1920 × 1080' },
+  { w: 1856, h: 1392, label: '1856 × 1392' },
+  { w: 1792, h: 1344, label: '1792 × 1344' },
+  { w: 1680, h: 1050, label: '1680 × 1050' },
+  { w: 1600, h: 1200, label: '1600 × 1200' },
+  { w: 1600, h: 900, label: '1600 × 900' },
+  { w: 1440, h: 900, label: '1440 × 900' },
+  { w: 1400, h: 1050, label: '1400 × 1050' },
+  { w: 1366, h: 768, label: '1366 × 768' },
+  { w: 1360, h: 768, label: '1360 × 768' },
+  { w: 1280, h: 1024, label: '1280 × 1024' },
+  { w: 1280, h: 960, label: '1280 × 960' },
+  { w: 1280, h: 800, label: '1280 × 800' },
+  { w: 1280, h: 768, label: '1280 × 768' },
+  { w: 1280, h: 720, label: '1280 × 720' },
+  { w: 1280, h: 600, label: '1280 × 600' },
+  { w: 1152, h: 864, label: '1152 × 864' },
+  { w: 1024, h: 768, label: '1024 × 768' },
+  { w: 800, h: 600, label: '800 × 600' }
+];
+
+// 分辨率下拉框变化
+function onResolutionChange(value) {
+  if (value === 'custom') {
+    // 保持当前值，等待用户双击自定义
+    return;
+  }
+  const [w, h] = value.split('x').map(Number);
+  if (w && h) {
+    // 更新显示
+    const valEl = document.getElementById('s-window-res-val');
+    if (valEl) {
+      valEl.textContent = `${w} × ${h}`;
+    }
+    // 更新设置
+    _currentSettings['window-width'] = w;
+    _currentSettings['window-height'] = h;
+    _currentSettings['window-resolution'] = value;
+    // 保存设置
+    saveSettings();
+    // 立即应用窗口设置
+    applyWindowSettings();
+  }
+}
+
+// 双击分辨率数值自定义
+function editResolutionVal(el) {
+  const currentText = el.textContent.trim();
+  const match = currentText.match(/(\d+)\s*×\s*(\d+)/);
+  const currentW = match ? parseInt(match[1]) : 1400;
+  const currentH = match ? parseInt(match[2]) : 900;
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = `${currentW}x${currentH}`;
+  input.placeholder = '宽x高，如 1920x1080';
+  input.style.cssText = 'width:100px;padding:4px 6px;border:1px solid var(--primary);border-radius:4px;font-size:13px;text-align:center;';
+  
+  const saveValue = () => {
+    const val = input.value.trim();
+    const parts = val.split(/[xX×,，\s]+/).map(Number);
+    let w = parts[0] || currentW;
+    let h = parts[1] || currentH;
+    
+    // 限制范围
+    w = Math.max(800, Math.min(3840, w));
+    h = Math.max(600, Math.min(2160, h));
+    
+    // 更新显示
+    el.textContent = `${w} × ${h}`;
+    
+    // 查找是否匹配预设
+    const preset = RESOLUTION_PRESETS.find(r => r.w === w && r.h === h);
+    const select = document.getElementById('s-window-resolution');
+    if (select) {
+      if (preset) {
+        select.value = `${w}x${h}`;
+        _currentSettings['window-resolution'] = `${w}x${h}`;
+      } else {
+        select.value = 'custom';
+        _currentSettings['window-resolution'] = 'custom';
+      }
+    }
+    
+    // 更新宽高设置
+    _currentSettings['window-width'] = w;
+    _currentSettings['window-height'] = h;
+    saveSettings();
+    applyWindowSettings();
+    
+    el.style.display = '';
+  };
+  
+  input.onblur = saveValue;
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      input.blur();
+    } else if (e.key === 'Escape') {
+      el.textContent = currentText;
+      el.style.display = '';
+    }
+  };
+  
+  el.textContent = '';
+  el.appendChild(input);
+  input.focus();
+  input.select();
+}
+
 function updateColorHex(key, value) {
   const hexEl = document.getElementById('s-' + key + '-hex');
   if (hexEl) hexEl.textContent = value;
@@ -423,20 +541,38 @@ async function importDatabase(input) {
 }
 
 async function loadWindowSettingsFromFile() {
-  """从 window_settings.json 文件读取窗口设置并更新滑条显示"""
+  """从 window_settings.json 文件读取窗口设置并更新分辨率显示"""
   try {
     const result = await get('/api/window/settings');
     if (result.ok && result.data) {
       const settings = result.data;
+      const width = settings.width || 1400;
+      const height = settings.height || 900;
+      
       // 更新当前设置
-      if (settings.width) {
-        _currentSettings['window-width'] = settings.width;
-        updateControlDisplay('window-width', settings.width);
+      _currentSettings['window-width'] = width;
+      _currentSettings['window-height'] = height;
+      
+      // 更新分辨率显示
+      const valEl = document.getElementById('s-window-res-val');
+      if (valEl) {
+        valEl.textContent = `${width} × ${height}`;
       }
-      if (settings.height) {
-        _currentSettings['window-height'] = settings.height;
-        updateControlDisplay('window-height', settings.height);
+      
+      // 查找是否匹配预设分辨率
+      const select = document.getElementById('s-window-resolution');
+      if (select) {
+        const presetKey = `${width}x${height}`;
+        const hasPreset = Array.from(select.options).some(opt => opt.value === presetKey);
+        if (hasPreset) {
+          select.value = presetKey;
+          _currentSettings['window-resolution'] = presetKey;
+        } else {
+          select.value = 'custom';
+          _currentSettings['window-resolution'] = 'custom';
+        }
       }
+      
       if (settings.fullscreen !== undefined) {
         _currentSettings['window-fullscreen'] = settings.fullscreen;
         updateControlDisplay('window-fullscreen', settings.fullscreen);
