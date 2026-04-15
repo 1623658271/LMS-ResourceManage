@@ -150,6 +150,10 @@ async function loadMemberDetail(empId) {
   const emp = data.employee;
   const history = data.history;
 
+  // 确保 _state.employees 中有该员工数据（供 showEditMemberModal 使用）
+  if (!_state.employees) _state.employees = [];
+  if (!_state.employees.find(e => e.id === emp.id)) _state.employees.push(emp);
+
   // 汇总所有记录
   const totalWage = history.reduce((s, h) => s + h.month_wage, 0);
   const totalPairs = history.reduce((s, h) => s + h.total_pairs, 0);
@@ -160,7 +164,7 @@ async function loadMemberDetail(empId) {
   const summaryCard = `
   <div class="md-summary-card">
     <div class="md-summary-info">
-      <div class="md-summary-name">${escHtml(emp.name)}</div>
+      <div class="md-summary-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑成员信息" style="cursor:pointer;">${escHtml(emp.name)}</div>
       <div class="md-summary-meta">
         <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
         &nbsp;

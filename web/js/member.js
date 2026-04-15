@@ -243,7 +243,14 @@ async function doEditMember(empId) {
   const sub_dept_id = parseInt(document.getElementById('m-subdept').value);
   if (!name || !dept_id || !sub_dept_id) return toast('请填写完整', 'error');
   const r = await put(`/api/employees/${empId}`, { name, gender, dept_id, sub_dept_id });
-  if (r.ok) { closeModal(); toast('保存成功', 'success'); loadMembers(); }
+  if (r.ok) {
+    closeModal(); toast('保存成功', 'success');
+    if (getCurrentView() === 'member-detail') {
+      loadMemberDetail(empId);
+    } else {
+      loadMembers();
+    }
+  }
   else toast('保存失败', 'error');
 }
 
