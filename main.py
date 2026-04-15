@@ -103,12 +103,14 @@ if __name__ == "__main__":
         resizable=True,
     )
     
-    # 如果设置了最大化（且不是全屏），在窗口创建后最大化
+    # 如果设置了最大化（且不是全屏），在窗口加载完成后最大化
     if is_maximized and not is_fullscreen:
-        try:
-            window.maximize()
-        except Exception:
-            pass
+        def on_loaded():
+            try:
+                window.maximize()
+            except Exception as e:
+                print(f"最大化窗口失败: {e}")
+        window.events.loaded += on_loaded
 
     # 窗口关闭前保存设置（使用线程非阻塞方式）
     def on_closing():
