@@ -573,14 +573,19 @@ async function loadWindowSettingsFromFile() {
         }
       }
       
-      if (settings.fullscreen !== undefined) {
-        _currentSettings['window-fullscreen'] = settings.fullscreen;
-        updateControlDisplay('window-fullscreen', settings.fullscreen);
-      }
-      if (settings.maximized !== undefined) {
-        _currentSettings['window-maximized'] = settings.maximized;
-        updateControlDisplay('window-maximized', settings.maximized);
-      }
+      // 更新全屏和最大化开关（互斥：只有一个能为 true）
+      const fullscreen = settings.fullscreen || false;
+      const maximized = settings.maximized || false;
+      
+      _currentSettings['window-fullscreen'] = fullscreen;
+      _currentSettings['window-maximized'] = maximized;
+      
+      // 直接设置 checkbox 的 checked 状态
+      const fsEl = document.getElementById('s-window-fullscreen');
+      const maxEl = document.getElementById('s-window-maximized');
+      
+      if (fsEl) fsEl.checked = fullscreen;
+      if (maxEl) maxEl.checked = maximized;
     }
   } catch (err) {
     console.log('读取窗口设置失败:', err);
@@ -594,6 +599,58 @@ async function initSettingsPage() {
   // 然后同步所有控件的值到 UI
   for (const key in _currentSettings) {
     updateControlDisplay(key, _currentSettings[key]);
+  }
+}
+
+// 最大化窗口开关变化（与全屏模式互斥）
+async function onMaximizedChange(checked) {
+  _currentSettings['window-maximized'] = checked;
+  
+  // 如果开启最大化，关闭全屏模式
+  if (checked) {
+    _currentSettings['window-fullscreen'] = false;
+    const fsEl = document.getElementById('s-window-fullscreen');
+    if (fsEl) fsEl.checked = false;
+  }
+  
+  // 立即保存到文件
+  await saveWindowSettings();
+}
+
+// 全屏模式开关变化（与最大化窗口互斥）
+async function onFullscreenChange(checked) {
+  _currentSettings['window-fullscreen'] = checked;
+  
+  // 如果开启全屏，关闭最大化窗口
+  if (checked) {
+    _currentSettings['window-maximized'] = false;
+    const maxEl = document.getElementById('s-window-maximized');
+    if (maxEl) maxEl.checked = false;
+  }
+  
+  // 立即保存到文件
+  await saveWindowSettings();
+}
+
+// 保存窗口设置到文件
+async function saveWindowSettings() {
+  try {
+    const settings = {
+      width: parseInt(_currentSettings['window-width']) || 1400,
+      height: parseInt(_currentSettings['window-height']) || 900,
+      fullscreen: _currentSettings['window-fullscreen'] || false,
+      maximized: _currentSettings['window-maximized'] || false
+    };
+    
+    const result = await post('/api/window/settings', settings);
+    if (result.ok) {
+      showToast('窗口设置已保存', 'success');
+    } else {
+      showToast('保存窗口设置失败', 'error');
+    }
+  } catch (err) {
+    console.error('保存窗口设置失败:', err);
+    showToast('保存窗口设置失败', 'error');
   }
 }
 
