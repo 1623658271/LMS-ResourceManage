@@ -750,6 +750,59 @@ def delete_price_template(template_id: int):
     return {"ok": True}
 
 
+# ── 数据清理 ────────────────────────────────────────────
+
+
+def delete_data_by_filter(emp_id: int = None, year: int = None, month: int = None):
+    """
+    按条件删除做货记录、人工增扣、快捷计算保存。
+    - emp_id=None, year=None, month=None  → 清空全部
+    - emp_id=X                            → 删除该员工所有数据
+    - year=Y, month=M                     → 删除指定年月所有数据
+    - emp_id=X, year=Y, month=M           → 删除该员工指定年月数据
+    year/month 需同时指定才生效；仅传一个视为不指定。
+    """
+    conn = get_connection()
+    has_emp = emp_id is not None
+    has_ym = year is not None and month is not None
+
+    if has_emp and has_ym:
+        # 指定成员 + 指定月份
+        conn.execute(
+            "DELETE FROM work_records WHERE emp_id=? AND year=? AND month=?",
+            (emp_id, year, month)
+        )
+        conn.execute(
+            "DELETE FROM salary_adjustments WHERE emp_id=? AND year=? AND month=?",
+            (emp_id, year, month)
+        )
+        # 快捷计算是按年月整体存储，无法按成员删除，跳过
+    elif has_emp:
+        # 仅指定成员
+        conn.execute("DELETE FROM work_records WHERE emp_id=?", (emp_id,))
+        conn.execute("DELETE FROM salary_adjustments WHERE emp_id=?", (emp_id,))
+    elif has_ym:
+        # 仅指定年月
+        conn.execute(
+            "DELETE FROM work_records WHERE year=? AND month=?", (year, month)
+        )
+        conn.execute(
+            "DELETE FROM salary_adjustments WHERE year=? AND month=?", (year, month)
+        )
+        conn.execute(
+            "DELETE FROM quick_calc_saves WHERE year=? AND month=?", (year, month)
+        )
+    else:
+        # 全部清空
+        conn.execute("DELETE FROM work_records")
+        conn.execute("DELETE FROM salary_adjustments")
+        conn.execute("DELETE FROM quick_calc_saves")
+
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
 # ── 快捷计算自动保存 ──────────────────────────────────────
 
 def save_quick_calc(year: int, month: int, dept_rows: dict, qty_data: dict):

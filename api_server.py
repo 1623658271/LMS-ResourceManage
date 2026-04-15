@@ -413,6 +413,22 @@ async def api_import_database(body: dict):
         return {"ok": False, "error": f"导入失败: {str(e)}"}
 
 
+
+# ── 数据清理 ────────────────────────────────────────────
+
+@app.delete("/api/data/clean")
+async def api_clean_data(
+    emp_id: Optional[int] = Query(None),
+    year: Optional[int] = Query(None),
+    month: Optional[int] = Query(None),
+):
+    """
+    清理做货记录/增扣/快捷计算保存。
+    参数均可选，不传则清空全部。
+    """
+    return crud.delete_data_by_filter(emp_id, year, month)
+
+
 # ── 窗口设置 ──────────────────────────────────────────────
 
 @app.post("/api/window/settings")

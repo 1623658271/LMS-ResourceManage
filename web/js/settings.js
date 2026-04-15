@@ -463,3 +463,161 @@ document.querySelectorAll('.settings-nav-item').forEach(el => {
     if (target) target.style.display = 'block';
   });
 });
+
+// ── 清理业务数据 ─────────────────────────────────────────
+
+async function showCleanDataModal() {
+  // 加载员工列表，用于成员选择器
+  let employees = [];
+  try { employees = await get('/api/employees'); } catch (e) { employees = []; }
+
+  const empOptions = employees.map(e =>
+    `<option value="${e.id}">${escHtml(e.name)}（${escHtml(e.sub_dept_name || '')}）</option>`
+  ).join('');
+
+  // 当前年月，供默认值
+  const now = new Date();
+  const curYear = now.getFullYear();
+  const curMonth = now.getMonth() + 1;
+  const monthOpts = Array.from({length:12}, (_,i) =>
+    `<option value="${i+1}"${i+1===curMonth?' selected':''}>${i+1}</option>`
+  ).join('');
+
+  openModal(`
+    <div class="modal-title">清理业务数据</div>
+
+    <!-- 清理模式 -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">选择清理范围</div>
+      <div style="display:flex;flex-direction:column;gap:7px;" id="cleanModeGroup">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
+          <input type="radio" name="cleanMode" value="emp" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
+          <span style="font-size:13px;">指定成员的所有月份数据</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
+          <input type="radio" name="cleanMode" value="ym" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
+          <span style="font-size:13px;">指定年月的所有成员数据</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
+          <input type="radio" name="cleanMode" value="empym" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
+          <span style="font-size:13px;">指定成员 × 指定年月</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
+          <input type="radio" name="cleanMode" value="all" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
+          <span style="font-size:13px;font-weight:600;color:#ef4444;">清空所有业务数据</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 成员选择器 -->
+    <div id="cleanEmpRow" style="display:none;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">选择成员</div>
+      <select id="cleanEmpSel" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card-bg);color:var(--text);">
+        <option value="">-- 请选择成员 --</option>
+        ${empOptions}
+      </select>
+    </div>
+
+    <!-- 年月选择器 -->
+    <div id="cleanYmRow" style="display:none;margin-bottom:12px;">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">选择年月</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="cleanYear" value="${curYear}" min="2000" max="2099"
+          style="width:90px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card-bg);color:var(--text);text-align:center;">
+        <span style="color:var(--text-muted);font-size:13px;">年</span>
+        <select id="cleanMonth" style="width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card-bg);color:var(--text);">
+          ${monthOpts}
+        </select>
+        <span style="color:var(--text-muted);font-size:13px;">月</span>
+      </div>
+    </div>
+
+    <!-- 提示区 -->
+    <div id="cleanHint" style="display:none;padding:10px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:12px;"></div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+      <button class="btn btn-danger" id="confirmCleanBtn" disabled onclick="doCleanData()">确认清理</button>
+    </div>
+  `);
+}
+
+function _onCleanModeChange() {
+  const mode = document.querySelector('input[name="cleanMode"]:checked')?.value;
+  const empRow = document.getElementById('cleanEmpRow');
+  const ymRow = document.getElementById('cleanYmRow');
+  const hint = document.getElementById('cleanHint');
+  const btn = document.getElementById('confirmCleanBtn');
+
+  empRow.style.display = (mode === 'emp' || mode === 'empym') ? 'block' : 'none';
+  ymRow.style.display  = (mode === 'ym'  || mode === 'empym') ? 'block' : 'none';
+
+  // 提示文案
+  const hintMap = {
+    emp:   { bg: '#fef3c7', color: '#92400e', text: '将删除该成员所有月份的做货记录和工资增扣，不可恢复。' },
+    ym:    { bg: '#fef3c7', color: '#92400e', text: '将删除指定年月内所有人的做货记录、工资增扣及快捷计算保存，不可恢复。' },
+    empym: { bg: '#fef3c7', color: '#92400e', text: '将删除该成员在指定年月的做货记录和工资增扣，不可恢复。' },
+    all:   { bg: '#fee2e2', color: '#991b1b', text: '⚠ 将删除所有成员所有月份的做货记录、工资增扣及快捷计算保存！此操作不可恢复，请谨慎操作！' }
+  };
+  if (mode && hintMap[mode]) {
+    const h = hintMap[mode];
+    hint.style.display = 'block';
+    hint.style.background = h.bg;
+    hint.style.color = h.color;
+    hint.textContent = h.text;
+  } else {
+    hint.style.display = 'none';
+  }
+
+  btn.disabled = !mode;
+}
+
+async function doCleanData() {
+  const mode = document.querySelector('input[name="cleanMode"]:checked')?.value;
+  if (!mode) return;
+
+  const empId = (mode === 'emp' || mode === 'empym') ? document.getElementById('cleanEmpSel').value : null;
+  const year  = (mode === 'ym'  || mode === 'empym') ? document.getElementById('cleanYear').value  : null;
+  const month = (mode === 'ym'  || mode === 'empym') ? document.getElementById('cleanMonth').value : null;
+
+  // 验证
+  if ((mode === 'emp' || mode === 'empym') && !empId) {
+    showToast('请先选择成员', 'error'); return;
+  }
+  if ((mode === 'ym' || mode === 'empym') && (!year || !month)) {
+    showToast('请填写年份和月份', 'error'); return;
+  }
+
+  // 二次确认
+  let confirmMsg = '';
+  if (mode === 'all') {
+    confirmMsg = '您确定要清空所有业务数据吗？此操作不可撤销！';
+  } else {
+    const empName = empId ? document.getElementById('cleanEmpSel').options[document.getElementById('cleanEmpSel').selectedIndex].text : '';
+    const ymStr = (year && month) ? `${year}年${month}月` : '';
+    if (mode === 'emp')   confirmMsg = `确定删除【${empName}】的所有做货数据吗？`;
+    if (mode === 'ym')    confirmMsg = `确定删除【${ymStr}】的所有业务数据吗？`;
+    if (mode === 'empym') confirmMsg = `确定删除【${empName}】在【${ymStr}】的做货数据吗？`;
+  }
+
+  if (!confirm(confirmMsg)) return;
+
+  // 构造查询参数
+  const params = new URLSearchParams();
+  if (empId) params.append('emp_id', empId);
+  if (year)  params.append('year',   year);
+  if (month) params.append('month',  month);
+
+  try {
+    const res = await fetch(`/api/data/clean?${params.toString()}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      closeModal();
+      showToast('数据清理完成', 'success');
+    } else {
+      showToast('清理失败：' + (data.error || '未知错误'), 'error');
+    }
+  } catch (e) {
+    showToast('请求失败：' + e.message, 'error');
+  }
+}
