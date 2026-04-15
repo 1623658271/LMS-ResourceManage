@@ -64,6 +64,14 @@ if __name__ == "__main__":
     # 读取窗口设置
     win_settings = get_window_settings()
     
+    # 全屏模式和最大化窗口互斥
+    is_fullscreen = win_settings.get('fullscreen', False)
+    is_maximized = win_settings.get('maximized', False)
+    
+    # 如果两者都为 True，优先使用全屏模式（避免冲突）
+    if is_fullscreen and is_maximized:
+        is_maximized = False
+    
     # 创建 pywebview 窗口
     # 计算窗口位置：水平居中，垂直顶部对齐（避免被任务栏遮挡）
     import ctypes
@@ -90,13 +98,13 @@ if __name__ == "__main__":
         height=win_settings.get('height', 900),
         x=x,
         y=y,
-        fullscreen=win_settings.get('fullscreen', False),
+        fullscreen=is_fullscreen,
         min_size=(1000, 680),
         resizable=True,
     )
     
-    # 如果设置了最大化，在窗口创建后最大化
-    if win_settings.get('maximized', False):
+    # 如果设置了最大化（且不是全屏），在窗口创建后最大化
+    if is_maximized and not is_fullscreen:
         try:
             window.maximize()
         except Exception:
