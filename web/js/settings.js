@@ -616,6 +616,9 @@ async function onMaximizedChange(checked) {
   
   // 立即保存到文件
   await saveWindowSettings();
+  
+  // 调试：确认保存的值
+  console.log('最大化开关变化:', {maximized: checked, fullscreen: _currentSettings['window-fullscreen']});
 }
 
 // 全屏模式开关变化（与最大化窗口互斥）
@@ -631,6 +634,9 @@ async function onFullscreenChange(checked) {
   
   // 立即保存到文件
   await saveWindowSettings();
+  
+  // 调试：确认保存的值
+  console.log('全屏开关变化:', {fullscreen: checked, maximized: _currentSettings['window-maximized']});
 }
 
 // 保存窗口设置到文件
@@ -642,6 +648,8 @@ async function saveWindowSettings() {
       fullscreen: _currentSettings['window-fullscreen'] || false,
       maximized: _currentSettings['window-maximized'] || false
     };
+    
+    console.log('保存窗口设置:', settings);
     
     const result = await post('/api/window/settings', settings);
     if (result.ok) {
