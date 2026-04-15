@@ -319,24 +319,6 @@ async def api_init():
     return {"ok": True}
 
 
-# ── 撤销/重做历史栈持久化 ──────────────────────────────────
-
-@app.get("/api/undo-stack/{stack_type}")
-async def api_get_undo_stack(stack_type: str):
-    """获取持久化的撤销/重做栈（stack_type: work-edit | quick-calc）"""
-    return crud.get_undo_stack(stack_type)
-
-
-@app.post("/api/undo-stack/{stack_type}")
-async def api_save_undo_stack(stack_type: str, body: dict):
-    """保存撤销/重做栈到数据库"""
-    return crud.save_undo_stack(
-        stack_type,
-        body.get("undo_stack", []),
-        body.get("redo_stack", []),
-    )
-
-
 @app.get("/api/app-settings/{key}")
 async def api_get_app_setting(key: str):
     return crud.get_app_setting(key)

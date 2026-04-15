@@ -48,12 +48,9 @@ async function initQuickCalc() {
     btn.style.color = '#92400e';
   }
 
-  // 从数据库恢复历史栈（跨会话持久化）
-  await loadUndoStack('quick-calc');
-  // 如果历史栈为空（首次加载或年月切换后），保存初始快照
-  if (_undoStack.length === 0) {
-    pushHistory('quick-calc');
-  }
+  // 保存初始状态到历史栈（清空之前的历史）
+  clearHistory();
+  pushHistory('quick-calc');
 
   renderQcDeptTables();
 }
@@ -592,11 +589,5 @@ async function qcToggleViewMode() {
 }
 
 // ---- 年月变化时重新加载 ----
-document.getElementById('qcYear').addEventListener('change', () => {
-  clearHistory('quick-calc');
-  initQuickCalc();
-});
-document.getElementById('qcMonth').addEventListener('change', () => {
-  clearHistory('quick-calc');
-  initQuickCalc();
-});
+document.getElementById('qcYear').addEventListener('change', initQuickCalc);
+document.getElementById('qcMonth').addEventListener('change', initQuickCalc);

@@ -1,40 +1,5 @@
 """所有数据库 CRUD 操作"""
-import json
 from services.db import get_connection
-
-# ── 撤销/重做历史栈持久化 ──────────────────────────────────
-
-def get_undo_stack(stack_type: str):
-    """获取指定类型的撤销/重做栈（work-edit 或 quick-calc）"""
-    conn = get_connection()
-    row = conn.execute(
-        "SELECT undo_stack, redo_stack FROM undo_stacks WHERE type=?", (stack_type,)
-    ).fetchone()
-    conn.close()
-    if row:
-        try:
-            undo = json.loads(row["undo_stack"] or "[]")
-            redo = json.loads(row["redo_stack"] or "[]")
-        except Exception:
-            undo, redo = [], []
-        return {"undo_stack": undo, "redo_stack": redo}
-    return {"undo_stack": [], "redo_stack": []}
-
-
-def save_undo_stack(stack_type: str, undo_stack: list, redo_stack: list):
-    """保存撤销/重做栈到数据库"""
-    conn = get_connection()
-    conn.execute("""
-        INSERT INTO undo_stacks (type, undo_stack, redo_stack, updated_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        ON CONFLICT(type) DO UPDATE SET
-            undo_stack = excluded.undo_stack,
-            redo_stack = excluded.redo_stack,
-            updated_at = CURRENT_TIMESTAMP
-    """, (stack_type, json.dumps(undo_stack, ensure_ascii=False), json.dumps(redo_stack, ensure_ascii=False)))
-    conn.commit()
-    conn.close()
-    return {"ok": True}
 
 # ── 全局设置 ────────────────────────────────────────────
 
