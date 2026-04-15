@@ -308,14 +308,14 @@
           <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">
             <span>最大化窗口</span>
             <div class="toggle-switch">
-              <input type="checkbox" id="s-window-maximized" onchange="applySetting('window-maximized', this.checked)">
+              <input type="checkbox" id="s-window-maximized" onchange="onMaximizedChange(this.checked)">
               <span class="toggle-slider"></span>
             </div>
           </label>
           <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">
             <span>全屏模式</span>
             <div class="toggle-switch">
-              <input type="checkbox" id="s-window-fullscreen" onchange="applySetting('window-fullscreen', this.checked)">
+              <input type="checkbox" id="s-window-fullscreen" onchange="onFullscreenChange(this.checked)">
               <span class="toggle-slider"></span>
             </div>
           </label>
