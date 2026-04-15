@@ -145,12 +145,12 @@ function renderQcDeptTables() {
           const priceVal = row[sub.id] || 0;
           if (isWage) {
             html += `<td class="qc-price-cell" style="text-align:center;background:#f0fdf4;">
-              <div class="cell-input" style="width:65px;font-size:12px;color:#374151;" title="￥${priceVal.toFixed(2)}">￥${priceVal.toFixed(2)}</div>
+              <div class="cell-input" style="width:65px;color:#374151;" title="￥${priceVal.toFixed(2)}">￥${priceVal.toFixed(2)}</div>
             </td>`;
           } else {
             html += `<td class="qc-price-cell" style="text-align:center;background:#f0fdf4;">
               <input type="number" min="0" step="0.01" class="cell-input qc-price-input"
-                style="width:65px;text-align:center;font-size:12px;"
+                style="width:65px;text-align:center;"
                 value="${priceVal || ''}" placeholder="0"
                 data-row-key="${escHtml(rowKey)}" data-sub-id="${sub.id}"
                 onfocus="onQcCellFocus(this, 'price')"
