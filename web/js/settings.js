@@ -544,8 +544,9 @@ async function loadWindowSettingsFromFile() {
   // 从 window_settings.json 文件读取窗口设置并更新分辨率显示
   try {
     const result = await get('/api/window/settings');
-    if (result.ok && result.data) {
-      const settings = result.data;
+    // 后端返回的是 result.config，不是 result.data
+    const settings = result.config || result.data;
+    if (result.ok && settings) {
       const width = settings.width || 1400;
       const height = settings.height || 900;
       
