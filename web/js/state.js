@@ -52,11 +52,48 @@ let _deletedRowKeys = new Set();
 let _currentView = 'overview';
 
 // ============================================================
-// 撤销/重做历史栈
+// 撤销/重做历史栈（持久化版本）
 // ============================================================
-let _undoStack = [];      // 撤销栈
-let _redoStack = [];      // 重做栈
+let _undoStack = [];      // 撤销栈（内存缓存）
+let _redoStack = [];      // 重做栈（内存缓存）
 const MAX_HISTORY = 50;   // 最大历史记录数
+
+// 防抖持久化计时器
+const _undoSaveTimers = {};
+
+// 持久化到数据库（防抖，避免频繁写入）
+function _persistUndoStack(type) {
+  clearTimeout(_undoSaveTimers[type]);
+  _undoSaveTimers[type] = setTimeout(async () => {
+    try {
+      await post(`/api/undo-stack/${type}`, {
+        undo_stack: _undoStack,
+        redo_stack: _redoStack,
+      });
+    } catch (e) {
+      console.warn('[undo] 持久化失败', e);
+    }
+  }, 300);
+}
+
+// 从数据库加载历史栈（页面初始化时调用）
+async function loadUndoStack(type) {
+  try {
+    const data = await get(`/api/undo-stack/${type}`);
+    if (data) {
+      _undoStack = Array.isArray(data.undo_stack) ? data.undo_stack : [];
+      _redoStack = Array.isArray(data.redo_stack) ? data.redo_stack : [];
+    } else {
+      _undoStack = [];
+      _redoStack = [];
+    }
+  } catch (e) {
+    console.warn('[undo] 加载历史栈失败', e);
+    _undoStack = [];
+    _redoStack = [];
+  }
+  updateUndoRedoButtons();
+}
 
 // 保存当前状态到历史栈（每次操作都保存，不去重）
 function pushHistory(type) {
@@ -91,6 +128,8 @@ function pushHistory(type) {
   // 清空重做栈（新操作后重做栈失效）
   _redoStack = [];
   updateUndoRedoButtons();
+  // 持久化到数据库
+  _persistUndoStack(type);
 }
 
 // 撤销操作
@@ -122,6 +161,8 @@ async function undo() {
   // 恢复到历史状态
   await restoreSnapshot(currentSnapshot);
   updateUndoRedoButtons();
+  // 持久化
+  _persistUndoStack(currentSnapshot.type);
 }
 
 // 重做操作
@@ -153,6 +194,8 @@ async function redo() {
   // 恢复到重做状态
   await restoreSnapshot(redoSnapshot);
   updateUndoRedoButtons();
+  // 持久化
+  _persistUndoStack(redoSnapshot.type);
 }
 
 // 恢复快照
@@ -206,11 +249,16 @@ function updateUndoRedoButtons() {
   }
 }
 
-// 清空历史栈（切换页面时调用）
-function clearHistory() {
+// 清空历史栈（切换页面时调用，同步清空数据库）
+function clearHistory(type) {
   _undoStack = [];
   _redoStack = [];
   updateUndoRedoButtons();
+  // 如果传了 type，则同步清空数据库中对应的历史栈
+  if (type) {
+    post(`/api/undo-stack/${type}`, { undo_stack: [], redo_stack: [] })
+      .catch(e => console.warn('[undo] 清空历史栈失败', e));
+  }
 }
 
 // 键盘快捷键监听

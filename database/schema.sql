@@ -131,6 +131,16 @@ CREATE TABLE IF NOT EXISTS app_settings (
     value TEXT NOT NULL DEFAULT ''
 );
 
+-- 撤销/重做历史栈持久化表
+-- type: 'work-edit' | 'quick-calc'
+-- undo_stack / redo_stack: JSON 序列化的快照数组
+CREATE TABLE IF NOT EXISTS undo_stacks (
+    type TEXT PRIMARY KEY,
+    undo_stack TEXT NOT NULL DEFAULT '[]',
+    redo_stack TEXT NOT NULL DEFAULT '[]',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 -- 插入默认大部门
 INSERT OR IGNORE INTO departments (id, name) VALUES (1, '面部');
 INSERT OR IGNORE INTO departments (id, name) VALUES (2, '底部');

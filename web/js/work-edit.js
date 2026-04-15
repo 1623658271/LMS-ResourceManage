@@ -64,9 +64,12 @@ async function loadWorkRecords() {
     _state.wageDetail = null;
   }
 
-  // 保存初始状态到历史栈（清空之前的历史）
-  clearHistory();
-  pushHistory('work-edit');
+  // 从数据库恢复历史栈（跨会话持久化）
+  await loadUndoStack('work-edit');
+  // 如果历史栈为空（首次加载或年月切换后），保存初始快照
+  if (_undoStack.length === 0) {
+    pushHistory('work-edit');
+  }
 
   renderSpreadsheet();
 }
@@ -659,11 +662,13 @@ document.getElementById('workYear').addEventListener('change', () => {
   _weRowMap = {};
   _weRowCounter = 0;
   _weMaxLineId = 0;
+  clearHistory('work-edit');
   loadWorkRecords();
 });
 document.getElementById('workMonth').addEventListener('change', () => {
   _weRowMap = {};
   _weRowCounter = 0;
   _weMaxLineId = 0;
+  clearHistory('work-edit');
   loadWorkRecords();
 });
