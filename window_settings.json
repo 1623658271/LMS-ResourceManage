@@ -1,5 +1,6 @@
 {
-  "width": 2000,
-  "height": 1060,
-  "fullscreen": false
+  "width": 2560,
+  "height": 1600,
+  "fullscreen": false,
+  "maximized": false
 }

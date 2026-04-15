@@ -587,13 +587,14 @@ async function loadWindowSettingsFromFile() {
   }
 }
 
-function initSettingsPage() {
-  // 设置页面初始化时，同步所有控件的值
+async function initSettingsPage() {
+  // 先从文件加载窗口设置（这会更新 _currentSettings 中的宽高值）
+  await loadWindowSettingsFromFile();
+  
+  // 然后同步所有控件的值到 UI
   for (const key in _currentSettings) {
     updateControlDisplay(key, _currentSettings[key]);
   }
-  // 从文件加载窗口设置并更新滑条
-  loadWindowSettingsFromFile();
 }
 
 // 应用窗口设置
