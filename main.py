@@ -4,11 +4,35 @@ import threading
 import time
 import sys
 import os
+import json
 
 # 解决 Windows 上的 stdout 缓冲问题
 sys.stdout.reconfigure(line_buffering=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def get_window_settings():
+    """读取窗口设置配置文件"""
+    try:
+        # 获取配置文件路径（支持 PyInstaller 打包后的环境）
+        if getattr(sys, 'frozen', False):
+            config_path = os.path.join(os.path.dirname(sys.executable), 'window_settings.json')
+        else:
+            config_path = os.path.join(BASE_DIR, 'window_settings.json')
+        
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception:
+        pass
+    
+    # 返回默认设置
+    return {
+        "width": 1400,
+        "height": 900,
+        "fullscreen": False
+    }
 
 
 def start_fastapi():
@@ -36,12 +60,16 @@ if __name__ == "__main__":
     server_thread.start()
     time.sleep(1.5)  # 等待服务启动
 
+    # 读取窗口设置
+    win_settings = get_window_settings()
+    
     # 创建 pywebview 窗口
     window = webview.create_window(
         title="立杰人力资源管理系统",
         url="http://127.0.0.1:8765",
-        width=1280,
-        height=800,
+        width=win_settings.get('width', 1400),
+        height=win_settings.get('height', 900),
+        fullscreen=win_settings.get('fullscreen', False),
         min_size=(1000, 680),
         resizable=True,
     )
