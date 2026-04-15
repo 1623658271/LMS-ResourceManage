@@ -586,7 +586,7 @@ tr:hover td { background: #f8fafc; }
 .tree-item:hover .del-btn { opacity: 1; }
 .tree-children { padding-left: 18px; }
 .tree-child {
-  padding: 5px 13px; cursor: pointer; font-size: calc(var(--font-size-base) - 1px);
+  padding: 5px 13px; cursor: pointer; font-size: var(--font-size-dept-tree);
   display: flex; align-items: center; gap: 5px;
   color: var(--text-muted); transition: background 0.1s; user-select: none;
 }
