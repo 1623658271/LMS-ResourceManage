@@ -541,7 +541,7 @@ async function importDatabase(input) {
 }
 
 async function loadWindowSettingsFromFile() {
-  """从 window_settings.json 文件读取窗口设置并更新分辨率显示"""
+  // 从 window_settings.json 文件读取窗口设置并更新分辨率显示
   try {
     const result = await get('/api/window/settings');
     if (result.ok && result.data) {
