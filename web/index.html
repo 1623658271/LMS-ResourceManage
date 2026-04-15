@@ -459,6 +459,15 @@
               </div>
             </div>
             <div class="settings-row">
+              <div class="settings-row-info"><div class="settings-row-label">订单管理字体</div><div class="settings-row-desc">订单列表和详情字体大小</div></div>
+              <div class="settings-row-control">
+                <div class="slider-control">
+                  <input type="range" class="slider-input" id="s-fontSize-orders" min="10" max="20" value="13" oninput="updateSliderVal('fontSize-orders', this.value); applySetting('fontSize-orders', this.value)">
+                  <span class="slider-value" id="s-fontSize-orders-val" ondblclick="editSliderVal('fontSize-orders', this)" title="双击输入自定义值">13px</span>
+                </div>
+              </div>
+            </div>
+            <div class="settings-row">
               <div class="settings-row-info"><div class="settings-row-label">字体族</div><div class="settings-row-desc">系统字体</div></div>
               <div class="settings-row-control">
                 <select class="settings-select" id="s-fontFamily" onchange="applySetting('fontFamily', this.value)">

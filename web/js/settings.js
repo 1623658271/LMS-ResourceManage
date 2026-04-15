@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
   'fontSize-members': '13',
   'fontSize-deptTree': '13',
   'fontSize-sidebar': '14',
+  'fontSize-orders': '13',
   fontFamily: "'Microsoft YaHei', 'PingFang SC', sans-serif",
   'table-fontSize': '13',
   'table-rowHeight': '40',
@@ -117,6 +118,9 @@ function applySetting(key, value, skipSave = false) {
       break;
     case 'fontSize-sidebar':
       root.style.setProperty('--font-size-sidebar', value + 'px');
+      break;
+    case 'fontSize-orders':
+      root.style.setProperty('--font-size-orders', value + 'px');
       break;
     case 'fontSize-h1':
       root.style.setProperty('--font-size-h1', value + 'px');

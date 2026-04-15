@@ -20,13 +20,26 @@
   --radius: 8px;
   --shadow: 0 2px 8px rgba(0,0,0,0.08);
   --sidebar-width: 220px;
-  /* 字体大小 */
+  /* 字体大小 - 基准值 */
   --font-size-base: 13px;
   --font-size-title: 14px;
   --font-size-h1: 20px;
+  /* 成员管理字体层级 */
   --font-size-members: 13px;
+  --font-size-members-lg: calc(var(--font-size-members) + 2px);
+  --font-size-members-sm: calc(var(--font-size-members) - 2px);
+  /* 部门树字体层级 */
   --font-size-dept-tree: 13px;
+  --font-size-dept-tree-lg: calc(var(--font-size-dept-tree) + 2px);
+  --font-size-dept-tree-sm: calc(var(--font-size-dept-tree) - 2px);
+  /* 导航栏字体层级 */
   --font-size-sidebar: 14px;
+  --font-size-sidebar-lg: calc(var(--font-size-sidebar) + 2px);
+  --font-size-sidebar-sm: calc(var(--font-size-sidebar) - 2px);
+  /* 订单管理字体层级 */
+  --font-size-orders: 13px;
+  --font-size-orders-lg: calc(var(--font-size-orders) + 2px);
+  --font-size-orders-sm: calc(var(--font-size-orders) - 2px);
   /* 表格 */
   --table-font-size: 13px;
   --table-row-height: 40px;
@@ -79,7 +92,7 @@ h2, h3, .section-title { font-size: var(--font-size-title) !important; }
 
 .nav-section {
   padding: 6px 16px 4px;
-  font-size: 10px;
+  font-size: var(--font-size-sidebar-sm);
   font-weight: 600;
   color: #475569;
   letter-spacing: 1px;
@@ -583,7 +596,7 @@ tr:hover td { background: #f8fafc; }
   margin-left: auto; opacity: 0; color: var(--danger);
   cursor: pointer; font-size: var(--font-size-title); transition: opacity 0.1s;
 }
-.tree-item:hover .del-btn { opacity: 1; }
+.tree-item:hover .del-btn { opacity: 1; font-size: var(--font-size-dept-tree-sm); }
 .tree-children { padding-left: 18px; }
 .tree-child {
   padding: 5px 13px; cursor: pointer; font-size: var(--font-size-dept-tree);
@@ -614,7 +627,7 @@ tr:hover td { background: #f8fafc; }
 .member-card-info { flex: 1; display: flex; align-items: center; gap: 12px; }
 .member-check { width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); }
 .member-name { font-weight: 600; font-size: var(--font-size-members); min-width: 70px; }
-.member-gender-badge { font-size: 12px; color: var(--text-muted); min-width: 16px; }
+.member-gender-badge { font-size: var(--font-size-members-sm); color: var(--text-muted); min-width: 16px; }
 .member-name-color { font-weight: 600; color: #2563eb; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
 .member-name-color:hover { color: #fbbf24; }
 /* 成员管理页专用姓名颜色（黑色） */
@@ -622,11 +635,11 @@ tr:hover td { background: #f8fafc; }
 .member-list-name-color:hover { color: #fbbf24; }
 .dept-large  { font-weight: 600; color: #d97706; }         /* 大部门：橙色 */
 .dept-sub    { color: #059669; }                           /* 小部门：绿色 */
-.member-stats { display: flex; gap: 20px; font-size: 12px; flex: 1; }
+.member-stats { display: flex; gap: 20px; font-size: var(--font-size-members-sm); flex: 1; }
 .member-stat { display: flex; align-items: center; gap: 6px; }
 .member-stat-label { color: var(--text-muted); white-space: nowrap; }
-.member-stat-value { font-weight: 600; font-size: 13px; }
-.member-stat-value.highlight { color: var(--success); font-size: 15px; }
+.member-stat-value { font-weight: 600; font-size: var(--font-size-members); }
+.member-stat-value.highlight { color: var(--success); font-size: var(--font-size-members-lg); }
 .member-card-actions { display: flex; gap: 5px; flex-shrink: 0; }
 
 /* ============================================================
@@ -642,14 +655,14 @@ tr:hover td { background: #f8fafc; }
   display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
 }
 .md-summary-info { flex: 1; }
-.md-summary-name { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
-.md-summary-meta { font-size: 13px; color: var(--text-muted); }
+.md-summary-name { font-size: var(--font-size-members-lg); font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+.md-summary-meta { font-size: var(--font-size-members); color: var(--text-muted); }
 .md-summary-stats { display: flex; gap: 24px; flex-wrap: wrap; }
 .md-summary-stat { text-align: center; }
-.md-summary-stat-val { font-size: 18px; font-weight: 700; color: var(--primary); }
+.md-summary-stat-val { font-size: var(--font-size-members-lg); font-weight: 700; color: var(--primary); }
 .md-summary-stat-val.green { color: var(--success); }
 .md-summary-stat-val.orange { color: #d97706; }
-.md-summary-stat-label { font-size: 11px; color: var(--text-muted); }
+.md-summary-stat-label { font-size: var(--font-size-members-sm); color: var(--text-muted); }
 .md-history-section { margin-top: 16px; }
 .md-history-empty { text-align: center; color: var(--text-muted); padding: 40px; }
 .md-month-block {
@@ -664,10 +677,10 @@ tr:hover td { background: #f8fafc; }
   border-bottom: 1px solid var(--border);
   padding: 10px 16px;
   display: flex; align-items: center; justify-content: space-between;
-  font-size: 13px;
+  font-size: var(--font-size-members);
   font-weight: 600;
 }
-.md-month-totals { display: flex; gap: 16px; font-size: 12px; font-weight: 400; }
+.md-month-totals { display: flex; gap: 16px; font-size: var(--font-size-members-sm); font-weight: 400; }
 .md-records-table { width: 100%; border-collapse: collapse; font-size: var(--table-font-size); }
 .md-records-table th {
   background: #f8fafc; color: var(--text-muted); font-weight: 500;
@@ -693,12 +706,12 @@ tr:hover td { background: #f8fafc; }
 }
 .order-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
 .order-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.order-no { font-weight: 700; font-size: 14px; color: var(--primary-dark); }
-.order-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 12px; }
+.order-no { font-weight: 700; font-size: var(--font-size-orders-lg); color: var(--primary-dark); }
+.order-meta { font-size: var(--font-size-orders-sm); color: var(--text-muted); display: flex; gap: 12px; }
 .order-models { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
 .model-tag {
   background: #f1f5f9; border: 1px solid var(--border);
-  border-radius: 4px; padding: 2px 8px; font-size: 11px;
+  border-radius: 4px; padding: 2px 8px; font-size: var(--font-size-orders-sm);
 }
 .model-tag.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
 
