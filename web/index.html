@@ -221,7 +221,16 @@
       <div style="display:inline-block;text-align:center;padding:10px 0 2px 0;"><button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button></div>
       <div class="card">
         <div class="card-title flex justify-between items-center">
-          订单管理
+          <div class="flex gap-6 items-center">
+            <label class="flex gap-6 items-center">
+              <input type="checkbox" id="orderSelectAll" onchange="toggleSelectAllOrders()">
+              全选
+            </label>
+            <button class="btn btn-sm btn-danger" id="batchDelOrderBtn" style="display:none" onclick="batchDeleteOrders()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              批量删除
+            </button>
+          </div>
           <div class="flex gap-6 items-center">
             <div class="month-picker">
               <select id="orderYear"></select> 年
@@ -242,7 +251,16 @@
       <div style="display:inline-block;text-align:center;padding:10px 0 2px 0;"><button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button></div>
       <div class="card">
         <div class="card-title flex justify-between items-center">
-          型号单价表
+          <div class="flex gap-6 items-center">
+            <label class="flex gap-6 items-center">
+              <input type="checkbox" id="modelSelectAll" onchange="toggleSelectAllModels()">
+              全选
+            </label>
+            <button class="btn btn-sm btn-danger" id="batchDelModelBtn" style="display:none" onclick="batchDeleteModels()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+              批量删除
+            </button>
+          </div>
           <button class="btn btn-primary" onclick="showAddModelModal()">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             添加型号

@@ -5,15 +5,21 @@ async function loadOrders() {
   const year = parseInt(document.getElementById('orderYear').value);
   const month = parseInt(document.getElementById('orderMonth').value);
   const orders = await get(`/api/orders?year=${year}&month=${month}`);
+  _state.orders = orders || [];
   const container = document.getElementById('orderList');
   if (!orders || !orders.length) {
     container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>暂无订单，点击右上角"添加订单"</div></div>';
+    document.getElementById('orderSelectAll').checked = false;
+    updateBatchDelOrderBtn();
     return;
   }
   container.innerHTML = orders.map(o => `
     <div class="order-card">
       <div class="order-card-header">
-        <span class="order-no">${escHtml(o.order_no)}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="checkbox" class="order-check" value="${o.id}" onchange="updateBatchDelOrderBtn()">
+          <span class="order-no">${escHtml(o.order_no)}</span>
+        </div>
         <div style="display:flex;gap:6px;">
           <button class="btn btn-sm btn-secondary" onclick="showEditOrderModal(${o.id})">编辑</button>
           <button class="btn btn-sm btn-danger" onclick="delOrder(${o.id})">删除</button>
@@ -28,6 +34,47 @@ async function loadOrders() {
         ${(o.models||[]).map(m => `<span class="model-tag">${escHtml(m.model_no)}</span>`).join('')}
       </div>
     </div>`).join('');
+  // 重置全选状态
+  document.getElementById('orderSelectAll').checked = false;
+  updateBatchDelOrderBtn();
+}
+
+// 全选/取消全选订单
+function toggleSelectAllOrders() {
+  const checked = document.getElementById('orderSelectAll').checked;
+  document.querySelectorAll('.order-check').forEach(cb => cb.checked = checked);
+  updateBatchDelOrderBtn();
+}
+
+// 更新批量删除订单按钮状态
+function updateBatchDelOrderBtn() {
+  const checked = document.querySelectorAll('.order-check:checked');
+  const btn = document.getElementById('batchDelOrderBtn');
+  if (btn) {
+    btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    if (checked.length > 0) {
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg> 批量删除 (${checked.length})`;
+    }
+  }
+}
+
+// 批量删除订单
+async function batchDeleteOrders() {
+  const checked = document.querySelectorAll('.order-check:checked');
+  if (!checked.length) return;
+  const ids = Array.from(checked).map(cb => parseInt(cb.value));
+  const names = ids.map(id => _state.orders.find(o => o.id === id)?.order_no).filter(Boolean);
+  if (!confirm(`确定要删除以下订单吗？\n${names.join('、')}\n\n此操作不可恢复！`)) return;
+  let ok = 0, fail = 0;
+  for (const id of ids) {
+    const r = await del(`/api/orders/${id}`);
+    if (r && r.success !== false) ok++; else fail++;
+  }
+  showToast(`成功删除 ${ok} 个${fail ? `，失败 ${fail} 个` : ''}`, ok > 0 ? 'success' : 'error');
+  if (ok > 0) {
+    document.getElementById('orderSelectAll').checked = false;
+    await loadOrders();
+  }
 }
 
 async function showAddOrderModal() {
