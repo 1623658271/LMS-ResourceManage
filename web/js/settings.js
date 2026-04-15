@@ -25,7 +25,8 @@ const DEFAULT_SETTINGS = {
   'card-gap': '14',
   'window-width': '1400',
   'window-height': '900',
-  'window-fullscreen': false
+  'window-fullscreen': false,
+  'window-maximized': false
 };
 
 const COLOR_PRESETS = {
@@ -421,11 +422,42 @@ async function importDatabase(input) {
   input.value = '';
 }
 
+async function loadWindowSettingsFromFile() {
+  """从 window_settings.json 文件读取窗口设置并更新滑条显示"""
+  try {
+    const result = await get('/api/window/settings');
+    if (result.ok && result.data) {
+      const settings = result.data;
+      // 更新当前设置
+      if (settings.width) {
+        _currentSettings['window-width'] = settings.width;
+        updateControlDisplay('window-width', settings.width);
+      }
+      if (settings.height) {
+        _currentSettings['window-height'] = settings.height;
+        updateControlDisplay('window-height', settings.height);
+      }
+      if (settings.fullscreen !== undefined) {
+        _currentSettings['window-fullscreen'] = settings.fullscreen;
+        updateControlDisplay('window-fullscreen', settings.fullscreen);
+      }
+      if (settings.maximized !== undefined) {
+        _currentSettings['window-maximized'] = settings.maximized;
+        updateControlDisplay('window-maximized', settings.maximized);
+      }
+    }
+  } catch (err) {
+    console.log('读取窗口设置失败:', err);
+  }
+}
+
 function initSettingsPage() {
   // 设置页面初始化时，同步所有控件的值
   for (const key in _currentSettings) {
     updateControlDisplay(key, _currentSettings[key]);
   }
+  // 从文件加载窗口设置并更新滑条
+  loadWindowSettingsFromFile();
 }
 
 // 应用窗口设置
@@ -433,13 +465,15 @@ async function applyWindowSettings() {
   const width = parseInt(_currentSettings['window-width']) || 1400;
   const height = parseInt(_currentSettings['window-height']) || 900;
   const fullscreen = _currentSettings['window-fullscreen'] || false;
+  const maximized = _currentSettings['window-maximized'] || false;
 
   try {
     // 调用后端 API 设置窗口大小
     const result = await post('/api/window/settings', {
       width: width,
       height: height,
-      fullscreen: fullscreen
+      fullscreen: fullscreen,
+      maximized: maximized
     });
 
     if (result.ok) {

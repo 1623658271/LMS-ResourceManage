@@ -448,7 +448,8 @@ async def api_set_window_settings(body: dict):
         config = {
             'width': body.get('width', 1400),
             'height': body.get('height', 900),
-            'fullscreen': body.get('fullscreen', False)
+            'fullscreen': body.get('fullscreen', False),
+            'maximized': body.get('maximized', False)
         }
         
         with open(config_path, 'w', encoding='utf-8') as f:
@@ -485,7 +486,8 @@ async def api_get_window_settings():
                 "config": {
                     "width": 1400,
                     "height": 900,
-                    "fullscreen": False
+                    "fullscreen": False,
+                    "maximized": False
                 }
             }
     

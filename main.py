@@ -31,7 +31,8 @@ def get_window_settings():
     return {
         "width": 1400,
         "height": 900,
-        "fullscreen": False
+        "fullscreen": False,
+        "maximized": False
     }
 
 
@@ -73,6 +74,13 @@ if __name__ == "__main__":
         min_size=(1000, 680),
         resizable=True,
     )
+    
+    # 如果设置了最大化，在窗口创建后最大化
+    if win_settings.get('maximized', False):
+        try:
+            window.maximize()
+        except Exception:
+            pass
 
     # 窗口关闭前保存设置（使用线程非阻塞方式）
     def on_closing():

@@ -302,7 +302,16 @@
 
     <!-- ===== 系统设置 ===== -->
     <div class="view" id="view-settings">
-      <div style="display:inline-block;text-align:center;padding:10px 0 2px 0;"><button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px 0;">
+        <button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button>
+        <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">
+          <span>全屏模式</span>
+          <div class="toggle-switch">
+            <input type="checkbox" id="s-window-fullscreen" onchange="applySetting('window-fullscreen', this.checked)">
+            <span class="toggle-slider"></span>
+          </div>
+        </label>
+      </div>
       <div class="settings-grid">
         <nav class="settings-nav">
           <div class="settings-nav-item active" data-settings="appearance">
@@ -606,10 +615,10 @@
               </div>
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">全屏模式</div><div class="settings-row-desc">启动时以全屏模式运行</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">启动时最大化窗口</div><div class="settings-row-desc">启动时窗口自动最大化（非全屏）</div></div>
               <div class="settings-row-control">
                 <label class="toggle-switch">
-                  <input type="checkbox" id="s-window-fullscreen" onchange="applySetting('window-fullscreen', this.checked)">
+                  <input type="checkbox" id="s-window-maximized" onchange="applySetting('window-maximized', this.checked)">
                   <span class="toggle-slider"></span>
                 </label>
               </div>
