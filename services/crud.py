@@ -18,6 +18,51 @@ def set_app_setting(key, value):
     conn.close()
     return {"ok": True}
 
+
+def get_all_app_settings():
+    """获取所有 UI 设置（以 JSON 对象形式返回）"""
+    conn = get_connection()
+    rows = conn.execute("SELECT key, value FROM app_settings WHERE key LIKE 'ui_%'").fetchall()
+    conn.close()
+    settings = {}
+    for row in rows:
+        key = row[0]
+        value = row[1]
+        # 尝试解析 JSON（支持布尔值、数字等）
+        if value in ('true', 'false'):
+            value = value == 'true'
+        elif value.isdigit():
+            value = int(value)
+        else:
+            try:
+                import json
+                value = json.loads(value)
+            except (json.JSONDecodeError, ValueError):
+                pass  # 保留原始字符串
+        settings[key] = value
+    return settings
+
+
+def save_all_app_settings(settings: dict):
+    """批量保存所有 UI 设置"""
+    import json
+    conn = get_connection()
+    for key, value in settings.items():
+        # 布尔值和数字转字符串存储
+        if isinstance(value, bool):
+            value = 'true' if value else 'false'
+        elif isinstance(value, (int, float)):
+            value = str(value)
+        elif isinstance(value, dict):
+            value = json.dumps(value, ensure_ascii=False)
+        conn.execute(
+            "INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)",
+            (key, str(value))
+        )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
 # ── 部门管理 ────────────────────────────────────────────
 
 

@@ -103,6 +103,37 @@ if __name__ == "__main__":
         resizable=True,
     )
     
+    # 暴露 Python 函数给 JS 调用（用于运行时切换全屏/最大化）
+    def _toggle_fullscreen():
+        """切换全屏模式"""
+        try:
+            window.toggle_fullscreen()
+            return True
+        except Exception as e:
+            print(f"切换全屏失败: {e}")
+            return False
+
+    def _toggle_maximize():
+        """切换最大化模式"""
+        try:
+            if window.attributes.fullscreen:
+                window.toggle_fullscreen()
+            else:
+                if window.ui_state['inactive'] or not window.ui_state['maximized']:
+                    window.maximize()
+                else:
+                    window.restore()
+            return True
+        except Exception as e:
+            print(f"切换最大化失败: {e}")
+            return False
+
+    # 将函数暴露给 JS: pywebview.api.toggle_fullscreen()
+    webview.api = type('', (), {
+        'toggle_fullscreen': _toggle_fullscreen,
+        'toggle_maximize': _toggle_maximize,
+    })()
+    
     # 如果设置了最大化（且不是全屏），在窗口加载完成后最大化
     if is_maximized and not is_fullscreen:
         def on_loaded():

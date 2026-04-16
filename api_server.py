@@ -329,6 +329,18 @@ async def api_set_app_setting(body: dict):
     return crud.set_app_setting(body.get("key", ""), body.get("value", ""))
 
 
+@app.get("/api/app-settings-all")
+async def api_get_all_app_settings():
+    """批量获取所有 UI 设置"""
+    return crud.get_all_app_settings()
+
+
+@app.post("/api/app-settings-all")
+async def api_save_all_app_settings(body: dict):
+    """批量保存所有 UI 设置"""
+    return crud.save_all_app_settings(body)
+
+
 # ── 数据库导入导出 ─────────────────────────────────────────
 
 @app.get("/api/database/export")

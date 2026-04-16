@@ -57,7 +57,30 @@ function normalizeSettings(settings) {
   return normalized;
 }
 
-function loadSettings() {
+async function loadSettings() {
+  // 优先从数据库加载设置
+  try {
+    const dbSettings = await get('/api/app-settings-all');
+    if (dbSettings && Object.keys(dbSettings).length > 0) {
+      // 从数据库加载（带 ui_ 前缀），去掉前缀后合并默认值
+      const normalized = {};
+      for (const key in dbSettings) {
+        if (key.startsWith('ui_')) {
+          normalized[key.slice(3)] = dbSettings[key];  // 去掉 ui_ 前缀
+        } else {
+          normalized[key] = dbSettings[key];  // 保留不带前缀的
+        }
+      }
+      _currentSettings = normalizeSettings({ ...DEFAULT_SETTINGS, ...normalized });
+      // 同时更新 localStorage（保持一致性）
+      localStorage.setItem('li_jie_hr_settings', JSON.stringify(_currentSettings));
+      return;
+    }
+  } catch (e) {
+    console.log('从数据库加载设置失败:', e);
+  }
+  
+  // 数据库没有则从 localStorage 加载
   try {
     const saved = localStorage.getItem('li_jie_hr_settings');
     if (saved) {
@@ -229,7 +252,7 @@ function editSliderVal(key, el) {
     input.max = 400;
   } else if (key === 'fontSize-base') {
     input.min = 11;
-    input.max = 18;
+    input.max = 26;  // 2倍差值：原差值7，2倍差值约14，范围 11-25/26
   } else if (key === 'content-padding' || key === 'card-gap') {
     input.min = 0;
     input.max = 50;
@@ -259,10 +282,13 @@ function editSliderVal(key, el) {
       slider.value = val;
     }
     
-    // 应用设置
-    applySetting(key, val);
+    // 应用设置（skipSave=true 避免重复调用 saveSettingsDebounced）
+    applySetting(key, val, true);
     _currentSettings[key] = val;
     saveSettings();
+    
+    // 移除输入框，恢复为纯文本显示
+    input.remove();
   };
   
   input.onblur = saveValue;
@@ -419,11 +445,26 @@ function applyColorPreset(preset) {
 let _saveTimer = null;
 function saveSettingsDebounced() {
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(saveSettings, 300);
+  _saveTimer = setTimeout(() => {
+    saveSettings(true).catch(e => console.error('保存设置失败:', e));
+  }, 300);
 }
 
-function saveSettings(silent = false) {
+async function saveSettings(silent = false) {
+  // 同时保存到 localStorage 和数据库
   localStorage.setItem('li_jie_hr_settings', JSON.stringify(_currentSettings));
+  
+  // 保存到数据库时，给所有键加上 ui_ 前缀
+  const dbSettings = {};
+  for (const key in _currentSettings) {
+    dbSettings['ui_' + key] = _currentSettings[key];
+  }
+  try {
+    await post('/api/app-settings-all', dbSettings);
+  } catch (e) {
+    console.error('保存设置到数据库失败:', e);
+  }
+  
   if (!silent) showToast('设置已保存', 'success');
 }
 
@@ -638,7 +679,16 @@ async function onMaximizedChange(checked) {
     if (fsEl) fsEl.checked = false;
   }
   
-  // 立即保存到文件
+  // 立即切换窗口最大化状态
+  try {
+    if (window.pywebview && window.pywebview.api) {
+      await window.pywebview.api.toggle_maximize();
+    }
+  } catch (e) {
+    console.error('切换最大化失败:', e);
+  }
+  
+  // 保存到文件（保存当前互斥后的状态）
   await saveWindowSettings();
   
   // 调试：确认保存的值
@@ -656,7 +706,16 @@ async function onFullscreenChange(checked) {
     if (maxEl) maxEl.checked = false;
   }
   
-  // 立即保存到文件
+  // 立即切换全屏状态
+  try {
+    if (window.pywebview && window.pywebview.api) {
+      await window.pywebview.api.toggle_fullscreen();
+    }
+  } catch (e) {
+    console.error('切换全屏失败:', e);
+  }
+  
+  // 保存到文件（保存当前互斥后的状态）
   await saveWindowSettings();
   
   // 调试：确认保存的值
