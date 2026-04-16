@@ -90,7 +90,7 @@ async function showBatchAddMemberModal() {
     <div class="modal-title">批量添加成员</div>
     <div class="batch-add-toolbar">
       <button type="button" class="btn btn-sm" onclick="addBatchRow()">+ 添加行</button>
-      <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">直接填入姓名和部门，最后点击"批量添加"</span>
+      <span style="font-size:var(--font-size-11);color:var(--text-muted);margin-left:8px;">直接填入姓名和部门，最后点击"批量添加"</span>
     </div>
     <div style="max-height:400px;overflow:auto;">
       <table class="batch-add-table">

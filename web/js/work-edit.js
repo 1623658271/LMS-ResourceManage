@@ -184,7 +184,7 @@ function renderSpreadsheet() {
       tbodyHtml += `<tr>
         <td class="col-fixed" style="text-align:center;${stickyStyle}z-index:7;">
           <button class="btn btn-sm"
-            style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;"
+            style="padding:4px 10px;font-size:var(--font-size-11);background:#fee2e2;color:#dc2626;"
             onclick="deleteWorkRow('${mapKey}')">删除</button>
         </td>
         <td class="col-fixed" style="background:#d1fae5;${stickyStyle}z-index:6;">

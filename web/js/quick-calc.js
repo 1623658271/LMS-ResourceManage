@@ -95,7 +95,7 @@ function renderQcDeptTables() {
     </div>`;
 
     if (sortedRowKeys.length === 0) {
-      html += `<div style="padding:16px;color:var(--text-muted);font-size:12px;text-align:center;">暂无行数据，请点击下方按钮添加</div>`;
+      html += `<div style="padding:16px;color:var(--text-muted);font-size:var(--font-size-12);text-align:center;">暂无行数据，请点击下方按钮添加</div>`;
     } else {
       html += `<div class="spreadsheet-wrap qc-dept-table-wrap"><table class="spreadsheet${isWage ? ' wage-view' : ''}">`;
 
@@ -104,13 +104,13 @@ function renderQcDeptTables() {
       html += `<th style="min-width:60px;background:#059669;color:#fff;position:sticky;top:0;z-index:10;text-align:center;">操作</th>`;
       for (const sub of deptSubs) {
         html += `<th style="min-width:75px;background:#d1fae5;color:#065f46;position:sticky;top:0;z-index:10;text-align:center;">
-          ${escHtml(sub.name)}<br><span style="font-size:10px;font-weight:400;color:#6b7280;">单价</span>
+          ${escHtml(sub.name)}<br><span style="font-size:var(--font-size-10);font-weight:400;color:#6b7280;">单价</span>
         </th>`;
       }
       for (const emp of deptEmps) {
         html += `<th style="min-width:75px;background:#e0e7ff;color:#3730a3;position:sticky;top:0;z-index:10;text-align:center;">
           <span class="member-list-name-color" onclick="showEmployeeDetail(${emp.id})">${escHtml(emp.name)}</span>
-          <br><span style="font-size:10px;font-weight:400;color:#6b7280;">${escHtml(emp.sub_dept_name)}</span>
+          <br><span style="font-size:var(--font-size-10);font-weight:400;color:#6b7280;">${escHtml(emp.sub_dept_name)}</span>
         </th>`;
       }
       html += `<th style="min-width:70px;background:#fef9c3;color:#92400e;position:sticky;top:0;z-index:10;text-align:center;">行合计</th>`;
@@ -137,7 +137,7 @@ function renderQcDeptTables() {
 
         // 操作列（删除按钮）- 移到最左边
         html += `<td style="text-align:center;">
-          <button class="btn btn-sm" style="padding:4px 10px;font-size:11px;background:#fee2e2;color:#dc2626;" onclick="removeQcDeptRow('${escHtml(rowKey)}')">删除</button>
+          <button class="btn btn-sm" style="padding:4px 10px;font-size:var(--font-size-11);background:#fee2e2;color:#dc2626;" onclick="removeQcDeptRow('${escHtml(rowKey)}')">删除</button>
         </td>`;
 
         // 各小部门单价列（纯手动输入）

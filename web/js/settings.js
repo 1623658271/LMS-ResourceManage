@@ -6,12 +6,6 @@ const DEFAULT_SETTINGS = {
   radius: '8px',
   shadow: '0 2px 8px rgba(0,0,0,0.08)',
   'fontSize-base': '13',
-  'fontSize-title': '14',
-  'fontSize-h1': '20',
-  'fontSize-members': '13',
-  'fontSize-deptTree': '13',
-  'fontSize-sidebar': '14',
-  'fontSize-orders': '13',
   fontFamily: "'Microsoft YaHei', 'PingFang SC', sans-serif",
   'table-fontSize': '13',
   'table-rowHeight': '40',
@@ -34,6 +28,15 @@ const DEFAULT_SETTINGS = {
   'window-maximized': false
 };
 
+const LEGACY_FONT_SETTING_KEYS = [
+  'fontSize-title',
+  'fontSize-h1',
+  'fontSize-members',
+  'fontSize-deptTree',
+  'fontSize-sidebar',
+  'fontSize-orders'
+];
+
 const COLOR_PRESETS = {
   blue: { primary: '#3b82f6', 'sidebar-bg': '#1e293b', bg: '#f1f5f9', 'card-bg': '#ffffff', text: '#1e293b' },
   green: { primary: '#22c55e', 'sidebar-bg': '#14532d', bg: '#f0fdf4', 'card-bg': '#ffffff', text: '#166534' },
@@ -45,12 +48,21 @@ const COLOR_PRESETS = {
 let _currentSettings = { ...DEFAULT_SETTINGS };
 let _savedDarkColors = {};  // 深色模式切换时保存浅色模式颜色
 
+function normalizeSettings(settings) {
+  const normalized = { ...settings };
+  LEGACY_FONT_SETTING_KEYS.forEach(key => delete normalized[key]);
+  if (!normalized['fontSize-base']) {
+    normalized['fontSize-base'] = DEFAULT_SETTINGS['fontSize-base'];
+  }
+  return normalized;
+}
+
 function loadSettings() {
   try {
     const saved = localStorage.getItem('li_jie_hr_settings');
     if (saved) {
       const parsed = JSON.parse(saved);
-      _currentSettings = { ...DEFAULT_SETTINGS, ...parsed };
+      _currentSettings = normalizeSettings({ ...DEFAULT_SETTINGS, ...parsed });
     }
   } catch (e) {
     _currentSettings = { ...DEFAULT_SETTINGS };
@@ -106,24 +118,6 @@ function applySetting(key, value, skipSave = false) {
       break;
     case 'fontSize-base':
       root.style.setProperty('--font-size-base', value + 'px');
-      break;
-    case 'fontSize-title':
-      root.style.setProperty('--font-size-title', value + 'px');
-      break;
-    case 'fontSize-members':
-      root.style.setProperty('--font-size-members', value + 'px');
-      break;
-    case 'fontSize-deptTree':
-      root.style.setProperty('--font-size-dept-tree', value + 'px');
-      break;
-    case 'fontSize-sidebar':
-      root.style.setProperty('--font-size-sidebar', value + 'px');
-      break;
-    case 'fontSize-orders':
-      root.style.setProperty('--font-size-orders', value + 'px');
-      break;
-    case 'fontSize-h1':
-      root.style.setProperty('--font-size-h1', value + 'px');
       break;
     case 'table-fontSize':
       root.style.setProperty('--table-font-size', value + 'px');
@@ -218,7 +212,7 @@ function editSliderVal(key, el) {
   const input = document.createElement('input');
   input.type = 'number';
   input.value = currentVal;
-  input.style.cssText = 'width:60px;padding:2px 4px;border:1px solid var(--primary);border-radius:4px;font-size:12px;text-align:center;';
+  input.style.cssText = 'width:60px;padding:2px 4px;border:1px solid var(--primary);border-radius:4px;font-size:var(--font-size-12);text-align:center;';
   
   // 根据设置项设置不同的最小最大值
   if (key === 'table-groupSize') {
@@ -233,6 +227,9 @@ function editSliderVal(key, el) {
   } else if (key === 'sidebar-width') {
     input.min = 150;
     input.max = 400;
+  } else if (key === 'fontSize-base') {
+    input.min = 11;
+    input.max = 18;
   } else if (key === 'content-padding' || key === 'card-gap') {
     input.min = 0;
     input.max = 50;
@@ -349,7 +346,7 @@ function editResolutionVal(el) {
   input.type = 'text';
   input.value = `${currentW}x${currentH}`;
   input.placeholder = '宽x高，如 1920x1080';
-  input.style.cssText = 'width:100px;padding:4px 6px;border:1px solid var(--primary);border-radius:4px;font-size:13px;text-align:center;';
+  input.style.cssText = 'width:100px;padding:4px 6px;border:1px solid var(--primary);border-radius:4px;font-size:var(--font-size-13);text-align:center;';
   
   const saveValue = () => {
     const val = input.value.trim();
@@ -433,6 +430,7 @@ function saveSettings(silent = false) {
 function resetSettings() {
   _currentSettings = { ...DEFAULT_SETTINGS };
   applyAllSettings();
+  initSettingsPage();
   saveSettings();
   showToast('已恢复默认设置', 'info');
 }
@@ -462,8 +460,9 @@ function importSettings(input) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      _currentSettings = { ...DEFAULT_SETTINGS, ...data };
+      _currentSettings = normalizeSettings({ ...DEFAULT_SETTINGS, ...data });
       applyAllSettings();
+      initSettingsPage();
       saveSettings();
       showToast('设置已导入', 'success');
     } catch (err) {
@@ -621,6 +620,11 @@ async function initSettingsPage() {
   for (const key in _currentSettings) {
     updateControlDisplay(key, _currentSettings[key]);
   }
+
+  LEGACY_FONT_SETTING_KEYS.forEach(key => {
+    const legacyRow = document.getElementById('s-' + key)?.closest('.settings-row');
+    if (legacyRow) legacyRow.remove();
+  });
 }
 
 // 最大化窗口开关变化（与全屏模式互斥）
@@ -745,31 +749,31 @@ async function showCleanDataModal() {
 
     <!-- 清理模式 -->
     <div style="margin-bottom:14px;">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">选择清理范围</div>
+    <div style="font-size:var(--font-size-12);color:var(--text-muted);margin-bottom:8px;">选择清理范围</div>
       <div style="display:flex;flex-direction:column;gap:7px;" id="cleanModeGroup">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
           <input type="radio" name="cleanMode" value="emp" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
-          <span style="font-size:13px;">指定成员的所有月份数据</span>
+        <span style="font-size:var(--font-size-13);">指定成员的所有月份数据</span>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
           <input type="radio" name="cleanMode" value="ym" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
-          <span style="font-size:13px;">指定年月的所有成员数据</span>
+        <span style="font-size:var(--font-size-13);">指定年月的所有成员数据</span>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
           <input type="radio" name="cleanMode" value="empym" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
-          <span style="font-size:13px;">指定成员 × 指定年月</span>
+        <span style="font-size:var(--font-size-13);">指定成员 × 指定年月</span>
         </label>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 12px;border:1.5px solid var(--border);border-radius:var(--radius);transition:border-color .15s;">
           <input type="radio" name="cleanMode" value="all" style="accent-color:var(--primary)" onchange="_onCleanModeChange()">
-          <span style="font-size:13px;font-weight:600;color:#ef4444;">清空所有业务数据</span>
+        <span style="font-size:var(--font-size-13);font-weight:600;color:#ef4444;">清空所有业务数据</span>
         </label>
       </div>
     </div>
 
     <!-- 成员选择器 -->
     <div id="cleanEmpRow" style="display:none;margin-bottom:12px;">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">选择成员</div>
-      <select id="cleanEmpSel" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card-bg);color:var(--text);">
+      <div style="font-size:var(--font-size-12);color:var(--text-muted);margin-bottom:6px;">选择成员</div>
+      <select id="cleanEmpSel" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:var(--font-size-13);background:var(--card-bg);color:var(--text);">
         <option value="">-- 请选择成员 --</option>
         ${empOptions}
       </select>
@@ -777,20 +781,20 @@ async function showCleanDataModal() {
 
     <!-- 年月选择器 -->
     <div id="cleanYmRow" style="display:none;margin-bottom:12px;">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">选择年月</div>
+      <div style="font-size:var(--font-size-12);color:var(--text-muted);margin-bottom:6px;">选择年月</div>
       <div style="display:flex;gap:8px;align-items:center;">
         <input type="number" id="cleanYear" value="${curYear}" min="2000" max="2099"
-          style="width:90px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card-bg);color:var(--text);text-align:center;">
-        <span style="color:var(--text-muted);font-size:13px;">年</span>
-        <select id="cleanMonth" style="width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--card-bg);color:var(--text);">
+          style="width:90px;padding:6px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:var(--font-size-13);background:var(--card-bg);color:var(--text);text-align:center;">
+        <span style="color:var(--text-muted);font-size:var(--font-size-13);">年</span>
+        <select id="cleanMonth" style="width:70px;padding:6px 8px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:var(--font-size-13);background:var(--card-bg);color:var(--text);">
           ${monthOpts}
         </select>
-        <span style="color:var(--text-muted);font-size:13px;">月</span>
+        <span style="color:var(--text-muted);font-size:var(--font-size-13);">月</span>
       </div>
     </div>
 
     <!-- 提示区 -->
-    <div id="cleanHint" style="display:none;padding:10px 12px;border-radius:var(--radius);font-size:12px;margin-bottom:12px;"></div>
+    <div id="cleanHint" style="display:none;padding:10px 12px;border-radius:var(--radius);font-size:var(--font-size-12);margin-bottom:12px;"></div>
 
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">取消</button>

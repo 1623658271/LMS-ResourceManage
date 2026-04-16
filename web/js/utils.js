@@ -32,7 +32,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
-  toast.style.cssText = `position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:8px;font-size:13px;z-index:9999;animation:slideIn 0.3s ease;background:${type==='success'?'#22c55e':type==='error'?'#ef4444':'#3b82f6'};color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.15)`;
+  toast.style.cssText = `position:fixed;bottom:20px;right:20px;padding:10px 20px;border-radius:8px;font-size:var(--font-size-13);z-index:9999;animation:slideIn 0.3s ease;background:${type==='success'?'#22c55e':type==='error'?'#ef4444':'#3b82f6'};color:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.15)`;
   toast.textContent = message;
   document.body.appendChild(toast);
   setTimeout(() => { toast.style.opacity='0'; setTimeout(()=>document.body.removeChild(toast), 300); }, 2000);

@@ -89,7 +89,7 @@ async function showAddOrderModal() {
     </div>
     <div class="form-group mb-10"><label>关联型号（可多选）</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-        ${models.map(m => `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;background:#f8fafc;border:1px solid var(--border);border-radius:5px;padding:4px 8px;">
+        ${models.map(m => `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:var(--font-size-12);background:#f8fafc;border:1px solid var(--border);border-radius:5px;padding:4px 8px;">
           <input type="checkbox" value="${m.id}" class="om-check"> ${escHtml(m.model_no)}
         </label>`).join('')}
       </div>
@@ -122,7 +122,7 @@ async function showEditOrderModal(orderId) {
     </div>
     <div class="form-group mb-10"><label>关联型号</label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;">
-        ${allModels.map(m => `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;background:#f8fafc;border:1px solid var(--border);border-radius:5px;padding:4px 8px;">
+        ${allModels.map(m => `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:var(--font-size-12);background:#f8fafc;border:1px solid var(--border);border-radius:5px;padding:4px 8px;">
           <input type="checkbox" value="${m.id}" class="om-check"${(o.models||[]).some(om=>om.id===m.id)?' checked':''}> ${escHtml(m.model_no)}
         </label>`).join('')}
       </div>

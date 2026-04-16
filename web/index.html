@@ -13,7 +13,7 @@
      ============================================================ -->
 <div id="loadingOverlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:#f8fafc;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.3s;">
   <div style="width:60px;height:60px;border:4px solid #e2e8f0;border-top-color:#3b82f6;border-radius:50%;animation:spin 1s linear infinite;"></div>
-  <div style="margin-top:20px;color:#475569;font-size:16px;">正在加载系统...</div>
+  <div style="margin-top:20px;color:#475569;font-size:var(--font-size-16);">正在加载系统...</div>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg);}}</style>
 
@@ -95,7 +95,7 @@
           </label>
         </div>
         <!-- 常用功能 -->
-        <div style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px 4px;">常用功能</div>
+            <div style="font-size:var(--font-size-13);font-weight:600;color:#64748b;margin:0 0 12px 4px;">常用功能</div>
         <div class="overview-grid" style="margin-bottom:24px;">
           <div class="overview-card" onclick="navigateWithHistory('members')">
             <div class="oc-icon" style="background:#dbeafe;">
@@ -121,7 +121,7 @@
         </div>
 
         <!-- 全部功能 -->
-        <div style="font-size:13px;font-weight:600;color:#64748b;margin:0 0 12px 4px;">全部功能</div>
+            <div style="font-size:var(--font-size-13);font-weight:600;color:#64748b;margin:0 0 12px 4px;">全部功能</div>
         <div class="overview-grid">
           <div class="overview-card" onclick="navigateWithHistory('departments')">
             <div class="oc-icon" style="background:#f1f5f9;">
@@ -204,7 +204,7 @@
       <div class="dept-layout">
         <div class="dept-left">
           <div class="dept-left-header">
-            <span style="font-size:12px;font-weight:600;">部门树</span>
+                    <span style="font-size:var(--font-size-12);font-weight:600;">部门树</span>
             <button class="btn btn-sm btn-secondary" onclick="showAddDeptModal()">+ 大部门</button>
           </div>
           <div class="dept-tree" id="deptTree"></div>
@@ -295,7 +295,7 @@
           </div>
         </div>
         <div class="spreadsheet-wrap" id="spreadsheetWrap">
-          <div style="padding:12px;color:var(--text-muted);font-size:12px;">请先选择月份和订单，然后点击"添加行"录入数据</div>
+          <div style="padding:12px;color:var(--text-muted);font-size:var(--font-size-12);">请先选择月份和订单，然后点击"添加行"录入数据</div>
         </div>
       </div>
     </div>
@@ -305,14 +305,14 @@
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px 0;">
         <button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button>
         <div style="display:flex;align-items:center;gap:16px;">
-          <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">
+            <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:var(--font-size-13);color:var(--text);cursor:pointer;">
             <span>最大化窗口</span>
             <div class="toggle-switch">
               <input type="checkbox" id="s-window-maximized" onchange="onMaximizedChange(this.checked)">
               <span class="toggle-slider"></span>
             </div>
           </label>
-          <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer;">
+            <label class="toggle-switch-label" style="display:flex;align-items:center;gap:8px;font-size:var(--font-size-13);color:var(--text);cursor:pointer;">
             <span>全屏模式</span>
             <div class="toggle-switch">
               <input type="checkbox" id="s-window-fullscreen" onchange="onFullscreenChange(this.checked)">
@@ -405,65 +405,11 @@
               字体设置
             </div>
             <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">基础字号</div><div class="settings-row-desc">全局文字大小（双击输入自定义值）</div></div>
+              <div class="settings-row-info"><div class="settings-row-label">基础字号</div><div class="settings-row-desc">除表格外的页面文字会按相同 px 差值同步增减（双击输入自定义值）</div></div>
               <div class="settings-row-control">
                 <div class="slider-control">
                   <input type="range" class="slider-input" id="s-fontSize-base" min="11" max="18" value="13" oninput="updateSliderVal('fontSize-base', this.value); applySetting('fontSize-base', this.value)">
                   <span class="slider-value" id="s-fontSize-base-val" ondblclick="editSliderVal('fontSize-base', this)" title="双击输入自定义值">13px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">标题字号</div><div class="settings-row-desc">卡片标题和页面标题（双击输入自定义值）</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-title" min="10" max="40" value="14" oninput="updateSliderVal('fontSize-title', this.value); applySetting('fontSize-title', this.value)">
-                  <span class="slider-value" id="s-fontSize-title-val" ondblclick="editSliderVal('fontSize-title', this)" title="双击输入自定义值">14px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">大标题</div><div class="settings-row-desc">页面主标题字号（双击输入自定义值）</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-h1" min="14" max="56" value="20" oninput="updateSliderVal('fontSize-h1', this.value); applySetting('fontSize-h1', this.value)">
-                  <span class="slider-value" id="s-fontSize-h1-val" ondblclick="editSliderVal('fontSize-h1', this)" title="双击输入自定义值">20px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">成员管理字体</div><div class="settings-row-desc">成员列表和详情页字体大小</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-members" min="10" max="20" value="13" oninput="updateSliderVal('fontSize-members', this.value); applySetting('fontSize-members', this.value)">
-                  <span class="slider-value" id="s-fontSize-members-val" ondblclick="editSliderVal('fontSize-members', this)" title="双击输入自定义值">13px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">部门树字体</div><div class="settings-row-desc">部门管理页面的部门树字体大小</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-deptTree" min="10" max="20" value="13" oninput="updateSliderVal('fontSize-deptTree', this.value); applySetting('fontSize-deptTree', this.value)">
-                  <span class="slider-value" id="s-fontSize-deptTree-val" ondblclick="editSliderVal('fontSize-deptTree', this)" title="双击输入自定义值">13px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">导航栏字体</div><div class="settings-row-desc">左侧导航菜单字体大小</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-sidebar" min="10" max="20" value="14" oninput="updateSliderVal('fontSize-sidebar', this.value); applySetting('fontSize-sidebar', this.value)">
-                  <span class="slider-value" id="s-fontSize-sidebar-val" ondblclick="editSliderVal('fontSize-sidebar', this)" title="双击输入自定义值">14px</span>
-                </div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-row-info"><div class="settings-row-label">订单管理字体</div><div class="settings-row-desc">订单列表和详情字体大小</div></div>
-              <div class="settings-row-control">
-                <div class="slider-control">
-                  <input type="range" class="slider-input" id="s-fontSize-orders" min="10" max="20" value="13" oninput="updateSliderVal('fontSize-orders', this.value); applySetting('fontSize-orders', this.value)">
-                  <span class="slider-value" id="s-fontSize-orders-val" ondblclick="editSliderVal('fontSize-orders', this)" title="双击输入自定义值">13px</span>
                 </div>
               </div>
             </div>
@@ -645,7 +591,7 @@
               <div class="settings-row-info"><div class="settings-row-label">窗口尺寸</div><div class="settings-row-desc">选择预设分辨率（双击右侧数值可自定义）</div></div>
               <div class="settings-row-control">
                 <div class="resolution-control" style="display:flex;align-items:center;gap:8px;">
-                  <select id="s-window-resolution" onchange="onResolutionChange(this.value)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:14px;cursor:pointer;min-width:140px;">
+                <select id="s-window-resolution" onchange="onResolutionChange(this.value)" style="padding:6px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;font-size:var(--font-size-14);cursor:pointer;min-width:140px;">
                     <option value="2560x1600">2560 × 1600 (推荐)</option>
                     <option value="2560x1440">2560 × 1440</option>
                     <option value="2048x1536">2048 × 1536</option>
@@ -673,7 +619,7 @@
                     <option value="800x600">800 × 600</option>
                     <option value="custom">自定义</option>
                   </select>
-                  <span id="s-window-res-val" ondblclick="editResolutionVal(this)" title="双击输入自定义值" style="font-size:14px;color:#475569;cursor:text;padding:4px 8px;border-radius:4px;transition:background 0.2s;">1400 × 900</span>
+                <span id="s-window-res-val" ondblclick="editResolutionVal(this)" title="双击输入自定义值" style="font-size:var(--font-size-14);color:#475569;cursor:text;padding:4px 8px;border-radius:4px;transition:background 0.2s;">1400 × 900</span>
                 </div>
               </div>
             </div>
@@ -790,7 +736,7 @@
         <div id="qcDeptTablesWrap"></div>
 
         <!-- 全厂合计 -->
-        <div style="padding:10px 14px;background:#0f172a;color:#fbbf24;font-weight:700;font-size:14px;border-radius:0 0 var(--radius) var(--radius);display:flex;justify-content:space-between;">
+        <div style="padding:10px 14px;background:#0f172a;color:#fbbf24;font-weight:700;font-size:var(--font-size-14);border-radius:0 0 var(--radius) var(--radius);display:flex;justify-content:space-between;">
           <span>💰 全厂合计</span>
           <span id="qcGrandTotal">¥0.00</span>
         </div>
