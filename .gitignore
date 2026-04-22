@@ -3,3 +3,4 @@
 /dist/
 /.idea/
 data.db
+seed_data.py

@@ -6,6 +6,8 @@
     await loadSettings(); // 加载用户设置到 _currentSettings（从数据库优先）
     initMonthPickers();
     await initQcSwitch();
+    // 预加载自定义字体的 @font-face（确保 applyAllSettings 时字体已可用）
+    try { await loadCustomFontsList(); } catch(e) { console.log('预加载字体失败:', e); }
     await loadMembers();
     document.getElementById('topbarHint').textContent = '立杰人力资源管理系统 v2.0';
     // 应用已加载的设置（触发 CSS 变量生效）

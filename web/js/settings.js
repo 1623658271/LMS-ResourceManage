@@ -654,7 +654,10 @@ async function loadWindowSettingsFromFile() {
 }
 
 async function initSettingsPage() {
-  // 先从文件加载窗口设置（这会更新 _currentSettings 中的宽高值）
+  // 先加载自定义字体（注入 @font-face，填充下拉框）
+  await loadCustomFontsList();
+
+  // 再从文件加载窗口设置（这会更新 _currentSettings 中的宽高值）
   await loadWindowSettingsFromFile();
   
   // 然后同步所有控件的值到 UI
@@ -772,7 +775,166 @@ async function applyWindowSettings() {
   }
 }
 
-// 设置导航切换
+// ── 自定义字体管理 ─────────────────────────────────────────
+
+/**
+ * 注入 @font-face 声明到文档
+ * @param {string} fontFamily - CSS font-family 名称
+ * @param {string} filename   - fonts/ 下的文件名
+ */
+function injectFontFace(fontFamily, filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  const formatMap = { ttf: 'truetype', ttc: 'truetype', woff: 'woff', woff2: 'woff2', otf: 'opentype' };
+  const format = formatMap[ext] || 'truetype';
+  const style = document.createElement('style');
+  style.textContent = `@font-face { font-family: '${fontFamily}'; src: url('/fonts/${filename}') format('${format}'); font-weight: normal; font-style: normal; }`;
+  document.head.appendChild(style);
+}
+
+/**
+ * 将自定义字体添加到下拉框
+ */
+function addFontOption(displayName, filename) {
+  const select = document.getElementById('s-fontFamily');
+  if (!select) return;
+
+  const fontFamily = 'Custom_' + displayName.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+  const value = `'${fontFamily}', sans-serif`;
+
+  // 避免重复添加
+  const existing = Array.from(select.options).find(o => o.dataset.custom === filename);
+  if (existing) return;
+
+  // 插入到"系统默认"选项之前
+  const sysDefaultOpt = Array.from(select.options).find(o => o.value.includes('system-ui'));
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = displayName + '（自定义）';
+  opt.dataset.custom = filename;
+  opt.dataset.fontFamily = fontFamily;
+  if (sysDefaultOpt) {
+    select.insertBefore(opt, sysDefaultOpt);
+  } else {
+    select.appendChild(opt);
+  }
+}
+
+/**
+ * 从下拉框移除自定义字体选项
+ */
+function removeFontOption(filename) {
+  const select = document.getElementById('s-fontFamily');
+  if (!select) return;
+  const opt = Array.from(select.options).find(o => o.dataset.custom === filename);
+  if (opt) opt.remove();
+}
+
+/**
+ * 渲染自定义字体列表（显示在设置页面）
+ */
+function renderCustomFontsList(fonts) {
+  const container = document.getElementById('customFontsList');
+  if (!container) return;
+  if (!fonts || fonts.length === 0) {
+    container.innerHTML = '<span style="opacity:.5;">暂无自定义字体</span>';
+    return;
+  }
+  container.innerHTML = fonts.map(f => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+      <span title="${escHtml(f.filename)}">${escHtml(f.display_name)}</span>
+      <button class="btn" style="padding:2px 8px;font-size:11px;color:var(--danger);background:transparent;border:1px solid var(--danger);border-radius:4px;cursor:pointer;"
+        onclick="deleteCustomFont('${escHtml(f.filename)}', '${escHtml(f.display_name)}')">删除</button>
+    </div>
+  `).join('');
+}
+
+/**
+ * 上传自定义字体文件
+ */
+async function uploadCustomFont(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/api/fonts/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.ok) {
+      // 注入 @font-face
+      injectFontFace('Custom_' + data.display_name.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_'), data.filename);
+      // 添加到下拉框
+      addFontOption(data.display_name, data.filename);
+      // 刷新列表显示
+      loadCustomFontsList();
+      showToast('字体导入成功：' + data.display_name, 'success');
+    } else {
+      showToast('导入失败：' + (data.error || '未知错误'), 'error');
+    }
+  } catch (e) {
+    showToast('导入失败：' + e.message, 'error');
+  }
+
+  input.value = '';
+}
+
+/**
+ * 删除自定义字体
+ */
+async function deleteCustomFont(filename, displayName) {
+  if (!confirm('确定删除自定义字体「' + displayName + '」吗？')) return;
+
+  try {
+    const res = await fetch('/api/fonts/' + encodeURIComponent(filename), { method: 'DELETE' });
+    const data = await res.json();
+
+    if (data.ok) {
+      // 如果当前正在使用这个字体，切换回默认
+      const select = document.getElementById('s-fontFamily');
+      if (select) {
+        const opt = Array.from(select.options).find(o => o.dataset.custom === filename);
+        if (opt && select.value === opt.value) {
+          select.value = "'Microsoft YaHei', 'PingFang SC', sans-serif";
+          applySetting('fontFamily', select.value);
+        }
+      }
+      // 从下拉框移除
+      removeFontOption(filename);
+      // 刷新列表显示
+      loadCustomFontsList();
+      showToast('字体已删除', 'success');
+    } else {
+      showToast('删除失败：' + (data.error || '未知错误'), 'error');
+    }
+  } catch (e) {
+    showToast('删除失败：' + e.message, 'error');
+  }
+}
+
+/**
+ * 从后端加载已保存的自定义字体列表，注入 @font-face 并填充下拉框
+ */
+async function loadCustomFontsList() {
+  try {
+    const data = await get('/api/fonts/list');
+    if (data && data.ok && data.fonts) {
+      // 注入所有字体的 @font-face 并添加到下拉框
+      data.fonts.forEach(f => {
+        const fontFamily = 'Custom_' + f.display_name.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+        injectFontFace(fontFamily, f.filename);
+        addFontOption(f.display_name, f.filename);
+      });
+      // 渲染列表 UI
+      renderCustomFontsList(data.fonts);
+    }
+  } catch (e) {
+    console.log('加载自定义字体列表失败:', e);
+  }
+}
+
+// ── 设置导航切换 ─────────────────────────────────────────
 document.querySelectorAll('.settings-nav-item').forEach(el => {
   el.addEventListener('click', () => {
     document.querySelectorAll('.settings-nav-item').forEach(n => n.classList.remove('active'));
@@ -783,6 +945,26 @@ document.querySelectorAll('.settings-nav-item').forEach(el => {
     if (target) target.style.display = 'block';
   });
 });
+
+// ── 复制字体路径 ────────────────────────────────────────────
+
+async function copyFontPath(el, path) {
+  try {
+    await navigator.clipboard.writeText(path);
+    // 复制成功：短暂变色提示
+    el.style.color = 'var(--success)';
+    setTimeout(() => { el.style.color = ''; }, 1200);
+    showToast('路径已复制：' + path, 'success');
+  } catch (e) {
+    // clipboard 不可用时 fallback 到选中文本
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    showToast('已选中路径，请手动 Ctrl+C 复制', 'info');
+  }
+}
 
 // ── 清理业务数据 ─────────────────────────────────────────
 

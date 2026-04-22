@@ -419,9 +419,45 @@
                 <select class="settings-select" id="s-fontFamily" onchange="applySetting('fontFamily', this.value)">
                   <option value="'Microsoft YaHei', 'PingFang SC', sans-serif" selected>微软雅黑</option>
                   <option value="'PingFang SC', 'Microsoft YaHei', sans-serif">苹方</option>
+                  <option value="'SimSun', '宋体', serif">宋体</option>
+                  <option value="'SimHei', '黑体', sans-serif">黑体</option>
+                  <option value="'KaiTi', '楷体', cursive">楷体</option>
+                  <option value="'FangSong', '仿宋', serif">仿宋</option>
+                  <option value="'STXingkai', '华文行楷', cursive">华文行楷</option>
+                  <option value="'STKaiti', '华文楷体', cursive">华文楷体</option>
+                  <option value="'STHupo', '华文琥珀', cursive">华文琥珀</option>
+                  <option value="'LiSu', '隶书', cursive">隶书</option>
                   <option value="'Helvetica Neue', Arial, sans-serif">Helvetica</option>
                   <option value="system-ui, -apple-system, sans-serif">系统默认</option>
                 </select>
+              </div>
+            </div>
+            <!-- 自定义字体管理 -->
+            <div class="settings-row" style="align-items: flex-start;">
+              <div class="settings-row-info">
+                <div class="settings-row-label">自定义字体</div>
+                <div class="settings-row-desc">导入 .ttf / .woff2 等字体文件</div>
+                <div class="settings-row-desc" style="margin-top:4px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+                  💡 系统字体目录（点击可复制）：
+                  <span class="font-path-hint" style="cursor:pointer;user-select:all;" onclick="copyFontPath(this, 'C:\\Windows\\Fonts\\')" title="点击复制">
+                    C:\Windows\Fonts\
+                    <svg style="width:13px;height:13px;vertical-align:-1px;margin-left:2px;opacity:.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  </span><br>
+                  macOS：
+                  <span class="font-path-hint" style="cursor:pointer;user-select:all;" onclick="copyFontPath(this, '/Library/Fonts/')" title="点击复制">
+                    /Library/Fonts/
+                    <svg style="width:13px;height:13px;vertical-align:-1px;margin-left:2px;opacity:.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                  </span>
+                </div>
+              </div>
+              <div class="settings-row-control" style="display:flex;flex-direction:column;gap:6px;">
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-secondary" onclick="document.getElementById('fontFileInput').click()">导入字体</button>
+                  <input type="file" id="fontFileInput" accept=".ttf,.ttc,.woff,.woff2,.otf" style="display:none" onchange="uploadCustomFont(this)">
+                </div>
+                <div id="customFontsList" style="max-height:120px;overflow-y:auto;font-size:12px;color:var(--text-muted);">
+                  <!-- 动态渲染自定义字体列表 -->
+                </div>
               </div>
             </div>
           </div>

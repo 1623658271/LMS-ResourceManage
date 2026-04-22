@@ -1,17 +1,21 @@
 """FastAPI 后端 - 所有 HTTP API"""
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import os
+import json
+import shutil
+import uuid
 
 from services.db import init_database
 from services import crud
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
+FONTS_DIR = os.path.join(WEB_DIR, "fonts")
 
 app = FastAPI(title="立杰HR API")
 
@@ -29,6 +33,10 @@ app.add_middleware(
 app.mount("/js", StaticFiles(directory=os.path.join(WEB_DIR, "js")), name="js")
 # 挂载 CSS 目录
 app.mount("/css", StaticFiles(directory=os.path.join(WEB_DIR, "css")), name="css")
+
+# 确保 fonts 目录存在并挂载
+os.makedirs(FONTS_DIR, exist_ok=True)
+app.mount("/fonts", StaticFiles(directory=FONTS_DIR), name="fonts")
 
 
 # ── 挂载静态文件（前端页面） ───────────────────────────
@@ -503,5 +511,102 @@ async def api_get_window_settings():
                 }
             }
     
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+# ── 自定义字体管理 ────────────────────────────────────────
+
+FONT_CUSTOM_SETTINGS_KEY = 'custom_fonts'
+
+
+def _get_custom_fonts_list():
+    """从数据库读取已保存的自定义字体列表"""
+    try:
+        result = crud.get_app_setting(FONT_CUSTOM_SETTINGS_KEY)
+        if result and isinstance(result, str):
+            return json.loads(result)
+    except Exception:
+        pass
+    return []
+
+
+def _save_custom_fonts_list(fonts_list):
+    """保存自定义字体列表到数据库"""
+    crud.set_app_setting(FONT_CUSTOM_SETTINGS_KEY, json.dumps(fonts_list, ensure_ascii=False))
+
+
+def _get_safe_filename(original_name):
+    """生成安全的文件名，保留原始扩展名"""
+    _, ext = os.path.splitext(original_name)
+    ext = ext.lower()
+    if ext not in ('.ttf', '.ttc', '.woff', '.woff2', '.otf'):
+        ext = '.ttf'
+    return str(uuid.uuid4())[:8] + ext
+
+
+@app.post("/api/fonts/upload")
+async def api_upload_font(file: UploadFile = File(...)):
+    """上传自定义字体文件"""
+    if not file.filename:
+        return {"ok": False, "error": "没有选择文件"}
+
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ('.ttf', '.ttc', '.woff', '.woff2', '.otf'):
+        return {"ok": False, "error": "不支持的字体格式，仅支持 .ttf .ttc .woff .woff2 .otf"}
+
+    try:
+        content = await file.read()
+        if len(content) > 50 * 1024 * 1024:
+            return {"ok": False, "error": "字体文件过大（超过 50MB）"}
+
+        safe_name = _get_safe_filename(file.filename)
+        file_path = os.path.join(FONTS_DIR, safe_name)
+
+        with open(file_path, 'wb') as f:
+            f.write(content)
+
+        display_name = os.path.splitext(file.filename)[0]
+
+        fonts_list = _get_custom_fonts_list()
+        existing = next((f for f in fonts_list if f['display_name'] == display_name), None)
+        if existing:
+            old_path = os.path.join(FONTS_DIR, existing['filename'])
+            if os.path.exists(old_path):
+                os.remove(old_path)
+            existing['filename'] = safe_name
+        else:
+            fonts_list.append({
+                'display_name': display_name,
+                'filename': safe_name
+            })
+
+        _save_custom_fonts_list(fonts_list)
+
+        return {"ok": True, "display_name": display_name, "filename": safe_name}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/fonts/list")
+async def api_list_fonts():
+    """获取自定义字体列表"""
+    fonts_list = _get_custom_fonts_list()
+    return {"ok": True, "fonts": fonts_list}
+
+
+@app.delete("/api/fonts/{filename}")
+async def api_delete_font(filename: str):
+    """删除自定义字体文件"""
+    safe_path = os.path.join(FONTS_DIR, os.path.basename(filename))
+    if not os.path.exists(safe_path):
+        return {"ok": False, "error": "字体文件不存在"}
+
+    try:
+        os.remove(safe_path)
+        fonts_list = _get_custom_fonts_list()
+        fonts_list = [f for f in fonts_list if f['filename'] != filename]
+        _save_custom_fonts_list(fonts_list)
+        return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
