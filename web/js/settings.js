@@ -136,8 +136,8 @@ function applySetting(key, value, skipSave = false) {
       if (key === 'card-gap') root.style.setProperty('--card-gap', value + 'px');
       break;
     case 'fontFamily':
-      // 字体族需要加引号
-      root.style.setProperty('--font-family', "'" + value.replace(/'/g, "\\'") + "'");
+      // 直接设置字体族，font-family 值本身可以包含引号，无需再外套
+      root.style.setProperty('--font-family', value);
       break;
     case 'fontSize-base':
       root.style.setProperty('--font-size-base', value + 'px');

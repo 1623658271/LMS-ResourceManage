@@ -469,6 +469,7 @@ function addQcDeptRow(deptId) {
   pushHistory('quick-calc');
 
   renderQcDeptTables();
+  autoSaveQc(); // 添加行后自动保存
 }
 
 // ---- 删除行 ----
@@ -490,6 +491,7 @@ function removeQcDeptRow(rowKey) {
     // 保存历史记录（清空行后保存）
     pushHistory('quick-calc');
     renderQcDeptTables();
+    autoSaveQc(); // 清空行后自动保存
     return;
   }
 
