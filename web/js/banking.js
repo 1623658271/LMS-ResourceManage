@@ -195,12 +195,20 @@ async function loadBankAccounts() {
   const container = document.getElementById('bankingContent');
   if (!container) return;
 
-  await ensureBankCardVisibilityLoaded();
-  updateBankVisibilityButton();
-  container.innerHTML = '<div class="empty-state">加载中...</div>';
-  const data = await get(`/api/bank-accounts?year=${year}&month=${month}&source=${source}`);
-  _bankAccountRows = Array.isArray(data) ? data : [];
-  renderBankCards(_bankAccountRows, year, month, source);
+  const finishRefresh = beginContentRefresh(container, {
+    loadingText: `正在切换到 ${year}-${pad(month)}...`,
+    minHeight: 220,
+  });
+
+  try {
+    await ensureBankCardVisibilityLoaded();
+    updateBankVisibilityButton();
+    const data = await get(`/api/bank-accounts?year=${year}&month=${month}&source=${source}`);
+    _bankAccountRows = Array.isArray(data) ? data : [];
+    renderBankCards(_bankAccountRows, year, month, source);
+  } finally {
+    finishRefresh();
+  }
 }
 
 function updateBankRowCache(empId, payload) {

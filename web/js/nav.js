@@ -32,6 +32,14 @@ function initMonthPickers() {
 // ============================================================
 let _navHistory = [];
 
+function animateActiveView(viewEl) {
+  if (!viewEl) return;
+  viewEl.classList.remove('view-enter');
+  void viewEl.offsetWidth;
+  viewEl.classList.add('view-enter');
+  setTimeout(() => viewEl.classList.remove('view-enter'), 280);
+}
+
 function _updateBackBtn() {
   const btn = document.getElementById('topbarBackBtn');
   if (!btn) return;
@@ -61,7 +69,9 @@ function _doNavigateTo(view) {
   const navEl = document.querySelector(`.nav-item[data-view="${view}"]`);
   if (navEl) navEl.classList.add('active');
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(`view-${view}`).classList.add('active');
+  const viewEl = document.getElementById(`view-${view}`);
+  viewEl.classList.add('active');
+  animateActiveView(viewEl);
 
   const titles = {
     overview: '资源总览',
@@ -136,7 +146,9 @@ async function _doNavigateToMemberDetail(empId) {
   _currentView = 'member-detail';
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById('view-member-detail').classList.add('active');
+  const detailView = document.getElementById('view-member-detail');
+  detailView.classList.add('active');
+  animateActiveView(detailView);
   document.getElementById('topbarTitle').textContent = '成员详情';
   await loadMemberDetail(empId);
 }
@@ -347,66 +359,70 @@ async function loadMemberDetail(empId) {
   const header = document.getElementById('mdHeader');
   const content = document.getElementById('mdContent');
   header.innerHTML = '<span>成员详情</span>';
-  content.innerHTML = '<div class="empty-state">加载中...</div>';
+  const finishRefresh = beginContentRefresh(content, {
+    loadingText: '正在加载成员详情...',
+    minHeight: 260,
+  });
 
-  const source = localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
-  const data = await get(`/api/employees/${empId}/work-history?source=${source}`);
-  if (!data) {
-    content.innerHTML = '<div class="empty-state">未找到该成员</div>';
-    return;
-  }
+  try {
+    const source = localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
+    const data = await get(`/api/employees/${empId}/work-history?source=${source}`);
+    if (!data) {
+      content.innerHTML = '<div class="empty-state">未找到该成员</div>';
+      return;
+    }
 
-  const emp = data.employee;
-  const history = data.history || [];
-  if (!_state.employees) _state.employees = [];
-  if (!_state.employees.find(e => e.id === emp.id)) _state.employees.push(emp);
+    const emp = data.employee;
+    const history = data.history || [];
+    if (!_state.employees) _state.employees = [];
+    if (!_state.employees.find(e => e.id === emp.id)) _state.employees.push(emp);
 
-  const totalWage = history.reduce((sum, item) => sum + (item.month_wage || 0), 0);
-  const totalPairs = history.reduce((sum, item) => sum + (item.total_pairs || 0), 0);
-  const totalAdj = history.reduce((sum, item) => sum + (item.adj_amount || 0), 0);
-  const totalAll = history.reduce((sum, item) => sum + (item.total || 0), 0);
-  const targetMonth = getMemberAdjustmentTargetMonth();
+    const totalWage = history.reduce((sum, item) => sum + (item.month_wage || 0), 0);
+    const totalPairs = history.reduce((sum, item) => sum + (item.total_pairs || 0), 0);
+    const totalAdj = history.reduce((sum, item) => sum + (item.adj_amount || 0), 0);
+    const totalAll = history.reduce((sum, item) => sum + (item.total || 0), 0);
+    const targetMonth = getMemberAdjustmentTargetMonth();
 
-  const summaryCard = `
-    <div class="md-summary-card">
-      <div class="md-summary-info">
-        <div class="md-summary-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑成员信息" style="cursor:pointer;">${escHtml(emp.name)}</div>
-        <div class="md-summary-meta">
-          <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
-          <span class="dept-large">${escHtml(emp.dept_name)}</span>
-          <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
-          &nbsp;|&nbsp; 共 ${history.length} 个月有记录
+    const summaryCard = `
+      <div class="md-summary-card">
+        <div class="md-summary-info">
+          <div class="md-summary-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑成员信息" style="cursor:pointer;">${escHtml(emp.name)}</div>
+          <div class="md-summary-meta">
+            <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
+            <span class="dept-large">${escHtml(emp.dept_name)}</span>
+            <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
+            &nbsp;|&nbsp; 共 ${history.length} 个月有记录
+          </div>
+        </div>
+        <div class="md-summary-stats">
+          <div class="md-summary-stat">
+            <div class="md-summary-stat-val orange">${fmt(totalPairs)}</div>
+            <div class="md-summary-stat-label">累计做货对数</div>
+          </div>
+          <div class="md-summary-stat">
+            <div class="md-summary-stat-val">¥${fmt(totalWage)}</div>
+            <div class="md-summary-stat-label">累计做货工资</div>
+          </div>
+          <div class="md-summary-stat">
+            <div class="md-summary-stat-val orange">¥${fmt(totalAdj)}</div>
+            <div class="md-summary-stat-label">累计人工增扣</div>
+          </div>
+          <div class="md-summary-stat">
+            <div class="md-summary-stat-val green">¥${fmt(totalAll)}</div>
+            <div class="md-summary-stat-label">累计总收入</div>
+          </div>
+        </div>
+        <div class="md-summary-actions">
+          <button class="btn btn-sm btn-secondary" onclick="showAddAdjustmentModal(${emp.id}, ${targetMonth.year}, ${targetMonth.month})">新增 ${targetMonth.year}-${pad(targetMonth.month)} 增扣</button>
         </div>
       </div>
-      <div class="md-summary-stats">
-        <div class="md-summary-stat">
-          <div class="md-summary-stat-val orange">${fmt(totalPairs)}</div>
-          <div class="md-summary-stat-label">累计做货对数</div>
-        </div>
-        <div class="md-summary-stat">
-          <div class="md-summary-stat-val">¥${fmt(totalWage)}</div>
-          <div class="md-summary-stat-label">累计做货工资</div>
-        </div>
-        <div class="md-summary-stat">
-          <div class="md-summary-stat-val orange">¥${fmt(totalAdj)}</div>
-          <div class="md-summary-stat-label">累计人工增扣</div>
-        </div>
-        <div class="md-summary-stat">
-          <div class="md-summary-stat-val green">¥${fmt(totalAll)}</div>
-          <div class="md-summary-stat-label">累计总收入</div>
-        </div>
-      </div>
-      <div class="md-summary-actions">
-        <button class="btn btn-sm btn-secondary" onclick="showAddAdjustmentModal(${emp.id}, ${targetMonth.year}, ${targetMonth.month})">新增 ${targetMonth.year}-${pad(targetMonth.month)} 增扣</button>
-      </div>
-    </div>
-  `;
+    `;
 
-  let historyHtml = '';
-  if (!history.length) {
-    historyHtml = '<div class="md-history-empty">暂无做货记录</div>';
-  } else {
-    historyHtml = history.map(item => {
+    let historyHtml = '';
+    if (!history.length) {
+      historyHtml = '<div class="md-history-empty">暂无做货记录</div>';
+    } else {
+      historyHtml = history.map(item => {
       const recs = (source === 'qc' && (!item.records || !item.records.length) && ((item.total_pairs || 0) !== 0 || (item.month_wage || 0) !== 0))
         ? [{
             order_no: '来自快捷计算',
@@ -454,9 +470,12 @@ async function loadMemberDetail(empId) {
           ${renderAdjustmentSection(empId, item)}
         </div>
       `;
-    }).join('');
-  }
+      }).join('');
+    }
 
-  content.innerHTML = summaryCard + `<div class="md-history-section">${historyHtml}</div>`;
-  history.forEach(item => updateAdjustmentBatchDeleteButton(item.year, item.month));
+    content.innerHTML = summaryCard + `<div class="md-history-section">${historyHtml}</div>`;
+    history.forEach(item => updateAdjustmentBatchDeleteButton(item.year, item.month));
+  } finally {
+    finishRefresh();
+  }
 }

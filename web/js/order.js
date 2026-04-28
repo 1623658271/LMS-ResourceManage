@@ -4,39 +4,47 @@
 async function loadOrders() {
   const year = parseInt(document.getElementById('orderYear').value);
   const month = parseInt(document.getElementById('orderMonth').value);
-  const orders = await get(`/api/orders?year=${year}&month=${month}`);
-  _state.orders = orders || [];
   const container = document.getElementById('orderList');
-  if (!orders || !orders.length) {
-    container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>暂无订单，点击右上角"添加订单"</div></div>';
+  const finishRefresh = beginContentRefresh(container, {
+    loadingText: `正在刷新 ${year}年${pad(month)}月 订单...`,
+    minHeight: 180,
+  });
+
+  try {
+    const orders = await get(`/api/orders?year=${year}&month=${month}`);
+    _state.orders = orders || [];
+    if (!orders || !orders.length) {
+      container.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><div>暂无订单，点击右上角"添加订单"</div></div>';
+      document.getElementById('orderSelectAll').checked = false;
+      updateBatchDelOrderBtn();
+      return;
+    }
+    container.innerHTML = orders.map(o => `
+      <div class="order-card">
+        <div class="order-card-header">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="checkbox" class="order-check" value="${o.id}" onchange="updateBatchDelOrderBtn()">
+            <span class="order-no">${escHtml(o.order_no)}</span>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm btn-secondary" onclick="showEditOrderModal(${o.id})">编辑</button>
+            <button class="btn btn-sm btn-danger" onclick="delOrder(${o.id})">删除</button>
+          </div>
+        </div>
+        <div class="order-meta">
+          <span>📅 ${o.year}年${pad(o.month)}月</span>
+          <span>📦 总对数：<strong>${o.total_pairs || 0}</strong></span>
+          ${o.remark ? `<span>📝 ${escHtml(o.remark)}</span>` : ''}
+        </div>
+        <div class="order-models">
+          ${(o.models||[]).map(m => `<span class="model-tag">${escHtml(m.model_no)}</span>`).join('')}
+        </div>
+      </div>`).join('');
     document.getElementById('orderSelectAll').checked = false;
     updateBatchDelOrderBtn();
-    return;
+  } finally {
+    finishRefresh();
   }
-  container.innerHTML = orders.map(o => `
-    <div class="order-card">
-      <div class="order-card-header">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="checkbox" class="order-check" value="${o.id}" onchange="updateBatchDelOrderBtn()">
-          <span class="order-no">${escHtml(o.order_no)}</span>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn btn-sm btn-secondary" onclick="showEditOrderModal(${o.id})">编辑</button>
-          <button class="btn btn-sm btn-danger" onclick="delOrder(${o.id})">删除</button>
-        </div>
-      </div>
-      <div class="order-meta">
-        <span>📅 ${o.year}年${pad(o.month)}月</span>
-        <span>📦 总对数：<strong>${o.total_pairs || 0}</strong></span>
-        ${o.remark ? `<span>📝 ${escHtml(o.remark)}</span>` : ''}
-      </div>
-      <div class="order-models">
-        ${(o.models||[]).map(m => `<span class="model-tag">${escHtml(m.model_no)}</span>`).join('')}
-      </div>
-    </div>`).join('');
-  // 重置全选状态
-  document.getElementById('orderSelectAll').checked = false;
-  updateBatchDelOrderBtn();
 }
 
 // 全选/取消全选订单

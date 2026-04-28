@@ -2,30 +2,38 @@
 // 成员管理
 // ============================================================
 async function loadMembers() {
-  const emps = await get('/api/employees');
-  _state.employees = emps;
   const container = document.getElementById('memberList');
-  if (!emps || !emps.length) {
-    container.innerHTML = '<div class="empty-state">暂无成员，请先添加</div>';
-    return;
-  }
+  const finishRefresh = beginContentRefresh(container, {
+    loadingText: '正在刷新成员列表...',
+    minHeight: 180,
+  });
+  try {
+    const emps = await get('/api/employees');
+    _state.employees = emps;
+    if (!emps || !emps.length) {
+      container.innerHTML = '<div class="empty-state">暂无成员，请先添加</div>';
+      return;
+    }
 
-  container.innerHTML = emps.map(emp => `
-    <div class="member-card">
-      <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
-      <div class="member-card-info">
-        <span class="member-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑">${escHtml(emp.name)}</span>
-        <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
-        <span class="dept-large">${escHtml(emp.dept_name)}</span>
-        <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
+    container.innerHTML = emps.map(emp => `
+      <div class="member-card">
+        <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
+        <div class="member-card-info">
+          <span class="member-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑">${escHtml(emp.name)}</span>
+          <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
+          <span class="dept-large">${escHtml(emp.dept_name)}</span>
+          <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
+        </div>
+        <div class="member-card-actions">
+          <button class="btn btn-sm btn-primary" onclick="navigateToMemberDetail(${emp.id})">详情</button>
+          <button class="btn btn-sm btn-secondary" onclick="showEditMemberModal(${emp.id})">编辑</button>
+          <button class="btn btn-sm btn-danger" onclick="delMember(${emp.id})">删除</button>
+        </div>
       </div>
-      <div class="member-card-actions">
-        <button class="btn btn-sm btn-primary" onclick="navigateToMemberDetail(${emp.id})">详情</button>
-        <button class="btn btn-sm btn-secondary" onclick="showEditMemberModal(${emp.id})">编辑</button>
-        <button class="btn btn-sm btn-danger" onclick="delMember(${emp.id})">删除</button>
-      </div>
-    </div>
-  `).join('');
+    `).join('');
+  } finally {
+    finishRefresh();
+  }
 }
 
 function toggleSelectAllMembers() {

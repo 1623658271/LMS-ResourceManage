@@ -56,3 +56,50 @@ function adjustColor(hex, amount, lighten = false) {
   }
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
+
+function animateElementEntrance(el, className = 'content-fade-in', duration = 280) {
+  if (!el) return;
+  el.classList.remove(className);
+  void el.offsetWidth;
+  el.classList.add(className);
+  setTimeout(() => el.classList.remove(className), duration);
+}
+
+function beginContentRefresh(container, options = {}) {
+  if (!container) return () => {};
+
+  const loadingText = options.loadingText || '加载中...';
+  const minHeight = options.minHeight || 120;
+  const prevPosition = container.style.position;
+  const prevMinHeight = container.style.minHeight;
+  const rect = container.getBoundingClientRect();
+  const targetHeight = Math.max(Math.ceil(rect.height || 0), minHeight);
+
+  if (!container.style.position) container.style.position = 'relative';
+  container.style.minHeight = `${targetHeight}px`;
+  container.classList.add('content-refreshing');
+
+  let overlay = container.querySelector('.content-refresh-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'content-refresh-overlay';
+    container.appendChild(overlay);
+  }
+  overlay.innerHTML = `
+    <div class="content-refresh-spinner" aria-hidden="true"></div>
+    <div class="content-refresh-text">${escHtml(loadingText)}</div>
+  `;
+
+  requestAnimationFrame(() => overlay.classList.add('show'));
+
+  return () => {
+    overlay.classList.remove('show');
+    container.classList.remove('content-refreshing');
+    setTimeout(() => {
+      if (overlay.parentNode === container) overlay.remove();
+      container.style.minHeight = prevMinHeight;
+      container.style.position = prevPosition;
+      animateElementEntrance(container);
+    }, 160);
+  };
+}
