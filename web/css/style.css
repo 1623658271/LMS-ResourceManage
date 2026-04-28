@@ -786,6 +786,19 @@ tr:hover td { background: #f8fafc; }
 .bank-card-editable {
   cursor: pointer;
 }
+.bank-card-title,
+.bank-card-meta,
+.bank-card-amount,
+.bank-card-body,
+.bank-info-label,
+.bank-info-value,
+.bank-note,
+.bank-stat-label,
+.bank-stat-value,
+.bank-card-hint {
+  user-select: text;
+  -webkit-user-select: text;
+}
 .bank-card-header {
   display: flex;
   justify-content: space-between;

@@ -21,6 +21,13 @@ function getBankAccountRow(empId) {
   return (_bankAccountRows || []).find(item => item.emp_id === empId) || null;
 }
 
+function handleBankCardDblClick(event, empId) {
+  const selection = window.getSelection ? String(window.getSelection()) : '';
+  if ((selection || '').trim()) return;
+  if (event?.target?.closest?.('.member-list-name-color')) return;
+  showEditBankAccountModal(empId);
+}
+
 function getBankDefaultNote(year, month) {
   return `${year}-${pad(month)}-工资`;
 }
@@ -125,7 +132,7 @@ function renderBankCards(rows, year, month, source) {
   }
 
   container.innerHTML = rows.map(item => `
-    <div class="bank-card bank-card-editable" ondblclick="showEditBankAccountModal(${item.emp_id})" title="双击卡片可编辑银行卡信息">
+    <div class="bank-card bank-card-editable" ondblclick="handleBankCardDblClick(event, ${item.emp_id})" title="双击卡片可编辑银行卡信息">
       <div class="bank-card-header">
         <div>
           <div class="bank-card-title">
