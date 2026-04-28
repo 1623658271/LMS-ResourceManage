@@ -747,6 +747,12 @@ tr:hover td { background: #f8fafc; }
   font-weight: 400;
   color: var(--text-muted);
 }
+.bank-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
 .bank-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -916,6 +922,11 @@ tr:hover td { background: #f8fafc; }
   flex-wrap: wrap;
   margin-top: 4px;
 }
+.bank-auto-save-hint {
+  margin-top: 8px;
+  font-size: var(--font-size-11);
+  color: var(--text-muted);
+}
 @media (max-width: 720px) {
   .bank-card-header,
   .bank-card-amount {
@@ -923,6 +934,10 @@ tr:hover td { background: #f8fafc; }
   }
   .bank-card-header {
     flex-direction: column;
+  }
+  .bank-toolbar-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
   .bank-edit-grid,
   .bank-info-grid,

@@ -4,6 +4,7 @@
 
 const ALIPAY_WEB_URL = 'https://shenghuo.alipay.com/transfercore/fill.htm?_tosheet=true&_pdType=afcabecbcahiibffiiih';
 let _bankAccountRows = [];
+const _bankAutoSaveTimers = {};
 
 function getBankSalarySource() {
   return localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
@@ -19,12 +20,6 @@ function getBankAccountRow(empId) {
 
 function getBankDefaultNote(year, month) {
   return `${year}-${pad(month)}-工资`;
-}
-
-function getBankFieldValue(empId, field, fallback = '') {
-  const el = document.getElementById(`bank-${field}-${empId}`);
-  if (!el) return fallback;
-  return el.value != null ? String(el.value) : fallback;
 }
 
 function maskBankCard(cardNo) {
@@ -83,17 +78,6 @@ function buildTransferSummary(item, amount, note, year, month, source) {
   return lines.join('\n');
 }
 
-function buildBankSavePayload(empId, year, month) {
-  const item = getBankAccountRow(empId) || {};
-  return {
-    account_name: getBankFieldValue(empId, 'account-name', item.account_name || item.name || '').trim(),
-    bank_name: getBankFieldValue(empId, 'bank-name', item.bank_name || '').trim(),
-    card_no: getBankFieldValue(empId, 'card-no', item.card_no || '').trim(),
-    reserved_phone: item.reserved_phone || '',
-    note: getBankFieldValue(empId, 'note', item.note || getBankDefaultNote(year, month)).trim(),
-  };
-}
-
 async function copyBankModalField(inputId, label) {
   const el = document.getElementById(inputId);
   const text = el ? el.value : '';
@@ -131,31 +115,6 @@ function renderBankCards(rows, year, month, source) {
         </div>
       </div>
       <div class="bank-card-body">
-        <div class="bank-edit-grid">
-          <div class="bank-edit-item">
-            <label class="bank-info-label" for="bank-card-no-${item.emp_id}">银行卡号</label>
-            <input id="bank-card-no-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.card_no || '')}" placeholder="有缓存则默认带出">
-          </div>
-          <div class="bank-edit-item">
-            <label class="bank-info-label" for="bank-account-name-${item.emp_id}">开户人</label>
-            <input id="bank-account-name-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.account_name || item.name || '')}" placeholder="默认成员名">
-          </div>
-          <div class="bank-edit-item">
-            <label class="bank-info-label" for="bank-amount-${item.emp_id}">金额</label>
-            <input id="bank-amount-${item.emp_id}" class="bank-inline-input" type="number" step="0.01" value="${fmt(item.total || 0)}" placeholder="默认当月工资">
-          </div>
-          <div class="bank-edit-item">
-            <label class="bank-info-label" for="bank-note-${item.emp_id}">备注</label>
-            <input id="bank-note-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.note || getBankDefaultNote(year, month))}" placeholder="默认日期-工资">
-          </div>
-          <div class="bank-edit-item bank-edit-item-wide">
-            <label class="bank-info-label" for="bank-bank-name-${item.emp_id}">银行卡开户行</label>
-            <div class="bank-inline-row">
-              <input id="bank-bank-name-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.bank_name || '')}" placeholder="有缓存则默认带出">
-              <button class="btn btn-sm btn-secondary" onclick="lookupBankName(${item.emp_id})">更新开户行</button>
-            </div>
-          </div>
-        </div>
         <div class="bank-info-grid">
           <div class="bank-info-item">
             <span class="bank-info-label">收款人</span>
@@ -191,7 +150,7 @@ function renderBankCards(rows, year, month, source) {
         </div>
       </div>
       <div class="bank-actions">
-        <button class="btn btn-sm btn-secondary" onclick="saveBankAccount(${item.emp_id}, ${year}, ${month})">保存</button>
+        <button class="btn btn-sm btn-secondary" onclick="showEditBankAccountModal(${item.emp_id})">编辑银行卡</button>
         <button class="btn btn-sm btn-primary" onclick="showBankPayoutModal(${item.emp_id})">工资打款</button>
       </div>
     </div>
@@ -210,33 +169,153 @@ async function loadBankAccounts() {
   renderBankCards(_bankAccountRows, year, month, source);
 }
 
-async function saveBankAccount(empId, year, month) {
-  const payload = buildBankSavePayload(empId, year, month);
+function updateBankRowCache(empId, payload) {
+  const row = getBankAccountRow(empId);
+  if (!row) return;
+  row.account_name = payload.account_name;
+  row.bank_name = payload.bank_name;
+  row.card_no = payload.card_no;
+  row.note = payload.note;
+  row.reserved_phone = payload.reserved_phone;
+}
 
+function setBankAutoSaveHint(text, type = 'info') {
+  const hint = document.getElementById('bank-auto-save-hint');
+  if (!hint) return;
+  hint.textContent = text;
+  hint.style.color = type === 'error' ? 'var(--danger)' : type === 'success' ? 'var(--success)' : 'var(--text-muted)';
+}
+
+function buildModalBankPayload(empId, year, month) {
+  const item = getBankAccountRow(empId) || {};
+  return {
+    account_name: (document.getElementById('bank-account-name')?.value || item.account_name || item.name || '').trim(),
+    bank_name: (document.getElementById('bank-bank-name')?.value || item.bank_name || '').trim(),
+    card_no: (document.getElementById('bank-card-no')?.value || item.card_no || '').trim(),
+    reserved_phone: (document.getElementById('bank-phone')?.value || item.reserved_phone || '').trim(),
+    note: (document.getElementById('bank-note')?.value || item.note || getBankDefaultNote(year, month)).trim(),
+  };
+}
+
+async function autoSaveBankAccount(empId, year, month, options = {}) {
+  const { silent = true } = options;
+  const payload = buildModalBankPayload(empId, year, month);
+  setBankAutoSaveHint('正在自动保存...', 'info');
   const result = await post(`/api/bank-accounts/${empId}`, payload);
   if (result && result.ok) {
-    showToast('银行卡信息已保存', 'success');
-    loadBankAccounts();
+    updateBankRowCache(empId, payload);
+    setBankAutoSaveHint('已自动保存', 'success');
+    if (!silent) showToast('银行卡信息已保存', 'success');
   } else {
-    showToast((result && result.error) || '保存失败', 'error');
+    setBankAutoSaveHint((result && result.error) || '自动保存失败', 'error');
+    if (!silent) showToast((result && result.error) || '保存失败', 'error');
   }
 }
 
-async function lookupBankName(empId) {
-  const cardNo = getBankFieldValue(empId, 'card-no', '').trim();
-  if (!cardNo) {
-    showToast('请先输入银行卡号', 'info');
+function queueAutoSaveBankAccount(empId, year, month) {
+  if (_bankAutoSaveTimers[empId]) clearTimeout(_bankAutoSaveTimers[empId]);
+  setBankAutoSaveHint('检测到修改，准备自动保存...', 'info');
+  _bankAutoSaveTimers[empId] = setTimeout(() => {
+    autoSaveBankAccount(empId, year, month);
+  }, 500);
+}
+
+function showEditBankAccountModal(empId) {
+  const item = getBankAccountRow(empId);
+  if (!item) {
+    showToast('未找到该成员的银行卡信息', 'error');
     return;
+  }
+
+  const { year, month } = getBankTargetMonth();
+  openModal(`
+    <div class="modal-title">编辑银行卡信息</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>成员姓名</label>
+        <input type="text" value="${escHtml(item.name)}" disabled>
+      </div>
+      <div class="form-group">
+        <label>收款人姓名</label>
+        <input id="bank-account-name" type="text" value="${escHtml(item.account_name || item.name || '')}" placeholder="默认使用成员姓名" oninput="queueAutoSaveBankAccount(${empId}, ${year}, ${month})">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>开户行</label>
+        <input id="bank-bank-name" type="text" value="${escHtml(item.bank_name || '')}" placeholder="例如：中国农业银行" oninput="queueAutoSaveBankAccount(${empId}, ${year}, ${month})">
+      </div>
+      <div class="form-group">
+        <label>银行卡号</label>
+        <input id="bank-card-no" type="text" value="${escHtml(item.card_no || '')}" placeholder="请输入银行卡号" oninput="queueAutoSaveBankAccount(${empId}, ${year}, ${month})">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>预留手机</label>
+        <input id="bank-phone" type="text" value="${escHtml(item.reserved_phone || '')}" placeholder="选填" oninput="queueAutoSaveBankAccount(${empId}, ${year}, ${month})">
+      </div>
+      <div class="form-group">
+        <label>备注</label>
+        <input id="bank-note" type="text" value="${escHtml(item.note || getBankDefaultNote(year, month))}" placeholder="默认日期-工资" oninput="queueAutoSaveBankAccount(${empId}, ${year}, ${month})">
+      </div>
+    </div>
+    <div id="bank-auto-save-hint" class="bank-auto-save-hint">修改后将自动保存</div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal(); loadBankAccounts();">关闭</button>
+    </div>
+  `);
+}
+
+async function lookupBankName(empId, options = {}) {
+  const { silent = false } = options;
+  const item = getBankAccountRow(empId);
+  const cardNo = (item?.card_no || '').trim();
+  if (!cardNo) {
+    if (!silent) showToast('该成员还没有保存银行卡号', 'info');
+    return { ok: false };
   }
 
   const result = await get(`/api/bank-lookup?card_no=${encodeURIComponent(cardNo)}`);
   if (result && result.ok) {
-    const bankInput = document.getElementById(`bank-bank-name-${empId}`);
-    if (bankInput) bankInput.value = result.bank_name || '';
-    showToast(`已识别开户行：${result.bank_name || result.bank_code}`, 'success');
+    const payload = {
+      account_name: item.account_name || item.name || '',
+      bank_name: result.bank_name || result.bank_code || '',
+      card_no: item.card_no || '',
+      reserved_phone: item.reserved_phone || '',
+      note: item.note || '',
+    };
+    const saveResult = await post(`/api/bank-accounts/${empId}`, payload);
+    if (saveResult && saveResult.ok) {
+      updateBankRowCache(empId, payload);
+      if (!silent) showToast(`已识别开户行：${payload.bank_name}`, 'success');
+      return { ok: true, bank_name: payload.bank_name };
+    }
+    if (!silent) showToast((saveResult && saveResult.error) || '开户行保存失败', 'error');
+    return { ok: false, error: (saveResult && saveResult.error) || '开户行保存失败' };
   } else {
-    showToast((result && result.error) || '开户行查询失败', 'error');
+    if (!silent) showToast((result && result.error) || '开户行查询失败', 'error');
+    return { ok: false, error: (result && result.error) || '开户行查询失败' };
   }
+}
+
+async function bulkLookupBankNames() {
+  const rows = (_bankAccountRows || []).filter(item => (item.card_no || '').trim());
+  if (!rows.length) {
+    showToast('暂无可更新开户行的银行卡号', 'info');
+    return;
+  }
+
+  let success = 0;
+  let failed = 0;
+  showToast(`开始更新 ${rows.length} 条开户行信息`, 'info');
+  for (const row of rows) {
+    const result = await lookupBankName(row.emp_id, { silent: true });
+    if (result && result.ok) success += 1;
+    else failed += 1;
+  }
+  await loadBankAccounts();
+  showToast(`开户行更新完成：成功 ${success} 条，失败 ${failed} 条`, failed ? 'info' : 'success');
 }
 
 function showBankPayoutModal(empId) {
@@ -248,11 +327,11 @@ function showBankPayoutModal(empId) {
 
   const { year, month } = getBankTargetMonth();
   const source = getBankSalarySource();
-  const amount = getBankFieldValue(empId, 'amount', fmt(item.total || 0));
-  const accountName = getBankFieldValue(empId, 'account-name', item.account_name || item.name || '');
-  const bankName = getBankFieldValue(empId, 'bank-name', item.bank_name || '');
-  const cardNo = getBankFieldValue(empId, 'card-no', item.card_no || '');
-  const note = getBankFieldValue(empId, 'note', item.note || getBankDefaultNote(year, month));
+  const amount = fmt(item.total || 0);
+  const accountName = item.account_name || item.name || '';
+  const bankName = item.bank_name || '';
+  const cardNo = item.card_no || '';
+  const note = item.note || getBankDefaultNote(year, month);
 
   openModal(`
     <div class="modal-title">工资打款辅助</div>
