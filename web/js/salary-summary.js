@@ -64,7 +64,7 @@ async function loadSalary() {
   content.innerHTML = html;
 }
 
-function printSalary() {
+function printSalary(mode = 'color') {
   const content = document.getElementById('salaryContent');
   if (!content || !content.textContent.trim()) {
     showToast('请先查询工资数据再打印', 'info');
@@ -72,8 +72,10 @@ function printSalary() {
   }
 
   document.body.classList.add('salary-print-mode');
+  document.body.classList.toggle('print-mono', mode === 'mono');
   const cleanup = () => {
     document.body.classList.remove('salary-print-mode');
+    document.body.classList.remove('print-mono');
     window.removeEventListener('afterprint', cleanup);
   };
 

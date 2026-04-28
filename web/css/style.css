@@ -1106,6 +1106,24 @@ tr:hover td { background: #f8fafc; }
     color: var(--danger) !important;
     text-decoration: none !important;
   }
+
+  body.salary-print-mode.print-mono .grand-total {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  body.salary-print-mode.print-mono .dept-block-header {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+  }
+
+  body.salary-print-mode.print-mono .member-name-color,
+  body.salary-print-mode.print-mono .dept-large,
+  body.salary-print-mode.print-mono .dept-sub,
+  body.salary-print-mode.print-mono .text-danger {
+    color: #0f172a !important;
+  }
 }
 
 /* 快捷计算开关 */
