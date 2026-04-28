@@ -1,12 +1,15 @@
 // ============================================================
 // 成员管理
 // ============================================================
-async function loadMembers() {
+async function loadMembers(options = {}) {
+  const { animate = true } = options;
   const container = document.getElementById('memberList');
-  const finishRefresh = beginContentRefresh(container, {
-    loadingText: '正在刷新成员列表...',
-    minHeight: 180,
-  });
+  const finishRefresh = animate
+    ? beginContentRefresh(container, {
+        loadingText: '正在刷新成员列表...',
+        minHeight: 180,
+      })
+    : () => {};
   try {
     const emps = await get('/api/employees');
     _state.employees = emps;

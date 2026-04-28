@@ -1,14 +1,17 @@
 // ============================================================
 // 订单管理
 // ============================================================
-async function loadOrders() {
+async function loadOrders(options = {}) {
+  const { animate = true } = options;
   const year = parseInt(document.getElementById('orderYear').value);
   const month = parseInt(document.getElementById('orderMonth').value);
   const container = document.getElementById('orderList');
-  const finishRefresh = beginContentRefresh(container, {
-    loadingText: `正在刷新 ${year}年${pad(month)}月 订单...`,
-    minHeight: 180,
-  });
+  const finishRefresh = animate
+    ? beginContentRefresh(container, {
+        loadingText: `正在刷新 ${year}年${pad(month)}月 订单...`,
+        minHeight: 180,
+      })
+    : () => {};
 
   try {
     const orders = await get(`/api/orders?year=${year}&month=${month}`);

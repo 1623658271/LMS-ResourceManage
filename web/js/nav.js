@@ -79,14 +79,14 @@ function _doNavigateTo(view) {
   };
   document.getElementById('topbarTitle').textContent = titles[view] || view;
 
-  if (view === 'members') loadMembers();
+  if (view === 'members') loadMembers({ animate: false });
   else if (view === 'departments') loadDepartments();
-  else if (view === 'orders') loadOrders();
+  else if (view === 'orders') loadOrders({ animate: false });
   else if (view === 'prices') loadPriceTable();
   else if (view === 'work') { _state.viewMode = 'qty'; loadWorkRecords(); }
-  else if (view === 'salary') loadSalary();
+  else if (view === 'salary') loadSalary({ animate: false });
   else if (view === 'quickcalc') initQuickCalc();
-  else if (view === 'banking') loadBankAccounts();
+  else if (view === 'banking') loadBankAccounts({ animate: false });
   else if (view === 'settings') initSettingsPage();
 }
 

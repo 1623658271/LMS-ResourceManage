@@ -189,16 +189,19 @@ function renderBankCards(rows, year, month, source) {
   `).join('');
 }
 
-async function loadBankAccounts() {
+async function loadBankAccounts(options = {}) {
+  const { animate = true } = options;
   const { year, month } = getBankTargetMonth();
   const source = getBankSalarySource();
   const container = document.getElementById('bankingContent');
   if (!container) return;
 
-  const finishRefresh = beginContentRefresh(container, {
-    loadingText: `正在切换到 ${year}-${pad(month)}...`,
-    minHeight: 220,
-  });
+  const finishRefresh = animate
+    ? beginContentRefresh(container, {
+        loadingText: `正在切换到 ${year}-${pad(month)}...`,
+        minHeight: 220,
+      })
+    : () => {};
 
   try {
     await ensureBankCardVisibilityLoaded();

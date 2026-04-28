@@ -10,16 +10,19 @@ function getSalarySourceLabel(source) {
   return source === 'qc' ? '快捷计算数据' : '做货编辑数据';
 }
 
-async function loadSalary() {
+async function loadSalary(options = {}) {
+  const { animate = true } = options;
   const year = parseInt(document.getElementById('salaryYear').value, 10);
   const month = parseInt(document.getElementById('salaryMonth').value, 10);
   const source = getSalarySource();
   const content = document.getElementById('salaryContent');
   const sourceLabel = source === 'qc' ? '（快捷计算）' : '';
-  const finishRefresh = beginContentRefresh(content, {
-    loadingText: `正在刷新 ${year}-${pad(month)} 工资汇总...`,
-    minHeight: 240,
-  });
+  const finishRefresh = animate
+    ? beginContentRefresh(content, {
+        loadingText: `正在刷新 ${year}-${pad(month)} 工资汇总...`,
+        minHeight: 240,
+      })
+    : () => {};
 
   try {
     const data = await get(`/api/salary-summary?year=${year}&month=${month}&source=${source}`);
