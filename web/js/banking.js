@@ -2,9 +2,9 @@
 // 银行卡管理
 // ============================================================
 
-const ALIPAY_WEB_URL = 'https://shenghuo.alipay.com/transfercore/fill.htm?_tosheet=true&_pdType=afcabecbcahiibffiiih';
 let _bankAccountRows = [];
 const _bankAutoSaveTimers = {};
+const BANK_CARD_VISIBILITY_KEY = 'bankCardVisible';
 
 function getBankSalarySource() {
   return localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
@@ -22,11 +22,48 @@ function getBankDefaultNote(year, month) {
   return `${year}-${pad(month)}-工资`;
 }
 
+function isBankCardVisible() {
+  return localStorage.getItem(BANK_CARD_VISIBILITY_KEY) === 'true';
+}
+
 function maskBankCard(cardNo) {
   const clean = String(cardNo || '').replace(/\s+/g, '');
   if (!clean) return '未填写银行卡';
+  if (isBankCardVisible()) return clean;
   if (clean.length <= 8) return clean;
   return `${clean.slice(0, 4)} **** **** ${clean.slice(-4)}`;
+}
+
+function updateBankVisibilityButton() {
+  const btn = document.getElementById('bankVisibilityBtn');
+  if (!btn) return;
+  const visible = isBankCardVisible();
+  btn.classList.toggle('is-active', visible);
+  btn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+  btn.title = visible ? '隐藏全部银行卡号' : '显示全部银行卡号';
+  btn.innerHTML = visible
+    ? `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+        <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12c.92-2.6 2.6-4.76 4.74-6.22"></path>
+        <path d="M9.9 4.24A10.93 10.93 0 0 1 12 4c5 0 9.27 3.11 11 8a11.79 11.79 0 0 1-2.16 3.19"></path>
+        <path d="M14.12 14.12A3 3 0 0 1 9.88 9.88"></path>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+      </svg>
+      隐藏卡号`
+    : `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+      显示卡号`;
+}
+
+function toggleBankCardVisibility() {
+  const nextVisible = !isBankCardVisible();
+  localStorage.setItem(BANK_CARD_VISIBILITY_KEY, nextVisible ? 'true' : 'false');
+  updateBankVisibilityButton();
+  const { year, month } = getBankTargetMonth();
+  renderBankCards(_bankAccountRows, year, month, getBankSalarySource());
 }
 
 function getBankTargetMonth() {
@@ -39,56 +76,6 @@ function getBankTargetMonth() {
   };
 }
 
-async function copyTextToClipboard(text) {
-  const value = String(text || '');
-  try {
-    await navigator.clipboard.writeText(value);
-    return true;
-  } catch (err) {
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', 'readonly');
-    textarea.style.position = 'fixed';
-    textarea.style.top = '-1000px';
-    document.body.appendChild(textarea);
-    textarea.select();
-    let ok = false;
-    try {
-      ok = document.execCommand('copy');
-    } catch (copyErr) {
-      ok = false;
-    }
-    document.body.removeChild(textarea);
-    return ok;
-  }
-}
-
-function buildTransferSummary(item, amount, note, year, month, source) {
-  const lines = [
-    `成员：${item.name || ''}`,
-    `收款人：${item.account_name || item.name || ''}`,
-    `开户行：${item.bank_name || ''}`,
-    `银行卡号：${item.card_no || ''}`,
-    `打款金额：${Number(amount || 0).toFixed(2)}`,
-    `工资月份：${year}-${pad(month)}`,
-    `工资数据源：${getBankSalarySourceLabel(source)}`,
-  ];
-  if (item.reserved_phone) lines.push(`预留手机：${item.reserved_phone}`);
-  if (note) lines.push(`备注：${note}`);
-  return lines.join('\n');
-}
-
-async function copyBankModalField(inputId, label) {
-  const el = document.getElementById(inputId);
-  const text = el ? el.value : '';
-  if (!text) {
-    showToast(`暂无可复制的${label}`, 'info');
-    return;
-  }
-  const ok = await copyTextToClipboard(text);
-  showToast(ok ? `${label}已复制` : `${label}复制失败`, ok ? 'success' : 'error');
-}
-
 function renderBankCards(rows, year, month, source) {
   const container = document.getElementById('bankingContent');
   if (!rows.length) {
@@ -97,7 +84,7 @@ function renderBankCards(rows, year, month, source) {
   }
 
   container.innerHTML = rows.map(item => `
-    <div class="bank-card">
+    <div class="bank-card bank-card-editable" ondblclick="showEditBankAccountModal(${item.emp_id})" title="双击卡片可编辑银行卡信息">
       <div class="bank-card-header">
         <div>
           <div class="bank-card-title">
@@ -110,7 +97,7 @@ function renderBankCards(rows, year, month, source) {
           </div>
         </div>
         <div class="bank-card-amount">
-          <div class="bank-card-amount-label">${year}-${pad(month)} 应打金额</div>
+          <div class="bank-card-amount-label">${year}-${pad(month)} 应发参考</div>
           <div class="bank-card-amount-value">¥${fmt(item.total || 0)}</div>
         </div>
       </div>
@@ -148,10 +135,7 @@ function renderBankCards(rows, year, month, source) {
             <span class="bank-stat-value bank-stat-warn">¥${fmt(item.adj_amount || 0)}</span>
           </div>
         </div>
-      </div>
-      <div class="bank-actions">
-        <button class="btn btn-sm btn-secondary" onclick="showEditBankAccountModal(${item.emp_id})">编辑银行卡</button>
-        <button class="btn btn-sm btn-primary" onclick="showBankPayoutModal(${item.emp_id})">工资打款</button>
+        <div class="bank-card-hint">双击卡片任意空白处可编辑银行卡信息</div>
       </div>
     </div>
   `).join('');
@@ -163,6 +147,7 @@ async function loadBankAccounts() {
   const container = document.getElementById('bankingContent');
   if (!container) return;
 
+  updateBankVisibilityButton();
   container.innerHTML = '<div class="empty-state">加载中...</div>';
   const data = await get(`/api/bank-accounts?year=${year}&month=${month}&source=${source}`);
   _bankAccountRows = Array.isArray(data) ? data : [];
@@ -318,169 +303,8 @@ async function bulkLookupBankNames() {
   showToast(`开户行更新完成：成功 ${success} 条，失败 ${failed} 条`, failed ? 'info' : 'success');
 }
 
-function showBankPayoutModal(empId) {
-  const item = getBankAccountRow(empId);
-  if (!item) {
-    showToast('未找到该成员', 'error');
-    return;
-  }
-
-  const { year, month } = getBankTargetMonth();
-  const source = getBankSalarySource();
-  const amount = fmt(item.total || 0);
-  const accountName = item.account_name || item.name || '';
-  const bankName = item.bank_name || '';
-  const cardNo = item.card_no || '';
-  const note = item.note || getBankDefaultNote(year, month);
-
-  openModal(`
-    <div class="modal-title">工资打款辅助</div>
-    <div class="bank-pay-tip">
-      将直接打开你电脑的默认浏览器，并按支付宝转账页的表单元素自动填写银行、卡号、开户人、金额和付款说明，方便复用你平时已经登录好的支付宝。自动填写时请暂时不要操作鼠标和键盘，最终付款仍需你手动确认。
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>成员姓名</label>
-        <input type="text" value="${escHtml(item.name)}" disabled>
-      </div>
-      <div class="form-group">
-        <label>工资月份 / 数据源</label>
-        <input type="text" value="${year}-${pad(month)} / ${escHtml(getBankSalarySourceLabel(source))}" disabled>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>收款人姓名</label>
-        <input id="pay-account-name" type="text" value="${escHtml(accountName)}">
-      </div>
-      <div class="form-group">
-        <label>开户行</label>
-        <input id="pay-bank-name" type="text" value="${escHtml(bankName)}">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>银行卡号</label>
-        <input id="pay-card-no" type="text" value="${escHtml(cardNo)}">
-      </div>
-      <div class="form-group">
-        <label>打款金额</label>
-        <input id="pay-amount" type="number" step="0.01" value="${amount}">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>预留手机</label>
-        <input id="pay-phone" type="text" value="${escHtml(item.reserved_phone || '')}" placeholder="选填">
-      </div>
-      <div class="form-group">
-        <label>备注</label>
-        <input id="pay-note" type="text" value="${escHtml(note)}" placeholder="例如：${year}-${pad(month)}-工资">
-      </div>
-    </div>
-    <div class="bank-copy-actions">
-      <button class="btn btn-sm btn-secondary" onclick="copyBankModalField('pay-account-name', '收款人姓名')">复制姓名</button>
-      <button class="btn btn-sm btn-secondary" onclick="copyBankModalField('pay-card-no', '银行卡号')">复制卡号</button>
-      <button class="btn btn-sm btn-secondary" onclick="copyBankModalField('pay-amount', '打款金额')">复制金额</button>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="openAlipayForPayout(${empId}, ${year}, ${month}, '${source}')">自动填表并打开支付宝</button>
-    </div>
-  `);
-}
-
-async function openAlipayForPayout(empId, year, month, source) {
-  const item = getBankAccountRow(empId);
-  if (!item) {
-    showToast('未找到该成员', 'error');
-    return;
-  }
-
-  const accountName = document.getElementById('pay-account-name')?.value.trim() || '';
-  const bankName = document.getElementById('pay-bank-name')?.value.trim() || '';
-  const cardNo = document.getElementById('pay-card-no')?.value.trim() || '';
-  const phone = document.getElementById('pay-phone')?.value.trim() || '';
-  const note = document.getElementById('pay-note')?.value.trim() || '';
-  const amount = parseFloat(document.getElementById('pay-amount')?.value || '0');
-
-  if (!accountName || !bankName || !cardNo) {
-    showToast('请先补全收款人、开户行和银行卡号', 'error');
-    return;
-  }
-
-  if (!Number.isFinite(amount)) {
-    showToast('请输入有效的打款金额', 'error');
-    return;
-  }
-
-  if (amount < 0) {
-    showToast('打款金额不能小于 0', 'error');
-    return;
-  }
-
-  const transferInfo = buildTransferSummary(
-    {
-      ...item,
-      account_name: accountName,
-      bank_name: bankName,
-      card_no: cardNo,
-      reserved_phone: phone,
-    },
-    amount,
-    note,
-    year,
-    month,
-    source
-  );
-
-  const copied = await copyTextToClipboard(transferInfo);
-  const payload = {
-    emp_id: empId,
-    year,
-    month,
-    source,
-    account_name: accountName,
-    bank_name: bankName,
-    card_no: cardNo,
-    reserved_phone: phone,
-    note,
-    amount,
-  };
-
-  const result = await post('/api/alipay-transfer/autofill', payload);
-  closeModal();
-
-  if (result && result.ok) {
-    showToast(result.message || '已自动填写支付宝表单', 'success');
-    return;
-  }
-
-  let opened = false;
-  try {
-    if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.open_external_url === 'function') {
-      opened = await window.pywebview.api.open_external_url(ALIPAY_WEB_URL);
-    } else {
-      const win = window.open(ALIPAY_WEB_URL, '_blank', 'noopener');
-      opened = !!win;
-    }
-  } catch (err) {
-    const win = window.open(ALIPAY_WEB_URL, '_blank', 'noopener');
-    opened = !!win;
-  }
-
-  if (opened) {
-    showToast((result && result.error) ? `${result.error}，已回退到手动页面` : '已打开支付宝页面，请手动填写', 'info');
-  } else {
-    showToast((result && result.error) || '未能自动打开支付宝页面', 'error');
-  }
-
-  if (!copied) {
-    showToast('自动填表失败时，打款信息复制也失败了', 'error');
-  }
-}
-
 const _bankYearEl = document.getElementById('bankYear');
 const _bankMonthEl = document.getElementById('bankMonth');
 if (_bankYearEl) _bankYearEl.addEventListener('change', loadBankAccounts);
 if (_bankMonthEl) _bankMonthEl.addEventListener('change', loadBankAccounts);
+updateBankVisibilityButton();

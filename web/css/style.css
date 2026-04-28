@@ -753,6 +753,19 @@ tr:hover td { background: #f8fafc; }
   align-items: center;
   flex-wrap: wrap;
 }
+.bank-visibility-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bank-visibility-btn svg {
+  flex: 0 0 auto;
+}
+.bank-visibility-btn.is-active {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #7dd3fc;
+}
 .bank-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -769,6 +782,9 @@ tr:hover td { background: #f8fafc; }
 }
 .bank-card:hover {
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+}
+.bank-card-editable {
+  cursor: pointer;
 }
 .bank-card-header {
   display: flex;
@@ -870,6 +886,10 @@ tr:hover td { background: #f8fafc; }
 .bank-card-no {
   letter-spacing: 0.4px;
 }
+.bank-card-hint {
+  font-size: var(--font-size-11);
+  color: var(--text-muted);
+}
 .bank-note {
   padding: 9px 12px;
   border-radius: 10px;
@@ -901,26 +921,6 @@ tr:hover td { background: #f8fafc; }
 }
 .bank-stat-warn {
   color: #b45309;
-}
-.bank-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-.bank-pay-tip {
-  margin-bottom: 14px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background: #eff6ff;
-  color: #1e3a8a;
-  font-size: var(--font-size-12);
-  line-height: 1.6;
-}
-.bank-copy-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 4px;
 }
 .bank-auto-save-hint {
   margin-top: 8px;

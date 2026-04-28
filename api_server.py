@@ -14,7 +14,6 @@ from urllib import parse, request
 
 from services.db import init_database, get_base_dir, get_resource_dir
 from services import crud
-from services.alipay_automation import autofill_alipay_bank_transfer
 
 DATA_DIR = get_base_dir()
 RESOURCE_DIR = get_resource_dir()
@@ -129,11 +128,6 @@ async def api_save_bank_account(emp_id: int, body: dict):
         body.get("reserved_phone", ""),
         body.get("note", ""),
     )
-
-
-@app.post("/api/alipay-transfer/autofill")
-async def api_autofill_alipay_transfer(body: dict):
-    return await run_in_threadpool(autofill_alipay_bank_transfer, body)
 
 
 def _load_bank_name_map():
