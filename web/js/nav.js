@@ -32,14 +32,6 @@ function initMonthPickers() {
 // ============================================================
 let _navHistory = [];
 
-function animateActiveView(viewEl) {
-  if (!viewEl) return;
-  viewEl.classList.remove('view-enter');
-  void viewEl.offsetWidth;
-  viewEl.classList.add('view-enter');
-  setTimeout(() => viewEl.classList.remove('view-enter'), 280);
-}
-
 function _updateBackBtn() {
   const btn = document.getElementById('topbarBackBtn');
   if (!btn) return;
@@ -71,7 +63,6 @@ function _doNavigateTo(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const viewEl = document.getElementById(`view-${view}`);
   viewEl.classList.add('active');
-  animateActiveView(viewEl);
 
   const titles = {
     overview: '资源总览',
@@ -148,7 +139,6 @@ async function _doNavigateToMemberDetail(empId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const detailView = document.getElementById('view-member-detail');
   detailView.classList.add('active');
-  animateActiveView(detailView);
   document.getElementById('topbarTitle').textContent = '成员详情';
   await loadMemberDetail(empId);
 }

@@ -57,7 +57,7 @@ function adjustColor(hex, amount, lighten = false) {
   return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
-function animateElementEntrance(el, className = 'content-fade-in', duration = 280) {
+function animateElementEntrance(el, className = 'content-fade-in', duration = 220) {
   if (!el) return;
   el.classList.remove(className);
   void el.offsetWidth;
@@ -70,10 +70,19 @@ function beginContentRefresh(container, options = {}) {
 
   const loadingText = options.loadingText || '加载中...';
   const minHeight = options.minHeight || 120;
+  const allowEntrance = options.allowEntrance !== false;
   const prevPosition = container.style.position;
   const prevMinHeight = container.style.minHeight;
   const rect = container.getBoundingClientRect();
   const targetHeight = Math.max(Math.ceil(rect.height || 0), minHeight);
+  const existingText = (container.textContent || '').trim();
+  const hasContent = container.children.length > 0 && existingText && !existingText.includes('加载中');
+
+  if (!hasContent) {
+    return () => {
+      if (allowEntrance) animateElementEntrance(container, 'content-fade-in-soft', 180);
+    };
+  }
 
   if (!container.style.position) container.style.position = 'relative';
   container.style.minHeight = `${targetHeight}px`;
@@ -99,7 +108,7 @@ function beginContentRefresh(container, options = {}) {
       if (overlay.parentNode === container) overlay.remove();
       container.style.minHeight = prevMinHeight;
       container.style.position = prevPosition;
-      animateElementEntrance(container);
+      if (allowEntrance) animateElementEntrance(container);
     }, 160);
   };
 }

@@ -181,23 +181,13 @@ h2, h3, .section-title { font-size: var(--font-size-14) !important; }
    ============================================================ */
 .view { display: none; }
 .view.active { display: block; }
-.view.active.view-enter {
-  animation: viewFadeIn 0.24s ease both;
-}
-
-@keyframes viewFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
 .content-fade-in {
   animation: contentFadeIn 0.26s ease both;
+}
+
+.content-fade-in-soft {
+  animation: contentFadeInSoft 0.18s ease both;
 }
 
 @keyframes contentFadeIn {
@@ -208,6 +198,15 @@ h2, h3, .section-title { font-size: var(--font-size-14) !important; }
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes contentFadeInSoft {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 1;
   }
 }
 
