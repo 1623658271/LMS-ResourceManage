@@ -1041,9 +1041,9 @@ tr:hover td { background: #f8fafc; }
   }
 
   body.salary-print-mode .grand-total {
-    background: #f8fafc !important;
-    color: #0f172a !important;
-    border: 1px solid #cbd5e1 !important;
+    background: #0f172a !important;
+    color: #fbbf24 !important;
+    border: 1px solid #0f172a !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -1056,8 +1056,8 @@ tr:hover td { background: #f8fafc; }
   }
 
   body.salary-print-mode .dept-block-header {
-    background: #f8fafc !important;
-    color: #0f172a !important;
+    background: #1e293b !important;
+    color: #ffffff !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -1087,11 +1087,23 @@ tr:hover td { background: #f8fafc; }
     -webkit-print-color-adjust: exact;
   }
 
-  body.salary-print-mode .member-name-color,
-  body.salary-print-mode .dept-large,
-  body.salary-print-mode .dept-sub,
+  body.salary-print-mode .member-name-color {
+    color: #2563eb !important;
+    text-decoration: none !important;
+  }
+
+  body.salary-print-mode .dept-large {
+    color: #d97706 !important;
+    text-decoration: none !important;
+  }
+
+  body.salary-print-mode .dept-sub {
+    color: #059669 !important;
+    text-decoration: none !important;
+  }
+
   body.salary-print-mode .text-danger {
-    color: #0f172a !important;
+    color: var(--danger) !important;
     text-decoration: none !important;
   }
 }
