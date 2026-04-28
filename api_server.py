@@ -12,14 +12,15 @@ import shutil
 import uuid
 from urllib import parse, request
 
-from services.db import init_database, get_base_dir
+from services.db import init_database, get_base_dir, get_resource_dir
 from services import crud
 from services.alipay_automation import autofill_alipay_bank_transfer
 
-BASE_DIR = get_base_dir()
-WEB_DIR = os.path.join(BASE_DIR, "web")
-FONTS_DIR = os.path.join(WEB_DIR, "fonts")
-BANK_MAP_PATH = os.path.join(BASE_DIR, "b.json")
+DATA_DIR = get_base_dir()
+RESOURCE_DIR = get_resource_dir()
+WEB_DIR = os.path.join(RESOURCE_DIR, "web")
+FONTS_DIR = os.path.join(DATA_DIR, "web", "fonts")
+BANK_MAP_PATH = os.path.join(RESOURCE_DIR, "b.json")
 
 _bank_name_map = None
 
@@ -452,7 +453,7 @@ async def api_export_database():
     if getattr(sys, 'frozen', False):
         db_path = os.path.join(os.path.dirname(sys.executable), 'data.db')
     else:
-        db_path = os.path.join(BASE_DIR, 'data.db')
+        db_path = os.path.join(DATA_DIR, 'data.db')
     
     if not os.path.exists(db_path):
         return {"ok": False, "error": "数据库文件不存在"}
@@ -491,7 +492,7 @@ async def api_import_database(body: dict):
         if getattr(sys, 'frozen', False):
             db_path = os.path.join(os.path.dirname(sys.executable), 'data.db')
         else:
-            db_path = os.path.join(BASE_DIR, 'data.db')
+            db_path = os.path.join(DATA_DIR, 'data.db')
         
         # 备份当前数据库
         backup_path = db_path + '.backup'
@@ -553,7 +554,7 @@ async def api_set_window_settings(body: dict):
         if getattr(sys, 'frozen', False):
             config_path = os.path.join(os.path.dirname(sys.executable), 'window_settings.json')
         else:
-            config_path = os.path.join(BASE_DIR, 'window_settings.json')
+            config_path = os.path.join(DATA_DIR, 'window_settings.json')
         
         # 保存窗口设置
         config = {
@@ -583,7 +584,7 @@ async def api_get_window_settings():
         if getattr(sys, 'frozen', False):
             config_path = os.path.join(os.path.dirname(sys.executable), 'window_settings.json')
         else:
-            config_path = os.path.join(BASE_DIR, 'window_settings.json')
+            config_path = os.path.join(DATA_DIR, 'window_settings.json')
         
         # 读取窗口设置
         if os.path.exists(config_path):

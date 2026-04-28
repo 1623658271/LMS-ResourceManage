@@ -18,13 +18,7 @@ def clean_build():
         if os.path.exists(d):
             shutil.rmtree(d)
             print(f"  Removed: {d}")
-    
-    # Remove .spec files
-    for f in os.listdir('.'):
-        if f.endswith('.spec'):
-            os.remove(f)
-            print(f"  Removed: {f}")
-    
+
     print("[Clean] Done!")
 
 
@@ -44,6 +38,7 @@ def build(debug=False):
         'main.py',
         '--name', '立杰工资管理系统',
         '--onedir',  # Directory mode: data persists in the folder
+        '--icon', '立杰鞋业工资管理系统.ico',
         '--add-data', 'web;web',
         '--add-data', 'database;database',
         '--add-data', 'services;services',
@@ -76,7 +71,7 @@ def build(debug=False):
         print("  Build Successful!")
         print("=" * 50)
         print()
-        print("Output: dist\\立杰工资管理系统.exe")
+        print("Output: dist\\立杰工资管理系统\\立杰工资管理系统.exe")
         print()
         print("You can distribute the 'dist' folder to other machines.")
         print("No Python installation required on target machines.")

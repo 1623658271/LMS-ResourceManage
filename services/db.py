@@ -5,15 +5,23 @@ import sys
 
 
 def get_base_dir():
-    """Return the app base dir, including PyInstaller builds."""
+    """Return the writable app data dir, including PyInstaller builds."""
     if getattr(sys, "frozen", False):
         return os.path.dirname(sys.executable)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def get_resource_dir():
+    """Return the bundled resource dir for source and PyInstaller builds."""
+    if getattr(sys, "frozen", False):
+        return getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
 BASE_DIR = get_base_dir()
+RESOURCE_DIR = get_resource_dir()
 DB_PATH = os.path.join(BASE_DIR, "data.db")
-SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "database", "schema.sql")
+SCHEMA_PATH = os.path.join(RESOURCE_DIR, "database", "schema.sql")
 
 
 def get_connection():

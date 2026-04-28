@@ -6,6 +6,7 @@ import sys
 import os
 import json
 import webbrowser
+from urllib import request
 
 # 解决 Windows 上的 stdout 缓冲问题
 sys.stdout.reconfigure(line_buffering=True)
@@ -52,6 +53,20 @@ def start_fastapi():
     )
 
 
+def wait_for_server(url="http://127.0.0.1:8765", timeout=20):
+    """Wait until the local FastAPI server is ready."""
+    deadline = time.time() + timeout
+    last_error = None
+    while time.time() < deadline:
+        try:
+            with request.urlopen(url, timeout=1):
+                return True, None
+        except Exception as exc:
+            last_error = exc
+            time.sleep(0.2)
+    return False, last_error
+
+
 if __name__ == "__main__":
     # 初始化数据库
     from services.db import init_database
@@ -60,7 +75,7 @@ if __name__ == "__main__":
     # 后台启动 FastAPI
     server_thread = threading.Thread(target=start_fastapi, daemon=True)
     server_thread.start()
-    time.sleep(1.5)  # 等待服务启动
+    server_ready, server_error = wait_for_server()
 
     # 读取窗口设置
     win_settings = get_window_settings()
@@ -92,17 +107,85 @@ if __name__ == "__main__":
         x = 100
         y = 0
     
-    window = webview.create_window(
-        title="立杰工资管理系统",
-        url="http://127.0.0.1:8765",
-        width=win_settings.get('width', 1400),
-        height=win_settings.get('height', 900),
-        x=x,
-        y=y,
-        fullscreen=is_fullscreen,
-        min_size=(1000, 680),
-        resizable=True,
-    )
+    if server_ready:
+        window = webview.create_window(
+            title="立杰工资管理系统",
+            url="http://127.0.0.1:8765",
+            width=win_settings.get('width', 1400),
+            height=win_settings.get('height', 900),
+            x=x,
+            y=y,
+            fullscreen=is_fullscreen,
+            min_size=(1000, 680),
+            resizable=True,
+        )
+    else:
+        error_text = str(server_error or "未知错误").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        error_html = f"""
+        <!doctype html>
+        <html lang="zh-CN">
+        <head>
+          <meta charset="utf-8">
+          <title>立杰工资管理系统</title>
+          <style>
+            body {{
+              margin: 0;
+              font-family: "Microsoft YaHei", sans-serif;
+              background: #f7f8fb;
+              color: #1f2937;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-height: 100vh;
+            }}
+            .card {{
+              width: min(760px, calc(100vw - 48px));
+              background: #fff;
+              border-radius: 18px;
+              box-shadow: 0 18px 48px rgba(15, 23, 42, 0.12);
+              padding: 32px;
+            }}
+            h1 {{
+              margin: 0 0 12px;
+              font-size: 28px;
+            }}
+            p {{
+              line-height: 1.7;
+              margin: 10px 0;
+            }}
+            code {{
+              display: block;
+              margin-top: 16px;
+              padding: 14px 16px;
+              border-radius: 12px;
+              background: #f3f4f6;
+              color: #b91c1c;
+              white-space: pre-wrap;
+              word-break: break-all;
+            }}
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>本地服务启动失败</h1>
+            <p>程序窗口已经打开，但内置的本地页面服务没有成功启动，所以暂时无法加载主界面。</p>
+            <p>请优先使用调试打包，或在项目目录里直接运行 <code>python main.py</code> 查看详细报错。</p>
+            <code>{error_text}</code>
+          </div>
+        </body>
+        </html>
+        """
+        window = webview.create_window(
+            title="立杰工资管理系统",
+            html=error_html,
+            width=win_settings.get('width', 1400),
+            height=win_settings.get('height', 900),
+            x=x,
+            y=y,
+            fullscreen=is_fullscreen,
+            min_size=(1000, 680),
+            resizable=True,
+        )
     
     # 暴露 Python 函数给 JS 调用（用于运行时切换全屏/最大化）
     def _toggle_fullscreen():
