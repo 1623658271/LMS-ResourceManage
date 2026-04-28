@@ -29,10 +29,16 @@ function isBankCardVisible() {
   return _bankCardVisibilityValue;
 }
 
+function formatBankCardNumber(cardNo) {
+  const clean = String(cardNo || '').replace(/\s+/g, '');
+  if (!clean) return '';
+  return clean.replace(/(.{4})/g, '$1 ').trim();
+}
+
 function maskBankCard(cardNo) {
   const clean = String(cardNo || '').replace(/\s+/g, '');
   if (!clean) return '未填写银行卡';
-  if (isBankCardVisible()) return clean;
+  if (isBankCardVisible()) return formatBankCardNumber(clean);
   if (clean.length <= 8) return clean;
   return `${clean.slice(0, 4)} **** **** ${clean.slice(-4)}`;
 }
