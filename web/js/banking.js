@@ -5,6 +5,9 @@
 let _bankAccountRows = [];
 const _bankAutoSaveTimers = {};
 const BANK_CARD_VISIBILITY_KEY = 'bankCardVisible';
+const BANK_CARD_VISIBILITY_SETTING_KEY = 'bankCardVisible';
+let _bankCardVisibilityLoaded = false;
+let _bankCardVisibilityValue = localStorage.getItem(BANK_CARD_VISIBILITY_KEY) === 'true';
 
 function getBankSalarySource() {
   return localStorage.getItem('useQcSalary') === 'true' ? 'qc' : 'work';
@@ -23,7 +26,7 @@ function getBankDefaultNote(year, month) {
 }
 
 function isBankCardVisible() {
-  return localStorage.getItem(BANK_CARD_VISIBILITY_KEY) === 'true';
+  return _bankCardVisibilityValue;
 }
 
 function maskBankCard(cardNo) {
@@ -58,12 +61,44 @@ function updateBankVisibilityButton() {
       显示卡号`;
 }
 
-function toggleBankCardVisibility() {
+async function ensureBankCardVisibilityLoaded(force = false) {
+  if (_bankCardVisibilityLoaded && !force) return _bankCardVisibilityValue;
+  const fallbackVisible = localStorage.getItem(BANK_CARD_VISIBILITY_KEY) === 'true';
+  _bankCardVisibilityValue = fallbackVisible;
+  try {
+    const result = await get(`/api/app-settings/${BANK_CARD_VISIBILITY_SETTING_KEY}`);
+    const rawValue = String(result?.value ?? '').trim().toLowerCase();
+    if (rawValue === 'true' || rawValue === 'false') {
+      _bankCardVisibilityValue = rawValue === 'true';
+    }
+  } catch (err) {
+    _bankCardVisibilityValue = fallbackVisible;
+  }
+  _bankCardVisibilityLoaded = true;
+  localStorage.setItem(BANK_CARD_VISIBILITY_KEY, _bankCardVisibilityValue ? 'true' : 'false');
+  updateBankVisibilityButton();
+  return _bankCardVisibilityValue;
+}
+
+async function persistBankCardVisibility(visible) {
+  _bankCardVisibilityValue = !!visible;
+  localStorage.setItem(BANK_CARD_VISIBILITY_KEY, _bankCardVisibilityValue ? 'true' : 'false');
+  _bankCardVisibilityLoaded = true;
+  updateBankVisibilityButton();
+  const result = await post('/api/app-settings', {
+    key: BANK_CARD_VISIBILITY_SETTING_KEY,
+    value: _bankCardVisibilityValue ? 'true' : 'false',
+  });
+  return !!(result && result.ok);
+}
+
+async function toggleBankCardVisibility() {
   const nextVisible = !isBankCardVisible();
-  localStorage.setItem(BANK_CARD_VISIBILITY_KEY, nextVisible ? 'true' : 'false');
+  const ok = await persistBankCardVisibility(nextVisible);
   updateBankVisibilityButton();
   const { year, month } = getBankTargetMonth();
   renderBankCards(_bankAccountRows, year, month, getBankSalarySource());
+  if (!ok) showToast('卡号显示状态保存失败', 'error');
 }
 
 function getBankTargetMonth() {
@@ -147,6 +182,7 @@ async function loadBankAccounts() {
   const container = document.getElementById('bankingContent');
   if (!container) return;
 
+  await ensureBankCardVisibilityLoaded();
   updateBankVisibilityButton();
   container.innerHTML = '<div class="empty-state">加载中...</div>';
   const data = await get(`/api/bank-accounts?year=${year}&month=${month}&source=${source}`);

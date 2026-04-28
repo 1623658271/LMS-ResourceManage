@@ -1,4 +1,6 @@
 """pywebview 入口 - 启动 FastAPI 后台服务 + 渲染窗口"""
+import atexit
+import ctypes
 import webview
 import threading
 import time
@@ -7,11 +9,60 @@ import os
 import json
 import webbrowser
 from urllib import request
+from ctypes import wintypes
 
 # 解决 Windows 上的 stdout 缓冲问题
 sys.stdout.reconfigure(line_buffering=True)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SINGLE_INSTANCE_MUTEX_NAME = "Local\\LiJieWageSystemSingleton"
+_single_instance_mutex = None
+
+
+def ensure_single_instance():
+    """Prevent launching multiple app instances at the same time."""
+    global _single_instance_mutex
+    if os.name != "nt":
+        return True
+
+    kernel32 = ctypes.windll.kernel32
+    user32 = ctypes.windll.user32
+    kernel32.CreateMutexW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.LPCWSTR]
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    kernel32.GetLastError.restype = wintypes.DWORD
+    kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    user32.MessageBoxW.argtypes = [wintypes.HWND, wintypes.LPCWSTR, wintypes.LPCWSTR, wintypes.UINT]
+    user32.MessageBoxW.restype = ctypes.c_int
+
+    _single_instance_mutex = kernel32.CreateMutexW(None, False, SINGLE_INSTANCE_MUTEX_NAME)
+    if not _single_instance_mutex:
+        return True
+
+    if kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        user32.MessageBoxW(
+            None,
+            "立杰工资管理系统已经在运行，请不要重复打开。",
+            "立杰工资管理系统",
+            0x00000030,
+        )
+        kernel32.CloseHandle(_single_instance_mutex)
+        _single_instance_mutex = None
+        return False
+
+    return True
+
+
+def release_single_instance():
+    """Release the single-instance lock on app exit."""
+    global _single_instance_mutex
+    if os.name != "nt" or not _single_instance_mutex:
+        return
+    try:
+        ctypes.windll.kernel32.CloseHandle(_single_instance_mutex)
+    except Exception:
+        pass
+    _single_instance_mutex = None
 
 
 def get_window_settings():
@@ -68,6 +119,10 @@ def wait_for_server(url="http://127.0.0.1:8765", timeout=20):
 
 
 if __name__ == "__main__":
+    if not ensure_single_instance():
+        sys.exit(0)
+    atexit.register(release_single_instance)
+
     # 初始化数据库
     from services.db import init_database
     init_database()
