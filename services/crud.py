@@ -375,7 +375,7 @@ def _get_employee_qc_history(conn, emp):
         history.append({
             "year": year,
             "month": month,
-            "records": [],  # 快捷计算没有逐条明细
+            "records": records,
             "month_wage": empWage,
             "total_pairs": empPairs,
             "adj_quantity": adj_summary["adj_quantity"],

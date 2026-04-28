@@ -71,43 +71,14 @@ function printSalary() {
     return;
   }
 
-  const styles = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-    .map(node => node.outerHTML)
-    .join('\n');
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer,width=1100,height=800');
-  if (!printWindow) {
-    showToast('打印窗口被拦截，请允许弹窗后重试', 'error');
-    return;
-  }
-
-  const html = `<!doctype html>
-  <html lang="zh-CN">
-    <head>
-      <meta charset="utf-8">
-      <title>工资打印</title>
-      ${styles}
-    </head>
-    <body class="salary-print-mode">
-      <div id="salaryPrintRoot">${content.innerHTML}</div>
-    </body>
-  </html>`;
-
-  printWindow.document.open();
-  printWindow.document.write(html);
-  printWindow.document.close();
-
-  const doPrint = () => {
-    printWindow.focus();
-    const closeWindow = () => printWindow.close();
-    printWindow.addEventListener('afterprint', closeWindow, { once: true });
-    printWindow.print();
+  document.body.classList.add('salary-print-mode');
+  const cleanup = () => {
+    document.body.classList.remove('salary-print-mode');
+    window.removeEventListener('afterprint', cleanup);
   };
 
-  if (printWindow.document.readyState === 'complete') {
-    setTimeout(doPrint, 150);
-  } else {
-    printWindow.addEventListener('load', () => setTimeout(doPrint, 150), { once: true });
-  }
+  window.addEventListener('afterprint', cleanup);
+  window.print();
 }
 
 document.getElementById('salaryYear').addEventListener('change', loadSalary);

@@ -1008,9 +1008,7 @@ tr:hover td { background: #f8fafc; }
   }
 
   body.salary-print-mode #view-salary,
-  body.salary-print-mode #view-salary *,
-  body.salary-print-mode #salaryPrintRoot,
-  body.salary-print-mode #salaryPrintRoot * {
+  body.salary-print-mode #view-salary * {
     visibility: visible;
   }
 
@@ -1026,8 +1024,7 @@ tr:hover td { background: #f8fafc; }
   body.salary-print-mode .content,
   body.salary-print-mode #view-salary,
   body.salary-print-mode #view-salary .card,
-  body.salary-print-mode #salaryContent,
-  body.salary-print-mode #salaryPrintRoot {
+  body.salary-print-mode #salaryContent {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
@@ -1040,10 +1037,6 @@ tr:hover td { background: #f8fafc; }
   }
 
   body.salary-print-mode .salary-print-header {
-    display: flex !important;
-  }
-
-  body.salary-print-mode #salaryPrintRoot .salary-print-header {
     display: flex !important;
   }
 
