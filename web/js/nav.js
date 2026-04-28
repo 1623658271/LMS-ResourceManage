@@ -22,8 +22,8 @@ function buildMonthPickers(ids, yearIds) {
 
 function initMonthPickers() {
   buildMonthPickers(
-    ['memberMonth', 'workMonth', 'salaryMonth', 'orderMonth', 'qcMonth'],
-    ['memberYear', 'workYear', 'salaryYear', 'orderYear', 'qcYear']
+    ['memberMonth', 'workMonth', 'salaryMonth', 'orderMonth', 'qcMonth', 'bankMonth'],
+    ['memberYear', 'workYear', 'salaryYear', 'orderYear', 'qcYear', 'bankYear']
   );
 }
 
@@ -72,6 +72,7 @@ function _doNavigateTo(view) {
     work: '做货编辑',
     salary: '总工资表',
     quickcalc: '快捷计算',
+    banking: '银行卡管理',
     'member-detail': '成员详情',
     settings: '系统设置',
   };
@@ -84,6 +85,7 @@ function _doNavigateTo(view) {
   else if (view === 'work') { _state.viewMode = 'qty'; loadWorkRecords(); }
   else if (view === 'salary') loadSalary();
   else if (view === 'quickcalc') initQuickCalc();
+  else if (view === 'banking') loadBankAccounts();
   else if (view === 'settings') initSettingsPage();
 }
 

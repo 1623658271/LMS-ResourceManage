@@ -59,6 +59,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="12" y1="10" x2="14" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
       快捷计算
     </div>
+    <div class="nav-item" data-view="banking">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h2"/><path d="M11 15h4"/></svg>
+      银行卡管理
+    </div>
     <div class="nav-section">系统</div>
     <div class="nav-item" data-view="settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -748,6 +752,25 @@
       </div>
     </div>
 
+    <!-- ===== 银行卡管理 ===== -->
+    <div class="view" id="view-banking">
+      <div style="display:inline-block;text-align:center;padding:10px 0 2px 0;"><button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button></div>
+      <div class="card">
+        <div class="card-title flex justify-between items-center">
+          <div>
+            银行卡管理
+            <div class="bank-toolbar-note">成员银行卡信息会持久化保存，工资金额按当前工资数据源和所选月份自动带出。</div>
+          </div>
+          <div class="month-picker">
+            <select id="bankYear"></select> 年
+            <select id="bankMonth"></select> 月
+            <button class="btn btn-primary btn-sm" onclick="loadBankAccounts()">查询</button>
+          </div>
+        </div>
+        <div id="bankingContent" class="bank-grid"></div>
+      </div>
+    </div>
+
     <!-- ===== 快捷计算 ===== -->
     <div class="view" id="view-quickcalc">
       <div style="display:inline-block;text-align:center;padding:10px 0 2px 0;"><button class="btn btn-back-home" onclick="navigateTo('overview')">🏠 返回主页</button></div>
@@ -804,6 +827,7 @@
 <script src="js/price.js"></script>
 <script src="js/work-edit.js"></script>
 <script src="js/salary-summary.js"></script>
+<script src="js/banking.js"></script>
 <script src="js/quick-calc.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/init.js"></script>

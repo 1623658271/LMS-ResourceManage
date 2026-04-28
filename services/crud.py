@@ -183,6 +183,95 @@ def delete_employee(emp_id: int):
     return {"ok": True}
 
 
+def _flatten_salary_rows(rows):
+    salary_map = {}
+    for dept in rows or []:
+        for emp in dept.get("employees", []):
+            salary_map[emp["emp_id"]] = {
+                "pairs": round(float(emp.get("pairs") or 0), 2),
+                "wage": round(float(emp.get("wage") or 0), 2),
+                "adj_amount": round(float(emp.get("adj_amount") or 0), 2),
+                "total": round(float(emp.get("total") or 0), 2),
+            }
+    return salary_map
+
+
+def get_employee_bank_accounts(year: int, month: int, source: str = "work"):
+    salary_rows = get_qc_salary_summary(year, month) if source == "qc" else get_salary_summary(year, month)
+    salary_map = _flatten_salary_rows(salary_rows)
+
+    conn = get_connection()
+    rows = conn.execute("""
+        SELECT
+            e.id AS emp_id,
+            e.name,
+            e.gender,
+            e.dept_id,
+            e.sub_dept_id,
+            d.name AS dept_name,
+            sd.name AS sub_dept_name,
+            COALESCE(eba.account_name, e.name) AS account_name,
+            COALESCE(eba.bank_name, '') AS bank_name,
+            COALESCE(eba.card_no, '') AS card_no,
+            COALESCE(eba.reserved_phone, '') AS reserved_phone,
+            COALESCE(eba.note, '') AS note,
+            COALESCE(eba.updated_at, '') AS bank_updated_at
+        FROM employees e
+        JOIN departments d ON e.dept_id=d.id
+        JOIN sub_departments sd ON e.sub_dept_id=sd.id
+        LEFT JOIN employee_bank_accounts eba ON eba.emp_id=e.id
+        ORDER BY d.id, sd.id, e.id
+    """).fetchall()
+    conn.close()
+
+    result = []
+    for row in rows:
+        item = dict(row)
+        salary = salary_map.get(item["emp_id"], {"pairs": 0, "wage": 0, "adj_amount": 0, "total": 0})
+        item.update(salary)
+        item["source"] = source
+        result.append(item)
+    return result
+
+
+def save_employee_bank_account(
+    emp_id: int,
+    account_name: str,
+    bank_name: str,
+    card_no: str,
+    reserved_phone: str = "",
+    note: str = "",
+):
+    conn = get_connection()
+    emp = conn.execute("SELECT name FROM employees WHERE id=?", (emp_id,)).fetchone()
+    if not emp:
+        conn.close()
+        return {"ok": False, "error": "未找到该成员"}
+
+    clean_account_name = (account_name or "").strip() or emp["name"]
+    clean_bank_name = (bank_name or "").strip()
+    clean_card_no = "".join(str(card_no or "").split())
+    clean_phone = "".join(str(reserved_phone or "").split())
+    clean_note = (note or "").strip()
+
+    conn.execute("""
+        INSERT INTO employee_bank_accounts (
+            emp_id, account_name, bank_name, card_no, reserved_phone, note, updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+        ON CONFLICT(emp_id) DO UPDATE SET
+            account_name=excluded.account_name,
+            bank_name=excluded.bank_name,
+            card_no=excluded.card_no,
+            reserved_phone=excluded.reserved_phone,
+            note=excluded.note,
+            updated_at=datetime('now')
+    """, (emp_id, clean_account_name, clean_bank_name, clean_card_no, clean_phone, clean_note))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
 def _get_adjustment_items(conn, emp_id: int, year: int, month: int):
     rows = conn.execute("""
         SELECT id, emp_id, year, month, adj_date, adj_quantity, adj_amount, reason, created_at

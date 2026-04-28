@@ -84,6 +84,26 @@ async def api_get_employees():
     return crud.get_employees()
 
 
+@app.get("/api/bank-accounts")
+async def api_get_bank_accounts(
+    year: int = Query(...), month: int = Query(...),
+    source: Optional[str] = Query(None)
+):
+    return crud.get_employee_bank_accounts(year, month, source or "work")
+
+
+@app.post("/api/bank-accounts/{emp_id}")
+async def api_save_bank_account(emp_id: int, body: dict):
+    return crud.save_employee_bank_account(
+        emp_id,
+        body.get("account_name", ""),
+        body.get("bank_name", ""),
+        body.get("card_no", ""),
+        body.get("reserved_phone", ""),
+        body.get("note", ""),
+    )
+
+
 @app.post("/api/employees")
 async def api_add_employee(body: dict):
     return crud.add_employee(

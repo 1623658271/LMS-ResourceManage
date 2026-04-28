@@ -2,5 +2,7 @@
 /build/
 /dist/
 /.idea/
+__pycache__/
+*.pyc
 data.db
 seed_data.py

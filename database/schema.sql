@@ -25,6 +25,18 @@ CREATE TABLE IF NOT EXISTS employees (
     FOREIGN KEY (sub_dept_id) REFERENCES sub_departments(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS employee_bank_accounts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    emp_id INTEGER NOT NULL UNIQUE,
+    account_name TEXT NOT NULL DEFAULT '',
+    bank_name TEXT NOT NULL DEFAULT '',
+    card_no TEXT NOT NULL DEFAULT '',
+    reserved_phone TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    updated_at TEXT DEFAULT (datetime('now')),
+    FOREIGN KEY (emp_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS models (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     model_no TEXT NOT NULL UNIQUE

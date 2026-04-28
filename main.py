@@ -5,6 +5,7 @@ import time
 import sys
 import os
 import json
+import webbrowser
 
 # 解决 Windows 上的 stdout 缓冲问题
 sys.stdout.reconfigure(line_buffering=True)
@@ -128,11 +129,30 @@ if __name__ == "__main__":
             print(f"切换最大化失败: {e}")
             return False
 
+    def _open_external_url(url: str):
+        """在系统默认浏览器中打开网页链接。"""
+        try:
+            target = str(url or "").strip()
+            if not target.startswith(("http://", "https://")):
+                return False
+            webbrowser.open(target)
+            return True
+        except Exception as e:
+            print(f"打开外部链接失败: {e}")
+            return False
+
+    class ApiBridge:
+        def toggle_fullscreen(self):
+            return _toggle_fullscreen()
+
+        def toggle_maximize(self):
+            return _toggle_maximize()
+
+        def open_external_url(self, url: str):
+            return _open_external_url(url)
+
     # 将函数暴露给 JS: pywebview.api.toggle_fullscreen()
-    webview.api = type('', (), {
-        'toggle_fullscreen': _toggle_fullscreen,
-        'toggle_maximize': _toggle_maximize,
-    })()
+    webview.api = ApiBridge()
     
     # 如果设置了最大化（且不是全屏），在窗口加载完成后最大化
     if is_maximized and not is_fullscreen:
