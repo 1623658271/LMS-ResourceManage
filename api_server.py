@@ -3,6 +3,7 @@ from fastapi import FastAPI, Query, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from typing import Optional, List
 import os
@@ -107,7 +108,7 @@ async def api_save_bank_account(emp_id: int, body: dict):
 
 @app.post("/api/alipay-transfer/autofill")
 async def api_autofill_alipay_transfer(body: dict):
-    return autofill_alipay_bank_transfer(body)
+    return await run_in_threadpool(autofill_alipay_bank_transfer, body)
 
 
 @app.post("/api/employees")
