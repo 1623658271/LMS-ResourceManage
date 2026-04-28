@@ -2,7 +2,7 @@
 // 系统设置
 // ============================================================
 const DEFAULT_SETTINGS = {
-  darkmode: false,
+  themeMode: 'light',
   radius: '8px',
   shadow: '0 2px 8px rgba(0,0,0,0.08)',
   'fontSize-base': '13',
@@ -46,7 +46,8 @@ const COLOR_PRESETS = {
 };
 
 let _currentSettings = { ...DEFAULT_SETTINGS };
-let _savedDarkColors = {};  // 深色模式切换时保存浅色模式颜色
+let _systemThemeMediaQuery = null;
+let _systemThemeWatcherBound = false;
 
 function normalizeSettings(settings) {
   const normalized = { ...settings };
@@ -54,7 +55,58 @@ function normalizeSettings(settings) {
   if (!normalized['fontSize-base']) {
     normalized['fontSize-base'] = DEFAULT_SETTINGS['fontSize-base'];
   }
+  if (!normalized.themeMode) {
+    normalized.themeMode = normalized.darkmode ? 'dark' : DEFAULT_SETTINGS.themeMode;
+  }
+  delete normalized.darkmode;
   return normalized;
+}
+
+function ensureSystemThemeWatcher() {
+  if (_systemThemeWatcherBound || !window.matchMedia) return;
+  _systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+  const onThemeChange = () => {
+    if (_currentSettings.themeMode === 'system') {
+      applyThemeMode('system');
+      updateControlDisplay('themeMode', 'system');
+    }
+  };
+  if (_systemThemeMediaQuery.addEventListener) {
+    _systemThemeMediaQuery.addEventListener('change', onThemeChange);
+  } else if (_systemThemeMediaQuery.addListener) {
+    _systemThemeMediaQuery.addListener(onThemeChange);
+  }
+  _systemThemeWatcherBound = true;
+}
+
+function getResolvedThemeMode(mode = _currentSettings.themeMode) {
+  if (mode === 'system') {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return mode === 'dark' ? 'dark' : 'light';
+}
+
+function isDarkThemeActive() {
+  return getResolvedThemeMode() === 'dark';
+}
+
+function applyThemeMode(mode = _currentSettings.themeMode) {
+  const root = document.documentElement;
+  const resolvedMode = getResolvedThemeMode(mode);
+  if (resolvedMode === 'dark') {
+    root.style.setProperty('--bg', '#0f172a');
+    root.style.setProperty('--card-bg', '#1e293b');
+    root.style.setProperty('--text', '#f1f5f9');
+    root.style.setProperty('--text-muted', '#94a3b8');
+    root.style.setProperty('--border', '#334155');
+    return;
+  }
+
+  root.style.setProperty('--bg', _currentSettings.bg || '#f1f5f9');
+  root.style.setProperty('--card-bg', _currentSettings['card-bg'] || '#ffffff');
+  root.style.setProperty('--text', _currentSettings.text || '#1e293b');
+  root.style.setProperty('--text-muted', '#64748b');
+  root.style.setProperty('--border', '#e2e8f0');
 }
 
 async function loadSettings() {
@@ -93,6 +145,7 @@ async function loadSettings() {
 }
 
 function applyAllSettings() {
+  ensureSystemThemeWatcher();
   for (const key in _currentSettings) {
     applySetting(key, _currentSettings[key], true);
   }
@@ -103,27 +156,8 @@ function applySetting(key, value, skipSave = false) {
   const root = document.documentElement;
 
   switch (key) {
-    case 'darkmode':
-      if (value) {
-        root.style.setProperty('--bg', '#0f172a');
-        root.style.setProperty('--card-bg', '#1e293b');
-        root.style.setProperty('--text', '#f1f5f9');
-        root.style.setProperty('--text-muted', '#94a3b8');
-        root.style.setProperty('--border', '#334155');
-      } else {
-        // 保存深色模式的颜色值
-        _savedDarkColors = {
-          bg: root.style.getPropertyValue('--bg'),
-          'card-bg': root.style.getPropertyValue('--card-bg'),
-          text: root.style.getPropertyValue('--text')
-        };
-        // 恢复浅色模式颜色
-        root.style.setProperty('--bg', _currentSettings.bg || '#f1f5f9');
-        root.style.setProperty('--card-bg', _currentSettings['card-bg'] || '#ffffff');
-        root.style.setProperty('--text', _currentSettings.text || '#1e293b');
-        root.style.setProperty('--text-muted', '#64748b');
-        root.style.setProperty('--border', '#e2e8f0');
-      }
+    case 'themeMode':
+      applyThemeMode(value);
       break;
     case 'radius':
     case 'shadow':
@@ -185,11 +219,14 @@ function applySetting(key, value, skipSave = false) {
     case 'bg':
     case 'card-bg':
     case 'text':
-      root.style.setProperty('--' + key.replace(/([A-Z])/g, '-$1').toLowerCase(), value);
-      if (!_currentSettings.darkmode) {
+      if (key === 'primary' || key === 'sidebar-bg') {
+        root.style.setProperty('--' + key.replace(/([A-Z])/g, '-$1').toLowerCase(), value);
+      }
+      if (!isDarkThemeActive()) {
         if (key === 'bg') root.style.setProperty('--bg', value);
         if (key === 'card-bg') root.style.setProperty('--card-bg', value);
         if (key === 'text') root.style.setProperty('--text', value);
+        if (key === 'sidebar-bg') root.style.setProperty('--sidebar-bg', value);
       }
       // 更新 primary 相关的派生色
       if (key === 'primary') {
@@ -207,7 +244,15 @@ function applySetting(key, value, skipSave = false) {
 
 function updateControlDisplay(key, value) {
   const el = document.getElementById('s-' + key);
-  if (!el) return;
+  if (!el) {
+    const radioEls = document.querySelectorAll(`input[name="s-${key}"]`);
+    if (radioEls.length) {
+      radioEls.forEach(radio => {
+        radio.checked = radio.value === String(value);
+      });
+    }
+    return;
+  }
   if (el.type === 'checkbox') {
     el.checked = value;
   } else if (el.tagName === 'SELECT') {

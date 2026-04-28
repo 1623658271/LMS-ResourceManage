@@ -362,14 +362,24 @@
             </div>
             <div class="settings-row">
               <div class="settings-row-info">
-                <div class="settings-row-label">深色模式</div>
-                <div class="settings-row-desc">切换深色/浅色主题</div>
+                <div class="settings-row-label">主题模式</div>
+                <div class="settings-row-desc">可切换浅色、深色，或跟随系统主题</div>
               </div>
               <div class="settings-row-control">
-                <label class="toggle-switch">
-                  <input type="checkbox" id="s-darkmode" onchange="applySetting('darkmode', this.checked)">
-                  <span class="toggle-slider"></span>
-                </label>
+                <div class="theme-mode-group">
+                  <label class="theme-mode-option">
+                    <input type="radio" id="s-themeMode-light" name="s-themeMode" value="light" onchange="applySetting('themeMode', this.value)">
+                    <span>浅色</span>
+                  </label>
+                  <label class="theme-mode-option">
+                    <input type="radio" id="s-themeMode-dark" name="s-themeMode" value="dark" onchange="applySetting('themeMode', this.value)">
+                    <span>深色</span>
+                  </label>
+                  <label class="theme-mode-option">
+                    <input type="radio" id="s-themeMode-system" name="s-themeMode" value="system" onchange="applySetting('themeMode', this.value)">
+                    <span>跟随系统</span>
+                  </label>
+                </div>
               </div>
             </div>
             <div class="settings-row">

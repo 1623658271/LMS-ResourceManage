@@ -501,6 +501,32 @@ tr:hover td { background: #f8fafc; }
 .toggle-switch input:checked + .toggle-slider { background: var(--primary); }
 .toggle-switch input:checked + .toggle-slider::before { transform: translateX(20px); }
 
+.theme-mode-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.theme-mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: var(--font-size-12);
+  cursor: pointer;
+  user-select: none;
+}
+
+.theme-mode-option input {
+  margin: 0;
+  accent-color: var(--primary);
+}
+
 .slider-control {
   display: flex;
   align-items: center;
