@@ -45,6 +45,115 @@ const COLOR_PRESETS = {
   red: { primary: '#ef4444', 'sidebar-bg': '#7f1d1d', bg: '#fef2f2', 'card-bg': '#ffffff', text: '#7f1d1d' }
 };
 
+const THEME_PALETTES = {
+  light: {
+    'surface-soft': '#f8fafc',
+    'surface-muted': '#f1f5f9',
+    'surface-strong': '#e2e8f0',
+    'member-link': '#2563eb',
+    'member-link-hover': '#f59e0b',
+    'member-list-link': '#0f172a',
+    'dept-large-color': '#d97706',
+    'dept-sub-color': '#059669',
+    'summary-gradient-start': '#eff6ff',
+    'summary-gradient-end': '#f0fdf4',
+    'adjust-bg-start': '#fffdf7',
+    'adjust-bg-end': '#ffffff',
+    'adjust-title': '#92400e',
+    'adjust-empty-border': '#f1c27d',
+    'adjust-empty-bg': '#fff7ed',
+    'adjust-empty-text': '#9a3412',
+    'adjust-table-head-bg': '#fff7ed',
+    'adjust-table-head-text': '#9a3412',
+    'adjust-table-head-border': '#fed7aa',
+    'adjust-table-row-border': '#ffedd5',
+    'adjust-table-row-hover': '#fffaf0',
+    'work-header-bg': '#059669',
+    'work-header-text': '#ffffff',
+    'work-select-bg': '#d1fae5',
+    'work-select-text': '#065f46',
+    'work-cell-filled-bg': '#bfdbfe',
+    'work-total-bg': '#fef9c3',
+    'work-total-text': '#92400e',
+    'work-delete-bg': '#fee2e2',
+    'work-delete-text': '#dc2626'
+  },
+  soft: {
+    'bg': '#1f2937',
+    'card-bg': '#edf4fb',
+    'text': '#1f2937',
+    'text-muted': '#64748b',
+    'border': '#9fb4cc',
+    'surface-soft': '#dbe7f5',
+    'surface-muted': '#d2deed',
+    'surface-strong': '#b9cadf',
+    'member-link': '#1d4ed8',
+    'member-link-hover': '#d97706',
+    'member-list-link': '#0f172a',
+    'dept-large-color': '#c2410c',
+    'dept-sub-color': '#0f766e',
+    'summary-gradient-start': '#dbeafe',
+    'summary-gradient-end': '#e0f2fe',
+    'adjust-bg-start': '#fff7ed',
+    'adjust-bg-end': '#fefce8',
+    'adjust-title': '#9a3412',
+    'adjust-empty-border': '#fdba74',
+    'adjust-empty-bg': '#fff1df',
+    'adjust-empty-text': '#9a3412',
+    'adjust-table-head-bg': '#ffedd5',
+    'adjust-table-head-text': '#9a3412',
+    'adjust-table-head-border': '#fdba74',
+    'adjust-table-row-border': '#fed7aa',
+    'adjust-table-row-hover': '#fff7ed',
+    'work-header-bg': '#0f766e',
+    'work-header-text': '#ecfeff',
+    'work-select-bg': '#ccfbf1',
+    'work-select-text': '#115e59',
+    'work-cell-filled-bg': '#bfdbfe',
+    'work-total-bg': '#fef3c7',
+    'work-total-text': '#92400e',
+    'work-delete-bg': '#fee2e2',
+    'work-delete-text': '#b91c1c'
+  },
+  dark: {
+    'bg': '#0f172a',
+    'card-bg': '#1e293b',
+    'text': '#f1f5f9',
+    'text-muted': '#94a3b8',
+    'border': '#334155',
+    'surface-soft': '#172033',
+    'surface-muted': '#243244',
+    'surface-strong': '#334155',
+    'member-link': '#93c5fd',
+    'member-link-hover': '#fbbf24',
+    'member-list-link': '#e2e8f0',
+    'dept-large-color': '#fbbf24',
+    'dept-sub-color': '#34d399',
+    'summary-gradient-start': '#172554',
+    'summary-gradient-end': '#163d2f',
+    'adjust-bg-start': '#3f2b16',
+    'adjust-bg-end': '#1e293b',
+    'adjust-title': '#fdba74',
+    'adjust-empty-border': '#9a3412',
+    'adjust-empty-bg': '#3f2b16',
+    'adjust-empty-text': '#fed7aa',
+    'adjust-table-head-bg': '#422006',
+    'adjust-table-head-text': '#fed7aa',
+    'adjust-table-head-border': '#7c2d12',
+    'adjust-table-row-border': '#4b2d19',
+    'adjust-table-row-hover': '#312012',
+    'work-header-bg': '#0f766e',
+    'work-header-text': '#ecfeff',
+    'work-select-bg': '#123d3a',
+    'work-select-text': '#99f6e4',
+    'work-cell-filled-bg': '#1d4ed8',
+    'work-total-bg': '#4d3c12',
+    'work-total-text': '#fde68a',
+    'work-delete-bg': '#4c1d1d',
+    'work-delete-text': '#fecaca'
+  }
+};
+
 let _currentSettings = { ...DEFAULT_SETTINGS };
 let _systemThemeMediaQuery = null;
 let _systemThemeWatcherBound = false;
@@ -83,30 +192,34 @@ function getResolvedThemeMode(mode = _currentSettings.themeMode) {
   if (mode === 'system') {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }
+  if (mode === 'soft') return 'soft';
   return mode === 'dark' ? 'dark' : 'light';
-}
-
-function isDarkThemeActive() {
-  return getResolvedThemeMode() === 'dark';
 }
 
 function applyThemeMode(mode = _currentSettings.themeMode) {
   const root = document.documentElement;
   const resolvedMode = getResolvedThemeMode(mode);
-  if (resolvedMode === 'dark') {
-    root.style.setProperty('--bg', '#0f172a');
-    root.style.setProperty('--card-bg', '#1e293b');
-    root.style.setProperty('--text', '#f1f5f9');
-    root.style.setProperty('--text-muted', '#94a3b8');
-    root.style.setProperty('--border', '#334155');
-    return;
+  const palette = THEME_PALETTES[resolvedMode] || THEME_PALETTES.light;
+
+  if (resolvedMode === 'light') {
+    root.style.setProperty('--bg', _currentSettings.bg || '#f1f5f9');
+    root.style.setProperty('--card-bg', _currentSettings['card-bg'] || '#ffffff');
+    root.style.setProperty('--text', _currentSettings.text || '#1e293b');
+    root.style.setProperty('--text-muted', '#64748b');
+    root.style.setProperty('--border', '#e2e8f0');
+  } else {
+    root.style.setProperty('--bg', palette['bg']);
+    root.style.setProperty('--card-bg', palette['card-bg']);
+    root.style.setProperty('--text', palette['text']);
+    root.style.setProperty('--text-muted', palette['text-muted']);
+    root.style.setProperty('--border', palette['border']);
   }
 
-  root.style.setProperty('--bg', _currentSettings.bg || '#f1f5f9');
-  root.style.setProperty('--card-bg', _currentSettings['card-bg'] || '#ffffff');
-  root.style.setProperty('--text', _currentSettings.text || '#1e293b');
-  root.style.setProperty('--text-muted', '#64748b');
-  root.style.setProperty('--border', '#e2e8f0');
+  for (const [key, val] of Object.entries(palette)) {
+    if (['bg', 'card-bg', 'text', 'text-muted', 'border'].includes(key)) continue;
+    root.style.setProperty(`--${key}`, val);
+  }
+
 }
 
 async function loadSettings() {
@@ -222,7 +335,7 @@ function applySetting(key, value, skipSave = false) {
       if (key === 'primary' || key === 'sidebar-bg') {
         root.style.setProperty('--' + key.replace(/([A-Z])/g, '-$1').toLowerCase(), value);
       }
-      if (!isDarkThemeActive()) {
+      if (getResolvedThemeMode() === 'light') {
         if (key === 'bg') root.style.setProperty('--bg', value);
         if (key === 'card-bg') root.style.setProperty('--card-bg', value);
         if (key === 'text') root.style.setProperty('--text', value);

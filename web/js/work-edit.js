@@ -127,13 +127,13 @@ function renderSpreadsheet() {
     const stickyStyle = !isOnlyGroup ? 'left:0;' : '';
 
     const headerHtml = `<thead><tr>
-      <th class="col-fixed" style="min-width:50px;background:#059669;color:#fff;${stickyStyle}z-index:21;">操作</th>
-      <th class="col-fixed" style="min-width:100px;background:#059669;color:#fff;${stickyStyle}z-index:20;">订单号</th>
-      <th class="col-fixed" style="min-width:90px;background:#059669;color:#fff;${stickyStyle}z-index:19;">型号</th>
-      ${groupEmps.map(e => `<th style="min-width:70px;background:#d1fae5;color:#065f46;">
+      <th class="col-fixed" style="min-width:50px;background:var(--work-header-bg);color:var(--work-header-text);${stickyStyle}z-index:21;">操作</th>
+      <th class="col-fixed" style="min-width:100px;background:var(--work-header-bg);color:var(--work-header-text);${stickyStyle}z-index:20;">订单号</th>
+      <th class="col-fixed" style="min-width:90px;background:var(--work-header-bg);color:var(--work-header-text);${stickyStyle}z-index:19;">型号</th>
+      ${groupEmps.map(e => `<th style="min-width:70px;background:var(--work-select-bg);color:var(--work-select-text);">
         <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
-      <th class="col-fixed" style="background:#fef9c3;color:#92400e;min-width:80px;${stickyStyle}z-index:19;">行合计</th>
+      <th class="col-fixed" style="background:var(--work-total-bg);color:var(--work-total-text);min-width:80px;${stickyStyle}z-index:19;">行合计</th>
     </tr></thead>`;
 
     let tbodyHtml = '<tbody>';
@@ -158,7 +158,7 @@ function renderSpreadsheet() {
           // 非0值 → 浅蓝色；0值或空值 → 默认颜色
           const hasQty = qty > 0;
           const displayVal = qty >= 0 ? qty : '';
-          const bgStyle = hasQty ? 'background:#bfdbfe;' : 'background:;';
+          const bgStyle = hasQty ? 'background:var(--work-cell-filled-bg);' : 'background:;';
           return `<td style="text-align:center;">
             <input type="number" min="0" class="cell-input" style="width:65px;${bgStyle}"
               value="${displayVal}" placeholder=""
@@ -184,20 +184,20 @@ function renderSpreadsheet() {
       tbodyHtml += `<tr>
         <td class="col-fixed" style="text-align:center;${stickyStyle}z-index:7;">
           <button class="btn btn-sm"
-            style="padding:4px 10px;font-size:var(--font-size-11);background:#fee2e2;color:#dc2626;"
+            style="padding:4px 10px;font-size:var(--font-size-11);background:var(--work-delete-bg);color:var(--work-delete-text);"
             onclick="deleteWorkRow('${mapKey}')">删除</button>
         </td>
-        <td class="col-fixed" style="background:#d1fae5;${stickyStyle}z-index:6;">
+        <td class="col-fixed" style="background:var(--work-select-bg);${stickyStyle}z-index:6;">
           <select class="cell-input"
-            style="background:#d1fae5;font-weight:600;min-width:80px;"
+            style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:80px;"
             data-row="${mapKey}" data-type="order"
             onchange="onWorkSelectChange(this)">
             ${orderOptions}
           </select>
         </td>
-        <td class="col-fixed" style="background:#d1fae5;${stickyStyle}z-index:5;">
+        <td class="col-fixed" style="background:var(--work-select-bg);${stickyStyle}z-index:5;">
           <select class="cell-input"
-            style="background:#d1fae5;font-weight:600;min-width:70px;"
+            style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:70px;"
             data-row="${mapKey}" data-type="model"
             onchange="onWorkSelectChange(this)">
             ${modelOptions}
@@ -205,7 +205,7 @@ function renderSpreadsheet() {
         </td>
         ${empCells}
         <td class="col-fixed row-total${isWage ? ' wage' : ''}${compact}"
-          style="font-weight:700;text-align:center;background:#fef9c3;color:#92400e;${stickyStyle}z-index:5;">
+          style="font-weight:700;text-align:center;background:var(--work-total-bg);color:var(--work-total-text);${stickyStyle}z-index:5;">
           ${totalDisplay}
         </td>
       </tr>`;
@@ -309,7 +309,7 @@ function onWorkCellChange(el) {
     el.style.background = '';
   } else {
     _weRowMap[mapKey].emps[empId] = val;
-    el.style.background = '#bfdbfe';
+    el.style.background = 'var(--work-cell-filled-bg)';
   }
 
   updateRowTotal(mapKey);
