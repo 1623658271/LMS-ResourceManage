@@ -1,4 +1,6 @@
 """所有数据库 CRUD 操作"""
+from datetime import datetime
+
 from services.db import get_connection
 
 # ── 全局设置 ────────────────────────────────────────────
@@ -181,6 +183,29 @@ def delete_employee(emp_id: int):
     return {"ok": True}
 
 
+def _get_adjustment_items(conn, emp_id: int, year: int, month: int):
+    rows = conn.execute("""
+        SELECT id, emp_id, year, month, adj_date, adj_quantity, adj_amount, reason, created_at
+        FROM salary_adjustments
+        WHERE emp_id=? AND year=? AND month=?
+        ORDER BY adj_date DESC, id DESC
+    """, (emp_id, year, month)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _build_adjustment_summary(items: list[dict]):
+    total_quantity = round(sum(float(item.get("adj_quantity") or 0) for item in items), 2)
+    total_amount = round(sum(float(item.get("adj_amount") or 0) for item in items), 2)
+    reasons = [str(item.get("reason") or "").strip() for item in items]
+    reasons = [reason for reason in reasons if reason]
+    return {
+        "adjustments": items,
+        "adj_quantity": total_quantity,
+        "adj_amount": total_amount,
+        "reason": "；".join(reasons),
+    }
+
+
 def get_employee_detail(emp_id: int, year: int, month: int):
     """员工单月工资明细"""
     conn = get_connection()
@@ -191,7 +216,7 @@ def get_employee_detail(emp_id: int, year: int, month: int):
     ).fetchone()
     if not emp_row:
         conn.close()
-        return {"wage": 0, "total_pairs": 0, "adj_quantity": 0, "adj_amount": 0, "reason": "", "total": 0}
+        return {"wage": 0, "total_pairs": 0, "adj_quantity": 0, "adj_amount": 0, "reason": "", "adjustments": [], "total": 0}
 
     sub_dept_id = emp_row["sub_dept_id"]
 
@@ -211,22 +236,19 @@ def get_employee_detail(emp_id: int, year: int, month: int):
     ).fetchone()
 
     # 增扣
-    adj = conn.execute(
-        "SELECT * FROM salary_adjustments WHERE emp_id=? AND year=? AND month=?",
-        (emp_id, year, month)
-    ).fetchone()
+    adj_summary = _build_adjustment_summary(_get_adjustment_items(conn, emp_id, year, month))
 
     conn.close()
 
-    adj_data = dict(adj) if adj else {"adj_quantity": 0, "adj_amount": 0, "reason": ""}
     wage_val = round(wage[0] if wage else 0, 2)
     return {
         "wage": wage_val,
         "total_pairs": pairs[0] if pairs else 0,
-        "adj_quantity": adj_data["adj_quantity"],
-        "adj_amount": adj_data["adj_amount"],
-        "reason": adj_data["reason"],
-        "total": round(wage_val + adj_data["adj_amount"], 2)
+        "adj_quantity": adj_summary["adj_quantity"],
+        "adj_amount": adj_summary["adj_amount"],
+        "reason": adj_summary["reason"],
+        "adjustments": adj_summary["adjustments"],
+        "total": round(wage_val + adj_summary["adj_amount"], 2)
     }
 
 
@@ -255,9 +277,11 @@ def get_employee_work_history(emp_id: int, source: str = "work"):
 
     # 原有逻辑：从做货编辑读取
     months = conn.execute("""
-        SELECT DISTINCT year, month FROM work_records
-        WHERE emp_id=? ORDER BY year DESC, month DESC
-    """, (emp_id,)).fetchall()
+        SELECT year, month FROM work_records WHERE emp_id=?
+        UNION
+        SELECT year, month FROM salary_adjustments WHERE emp_id=?
+        ORDER BY year DESC, month DESC
+    """, (emp_id, emp_id)).fetchall()
 
     history = []
     for m in months:
@@ -278,25 +302,20 @@ def get_employee_work_history(emp_id: int, source: str = "work"):
         """, (emp["sub_dept_id"], emp_id, year, month)).fetchall()
 
         # 该月增扣
-        adj = conn.execute(
-            "SELECT * FROM salary_adjustments WHERE emp_id=? AND year=? AND month=?",
-            (emp_id, year, month)
-        ).fetchone()
+        adj_summary = _build_adjustment_summary(_get_adjustment_items(conn, emp_id, year, month))
 
         month_wage = round(sum(r["line_wage"] or 0 for r in records), 2)
-        adj_data = dict(adj) if adj else {"adj_quantity": 0, "adj_amount": 0, "reason": ""}
-        reason_val = adj_data.get("reason", "") or adj_data.get("adj_reason", "")
-
         history.append({
             "year": year,
             "month": month,
             "records": [dict(r) for r in records],
             "month_wage": month_wage,
             "total_pairs": sum(r["quantity"] for r in records),
-            "adj_quantity": adj_data["adj_quantity"],
-            "adj_amount": adj_data["adj_amount"],
-            "adj_reason": reason_val,
-            "total": round(month_wage + adj_data["adj_amount"], 2),
+            "adj_quantity": adj_summary["adj_quantity"],
+            "adj_amount": adj_summary["adj_amount"],
+            "adj_reason": adj_summary["reason"],
+            "adjustments": adj_summary["adjustments"],
+            "total": round(month_wage + adj_summary["adj_amount"], 2),
         })
 
     conn.close()
@@ -314,23 +333,23 @@ def _get_employee_qc_history(conn, emp):
 
     # 获取所有有快捷计算数据的年月
     months = conn.execute("""
-        SELECT DISTINCT year, month FROM quick_calc_saves
+        SELECT year, month FROM quick_calc_saves
+        UNION
+        SELECT year, month FROM salary_adjustments WHERE emp_id=?
         ORDER BY year DESC, month DESC
-    """).fetchall()
+    """, (emp_id,)).fetchall()
 
     history = []
     for m in months:
         year, month = m["year"], m["month"]
         saved = load_quick_calc(year, month)
-        if not saved or not saved.get("dept_rows"):
-            continue
-
-        dept_rows = saved["dept_rows"]
-        qty_data = saved["qty_data"]
+        dept_rows = saved["dept_rows"] if saved and saved.get("dept_rows") else {}
+        qty_data = saved["qty_data"] if saved and saved.get("qty_data") else {}
 
         # 计算该员工在该月快捷计算中的工资
         empWage = 0
         empPairs = 0
+        records = []
         for rowKey, row in dept_rows.items():
             if not rowKey.startswith(str(dept_id) + "_"):
                 continue
@@ -340,16 +359,18 @@ def _get_employee_qc_history(conn, emp):
                 subPrice = row.get(sub_dept_id, 0)
                 empWage += qty * subPrice
                 empPairs += qty
+                records.append({
+                    "order_no": "来自快捷计算",
+                    "model_no": "来自快捷计算",
+                    "quantity": qty,
+                    "unit_price": subPrice,
+                    "line_wage": round(qty * subPrice, 2),
+                })
 
         empWage = round(empWage, 2)
 
         # 该月增扣
-        adj = conn.execute(
-            "SELECT * FROM salary_adjustments WHERE emp_id=? AND year=? AND month=?",
-            (emp_id, year, month)
-        ).fetchone()
-        adj_data = dict(adj) if adj else {"adj_quantity": 0, "adj_amount": 0, "reason": ""}
-        reason_val = adj_data.get("reason", "") or adj_data.get("adj_reason", "")
+        adj_summary = _build_adjustment_summary(_get_adjustment_items(conn, emp_id, year, month))
 
         history.append({
             "year": year,
@@ -357,10 +378,11 @@ def _get_employee_qc_history(conn, emp):
             "records": [],  # 快捷计算没有逐条明细
             "month_wage": empWage,
             "total_pairs": empPairs,
-            "adj_quantity": adj_data["adj_quantity"],
-            "adj_amount": adj_data["adj_amount"],
-            "adj_reason": reason_val,
-            "total": round(empWage + adj_data["adj_amount"], 2),
+            "adj_quantity": adj_summary["adj_quantity"],
+            "adj_amount": adj_summary["adj_amount"],
+            "adj_reason": adj_summary["reason"],
+            "adjustments": adj_summary["adjustments"],
+            "total": round(empWage + adj_summary["adj_amount"], 2),
         })
 
     return {
@@ -711,19 +733,41 @@ def delete_work_row(year: int, month: int, order_id: int, model_id: int, line_id
 # ── 人工增扣 ────────────────────────────────────────────
 
 
-def save_adjustment(emp_id: int, year: int, month: int, adj_quantity: float, adj_amount: float, reason: str):
+def save_adjustment(emp_id: int, year: int, month: int, adj_date: str, adj_quantity: float, adj_amount: float, reason: str):
     conn = get_connection()
-    conn.execute("""
-        INSERT INTO salary_adjustments (emp_id, year, month, adj_quantity, adj_amount, reason)
-        VALUES (?,?,?,?,?,?)
-        ON CONFLICT(emp_id, year, month)
-        DO UPDATE SET adj_quantity=excluded.adj_quantity,
-                      adj_amount=excluded.adj_amount,
-                      reason=excluded.reason
-    """, (emp_id, year, month, float(adj_quantity), float(adj_amount), reason or ""))
+    adj_date = (adj_date or f"{int(year):04d}-{int(month):02d}-01").strip()
+    try:
+        parsed_date = datetime.strptime(adj_date, "%Y-%m-%d")
+    except ValueError:
+        conn.close()
+        return {"ok": False, "error": "增扣日期格式不正确"}
+    year = parsed_date.year
+    month = parsed_date.month
+    cur = conn.execute("""
+        INSERT INTO salary_adjustments (emp_id, year, month, adj_date, adj_quantity, adj_amount, reason)
+        VALUES (?,?,?,?,?,?,?)
+    """, (emp_id, year, month, adj_date, float(adj_quantity), float(adj_amount), reason or ""))
     conn.commit()
+    item_id = cur.lastrowid
     conn.close()
-    return {"ok": True}
+    return {"ok": True, "id": item_id}
+
+
+def delete_adjustments(ids: list[int]):
+    clean_ids = [int(item_id) for item_id in ids if item_id]
+    if not clean_ids:
+        return {"ok": True, "deleted": 0}
+
+    conn = get_connection()
+    placeholders = ",".join("?" for _ in clean_ids)
+    cur = conn.execute(
+        f"DELETE FROM salary_adjustments WHERE id IN ({placeholders})",
+        clean_ids
+    )
+    conn.commit()
+    deleted = cur.rowcount
+    conn.close()
+    return {"ok": True, "deleted": deleted}
 
 
 # ── 单价模板管理 ──────────────────────────────────────
@@ -927,8 +971,10 @@ def get_salary_summary(year: int, month: int):
 
     # 增扣
     adj_raw = conn.execute("""
-        SELECT emp_id, adj_amount FROM salary_adjustments
+        SELECT emp_id, COALESCE(SUM(adj_amount), 0) AS adj_amount
+        FROM salary_adjustments
         WHERE year=? AND month=?
+        GROUP BY emp_id
     """, (year, month)).fetchall()
     adj_map = {r["emp_id"]: r["adj_amount"] for r in adj_raw}
 
@@ -988,8 +1034,10 @@ def get_qc_salary_summary(year: int, month: int):
 
     # 获取人工增扣
     adj_raw = conn.execute("""
-        SELECT emp_id, adj_amount FROM salary_adjustments
+        SELECT emp_id, COALESCE(SUM(adj_amount), 0) AS adj_amount
+        FROM salary_adjustments
         WHERE year=? AND month=?
+        GROUP BY emp_id
     """, (year, month)).fetchall()
     adj_map = {r["emp_id"]: r["adj_amount"] for r in adj_raw}
     conn.close()

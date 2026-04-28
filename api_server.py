@@ -254,8 +254,13 @@ async def api_delete_work_row(
 async def api_save_adjustment(body: dict):
     return crud.save_adjustment(
         body.get("emp_id"), body.get("year"), body.get("month"),
-        body.get("adj_quantity", 0), body.get("adj_amount", 0), body.get("reason", "")
+        body.get("adj_date", ""), body.get("adj_quantity", 0), body.get("adj_amount", 0), body.get("reason", "")
     )
+
+
+@app.post("/api/adjustments/batch-delete")
+async def api_delete_adjustments(body: dict):
+    return crud.delete_adjustments(body.get("ids", []))
 
 
 # ── 总工资表 ────────────────────────────────────────────

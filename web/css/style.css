@@ -653,6 +653,7 @@ tr:hover td { background: #f8fafc; }
 .md-summary-name { font-size: var(--font-size-15); font-weight: 700; color: #1e293b; margin-bottom: 4px; }
 .md-summary-meta { font-size: var(--font-size-13); color: var(--text-muted); }
 .md-summary-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+.md-summary-actions { margin-left: auto; }
 .md-summary-stat { text-align: center; }
 .md-summary-stat-val { font-size: var(--font-size-15); font-weight: 700; color: var(--primary); }
 .md-summary-stat-val.green { color: var(--success); }
@@ -685,6 +686,57 @@ tr:hover td { background: #f8fafc; }
 .md-records-table tr:last-child td { border-bottom: none; }
 .md-records-table tr:hover td { background: #fafafa; }
 .md-no-records td { color: var(--text-muted); font-style: italic; text-align: center; }
+.md-adjustment-section {
+  padding: 14px 16px 16px;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, #fffdf7, #ffffff);
+}
+.md-adjustment-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.md-adjustment-title {
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  color: #92400e;
+}
+.md-adjustment-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.md-adjustment-empty {
+  padding: 14px 16px;
+  border: 1px dashed #f1c27d;
+  border-radius: 10px;
+  color: #9a3412;
+  background: #fff7ed;
+  font-size: var(--font-size-12);
+}
+.md-adjustments-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--table-font-size);
+}
+.md-adjustments-table th {
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 600;
+  padding: 7px 12px;
+  text-align: left;
+  border-bottom: 1px solid #fed7aa;
+}
+.md-adjustments-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #ffedd5;
+  vertical-align: middle;
+}
+.md-adjustments-table tr:last-child td { border-bottom: none; }
+.md-adjustments-table tr:hover td { background: #fffaf0; }
 
 /* ============================================================
    型号单价表
@@ -956,7 +1008,9 @@ tr:hover td { background: #f8fafc; }
   }
 
   body.salary-print-mode #view-salary,
-  body.salary-print-mode #view-salary * {
+  body.salary-print-mode #view-salary *,
+  body.salary-print-mode #salaryPrintRoot,
+  body.salary-print-mode #salaryPrintRoot * {
     visibility: visible;
   }
 
@@ -972,7 +1026,8 @@ tr:hover td { background: #f8fafc; }
   body.salary-print-mode .content,
   body.salary-print-mode #view-salary,
   body.salary-print-mode #view-salary .card,
-  body.salary-print-mode #salaryContent {
+  body.salary-print-mode #salaryContent,
+  body.salary-print-mode #salaryPrintRoot {
     position: static !important;
     width: 100% !important;
     max-width: none !important;
@@ -985,6 +1040,10 @@ tr:hover td { background: #f8fafc; }
   }
 
   body.salary-print-mode .salary-print-header {
+    display: flex !important;
+  }
+
+  body.salary-print-mode #salaryPrintRoot .salary-print-header {
     display: flex !important;
   }
 
