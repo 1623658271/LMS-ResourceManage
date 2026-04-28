@@ -943,6 +943,92 @@ DELETE /api/data/clean?emp_id=1&year=2026&month=4
 
 ---
 
+## 十四B、自定义字体管理
+
+> 自定义字体文件存放在 `web/fonts/` 目录，通过静态路径 `/fonts/{filename}` 访问。
+> 字体列表持久化在 `app_settings` 表，key 为 `custom_fonts`（JSON 数组）。
+
+### 14B.1 上传字体文件
+
+```
+POST /api/fonts/upload
+Content-Type: multipart/form-data
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `file` | File | ✅ | 字体文件（.ttf / .ttc / .woff / .woff2 / .otf），上限 50MB |
+
+**处理逻辑**:
+1. 验证文件扩展名和大小
+2. 文件名用 UUID 重命名，避免冲突
+3. 同 display_name 的字体会覆盖旧文件
+4. 字体元信息存入 `app_settings` 表的 `custom_fonts` key
+
+**响应**:
+```json
+{
+  "ok": true,
+  "font": {
+    "filename": "a1b2c3d4.ttf",
+    "display_name": "华文行楷",
+    "font_family": "custom_华文行楷_a1b2c3d4",
+    "url": "/fonts/a1b2c3d4.ttf"
+  }
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `filename` | 服务器上的文件名（UUID） |
+| `display_name` | 用户看到的字体显示名（取自原始文件名） |
+| `font_family` | CSS `font-family` 值，格式为 `custom_{显示名}_{文件名前8位}` |
+| `url` | 字体文件的访问路径 |
+
+---
+
+### 14B.2 获取已保存的自定义字体列表
+
+```
+GET /api/fonts/list
+```
+
+**响应**:
+```json
+{
+  "fonts": [
+    {
+      "filename": "a1b2c3d4.ttf",
+      "display_name": "华文行楷",
+      "font_family": "custom_华文行楷_a1b2c3d4",
+      "url": "/fonts/a1b2c3d4.ttf"
+    }
+  ]
+}
+```
+
+> 无自定义字体时返回 `{"fonts": []}`
+
+---
+
+### 14B.3 删除自定义字体
+
+```
+DELETE /api/fonts/{filename}
+```
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `filename` | string | ✅ | 字体文件名（UUID，如 `a1b2c3d4.ttf`） |
+
+**处理逻辑**:
+1. 删除 `web/fonts/` 下的字体文件
+2. 从 `app_settings` 的 `custom_fonts` 中移除该条记录
+
+**响应**: `{"ok": true}` 或 `{"ok": false, "error": "字体文件不存在"}`
+
+---
+
 ## 十五、数据库导入导出
 
 ### 15.1 导出数据库
