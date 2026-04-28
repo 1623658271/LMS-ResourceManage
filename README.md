@@ -1,10 +1,10 @@
-# 立杰人力资源管理系统
+# 立杰工资管理系统
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows)
 
-一款基于 **Python + pywebview** 的本地人力资源管理系统，支持员工管理、做货记录与工资计算，数据存储于本地 SQLite，无需网络连接。
+一款基于 **Python + pywebview** 的本地工资管理系统，支持成员管理、做货记录、快捷计算与工资汇总，数据存储于本地 SQLite，无需网络连接。
 
 ---
 
@@ -118,7 +118,7 @@ python build.py --debug  # 带控制台窗口（调试用）
 ## 项目结构
 
 ```
-LMS/
+立杰工资管理系统/
 ├── main.py              # 程序入口（启动 FastAPI + pywebview）
 ├── api_server.py        # FastAPI 后端服务
 ├── api.py               # pywebview JS 桥接层
@@ -158,4 +158,4 @@ python seed_data.py
 
 ## 许可证
 
-[MIT](LICENSE) © 2026 立杰人力资源管理系统
+[MIT](LICENSE) © 2026 立杰工资管理系统

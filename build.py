@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-立杰人力资源管理系统 - PyInstaller 打包脚本
+立杰工资管理系统 - PyInstaller 打包脚本
 使用方法: python build.py [--debug] [--clean]
 """
 
@@ -31,7 +31,7 @@ def clean_build():
 def build(debug=False):
     """打包应用程序"""
     print("=" * 50)
-    print("  立杰人力资源管理系统 - 打包")
+    print("  立杰工资管理系统 - 打包")
     print("=" * 50)
     print()
     
@@ -42,7 +42,7 @@ def build(debug=False):
     cmd = [
         sys.executable, '-m', 'PyInstaller',
         'main.py',
-        '--name', '立杰人力资源管理系统',
+        '--name', '立杰工资管理系统',
         '--onedir',  # Directory mode: data persists in the folder
         '--add-data', 'web;web',
         '--add-data', 'database;database',
@@ -75,7 +75,7 @@ def build(debug=False):
         print("  Build Successful!")
         print("=" * 50)
         print()
-        print("Output: dist\\立杰人力资源管理系统.exe")
+        print("Output: dist\\立杰工资管理系统.exe")
         print()
         print("You can distribute the 'dist' folder to other machines.")
         print("No Python installation required on target machines.")

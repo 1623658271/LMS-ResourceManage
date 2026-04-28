@@ -1,4 +1,4 @@
-' 立杰人力资源管理系统 - 静默启动（无命令行窗口）
+' 立杰工资管理系统 - 静默启动（无命令行窗口）
 ' 使用 VBScript 隐藏命令行窗口启动 Python
 
 Dim WshShell
@@ -16,7 +16,7 @@ pythonCheck = WshShell.Run("cmd /c where python >nul 2>nul", 0, True)
 If pythonCheck <> 0 Then
     MsgBox "未检测到 Python，请先安装 Python 3.8 或更高版本" & vbCrLf & vbCrLf & _
            "下载地址: https://www.python.org/downloads/" & vbCrLf & vbCrLf & _
-           "安装时请勾选 'Add Python to PATH'", vbExclamation, "立杰人力资源管理系统 - 首次运行"
+           "安装时请勾选 'Add Python to PATH'", vbExclamation, "立杰工资管理系统 - 首次运行"
     WScript.Quit 1
 End If
 
@@ -59,7 +59,7 @@ End If
 cmd = cmd & "call venv\Scripts\activate.bat && "
 cmd = cmd & "python -m pip install --upgrade pip -q && "
 cmd = cmd & "pip install -q -r requirements.txt && "
-cmd = cmd & "echo [提示] 启动立杰人力资源管理系统... && "
+cmd = cmd & "echo [提示] 启动立杰工资管理系统... && "
 
 ' 启动主程序
 cmd = cmd & "pythonw main.py"

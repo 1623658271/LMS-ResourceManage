@@ -92,7 +92,7 @@ if __name__ == "__main__":
         y = 0
     
     window = webview.create_window(
-        title="立杰人力资源管理系统",
+        title="立杰工资管理系统",
         url="http://127.0.0.1:8765",
         width=win_settings.get('width', 1400),
         height=win_settings.get('height', 900),

@@ -1,4 +1,4 @@
-# 立杰人力资源管理系统 — API 接口文档
+# 立杰工资管理系统 — API 接口文档
 
 > **基础 URL**: `http://localhost:8765`
 > **Content-Type**: `application/json`

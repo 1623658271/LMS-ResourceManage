@@ -1,9 +1,9 @@
 @echo off
 chcp 65001 >nul
-title Li-Jie HR System - Build Tool
+title Li-Jie Wage System - Build Tool
 
 echo ==========================================
-echo   Li-Jie HR System - Build Tool
+echo   Li-Jie Wage System - Build Tool
 echo ==========================================
 echo.
 
@@ -37,26 +37,26 @@ exit /b 1
 :normal
 echo.
 echo [Info] Building normal version (directory mode for data persistence)...
-python -m PyInstaller main.py --name "立杰人力资源管理系统" --windowed --onedir --add-data "web;web" --add-data "database;database" --add-data "services;services" --add-data "api.py;." --add-data "api_server.py;." --hidden-import webview --hidden-import webview.platforms.winforms --clean --noconfirm
+python -m PyInstaller main.py --name "立杰工资管理系统" --windowed --onedir --icon "立杰鞋业工资管理系统.ico" --add-data "web;web" --add-data "database;database" --add-data "services;services" --add-data "api.py;." --add-data "api_server.py;." --hidden-import webview --hidden-import webview.platforms.winforms --clean --noconfirm
 if errorlevel 1 (
     echo [Error] Build failed!
     pause
     exit /b 1
 )
-echo [Success] Build complete! Output: dist\立杰人力资源管理系统.exe
+echo [Success] Build complete! Output: dist\立杰工资管理系统.exe
 pause
 exit /b 0
 
 :debug
 echo.
 echo [Info] Building debug version (directory mode for data persistence)...
-python -m PyInstaller main.py --name "立杰人力资源管理系统" --console --onedir --add-data "web;web" --add-data "database;database" --add-data "services;services" --add-data "api.py;." --add-data "api_server.py;." --hidden-import webview --hidden-import webview.platforms.winforms --clean --noconfirm
+python -m PyInstaller main.py --name "立杰工资管理系统" --console --onedir --icon "立杰鞋业工资管理系统.ico" --add-data "web;web" --add-data "database;database" --add-data "services;services" --add-data "api.py;." --add-data "api_server.py;." --hidden-import webview --hidden-import webview.platforms.winforms --clean --noconfirm
 if errorlevel 1 (
     echo [Error] Build failed!
     pause
     exit /b 1
 )
-echo [Success] Build complete! Output: dist\立杰人力资源管理系统.exe
+echo [Success] Build complete! Output: dist\立杰工资管理系统.exe
 pause
 exit /b 0
 

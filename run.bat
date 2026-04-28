@@ -7,7 +7,7 @@ cd /d "%~dp0"
 where python >nul 2>nul
 if errorlevel 1 (
     echo ==========================================
-    echo   立杰人力资源管理系统 - 首次运行
+    echo   立杰工资管理系统 - 首次运行
     echo ==========================================
     echo.
     echo 未检测到 Python，请先安装 Python 3.8 或更高版本
@@ -65,6 +65,6 @@ if errorlevel 1 (
 )
 
 :: 启动主程序
-echo [提示] 启动立杰人力资源管理系统...
+echo [提示] 启动立杰工资管理系统...
 python main.py
 pause
