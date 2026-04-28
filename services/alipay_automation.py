@@ -1,9 +1,7 @@
 """Alipay bank transfer form autofill helpers."""
-import os
 import threading
-from typing import Optional
-
-from services.db import get_base_dir
+import time
+import webbrowser
 
 TRANSFER_URL = "https://shenghuo.alipay.com/transfercore/fill.htm?_tosheet=true&_pdType=afcabecbcahiibffiiih"
 
@@ -11,199 +9,92 @@ TRANSFER_URL = "https://shenghuo.alipay.com/transfercore/fill.htm?_tosheet=true&
 class AlipayAutomationManager:
     def __init__(self):
         self._lock = threading.Lock()
-        self._playwright = None
-        self._context = None
-        self._page = None
-        self._channel = None
 
-    def _load_playwright(self):
+    @staticmethod
+    def _load_pyautogui():
         try:
-            from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-            return sync_playwright, PlaywrightTimeoutError, None
+            import pyautogui
+            pyautogui.FAILSAFE = True
+            pyautogui.PAUSE = 0.12
+            return pyautogui, None
         except ImportError:
-            return None, None, "缺少 Playwright 依赖，请先重新运行项目安装依赖。"
-
-    def _profile_dir(self):
-        path = os.path.join(get_base_dir(), "alipay_browser_profile")
-        os.makedirs(path, exist_ok=True)
-        return path
-
-    def _ensure_context(self):
-        sync_playwright, _, import_error = self._load_playwright()
-        if import_error:
-            return None, import_error
-
-        if self._context and self._page:
-            try:
-                if not self._page.is_closed():
-                    return self._page, None
-            except Exception:
-                self._page = None
-                self._context = None
-
-        if self._playwright is None:
-            self._playwright = sync_playwright().start()
-
-        last_error = None
-        for channel in ("msedge", "chrome", None):
-            try:
-                kwargs = {
-                    "user_data_dir": self._profile_dir(),
-                    "headless": False,
-                    "viewport": None,
-                    "args": ["--start-maximized"],
-                }
-                if channel:
-                    kwargs["channel"] = channel
-                context = self._playwright.chromium.launch_persistent_context(**kwargs)
-                page = context.pages[0] if context.pages else context.new_page()
-                self._context = context
-                self._page = page
-                self._channel = channel or "chromium"
-                return page, None
-            except Exception as exc:
-                last_error = str(exc)
-
-        return None, f"自动化浏览器启动失败：{last_error or '未知错误'}"
+            return None, "缺少 pyautogui 依赖，请先执行 `pip install -r requirements.txt`。"
 
     @staticmethod
-    def _page_contains_text(page, text: str):
-        try:
-            return page.get_by_text(text, exact=False).first.is_visible(timeout=800)
-        except Exception:
-            return False
+    def _set_clipboard(text: str):
+        import tkinter as tk
 
-    def _needs_login(self, page):
-        try:
-            url = page.url or ""
-        except Exception:
-            url = ""
-        if "login" in url.lower():
-            return True
-        login_markers = ("登录", "扫码登录", "支付宝登录", "请登录")
-        return any(self._page_contains_text(page, marker) for marker in login_markers)
+        root = tk.Tk()
+        root.withdraw()
+        root.clipboard_clear()
+        root.clipboard_append(text)
+        root.update()
+        root.destroy()
+
+    def _paste_value(self, pyautogui, value: str):
+        self._set_clipboard(str(value or ""))
+        time.sleep(0.08)
+        pyautogui.hotkey("ctrl", "v")
+        time.sleep(0.2)
 
     @staticmethod
-    def _clear_and_fill(locator, value: str):
-        locator.click()
-        locator.press("Control+A")
-        locator.fill(str(value))
+    def _press_tab(pyautogui, presses: int = 1):
+        for _ in range(max(presses, 0)):
+            pyautogui.press("tab")
+            time.sleep(0.15)
 
-    def _find_field_after_labels(self, page, labels: list[str], field_tags: tuple[str, ...] = ("input", "textarea")):
-        for label in labels:
-            for tag in field_tags:
-                xpaths = [
-                    f"xpath=(//*[self::label or self::span or self::div or self::td][contains(normalize-space(.), '{label}')])[last()]/following::{tag}[1]",
-                    f"xpath=(//*[contains(normalize-space(text()), '{label}')])[last()]/following::{tag}[1]",
-                ]
-                for xp in xpaths:
-                    locator = page.locator(xp).first
-                    try:
-                        if locator.count() and locator.is_visible():
-                            return locator
-                    except Exception:
-                        continue
-        return None
+    def _autofill_via_keyboard(self, pyautogui, payload: dict):
+        bank_name = str(payload.get("bank_name") or "").strip()
+        card_no = "".join(str(payload.get("card_no") or "").split())
+        account_name = str(payload.get("account_name") or "").strip()
+        amount = float(payload.get("amount") or 0)
+        note = str(payload.get("note") or "").strip()[:20]
 
-    def _visible_fill_fields(self, page):
-        candidates = []
-        for tag in ("input", "textarea"):
-            locator = page.locator(tag)
-            try:
-                count = min(locator.count(), 40)
-            except Exception:
-                count = 0
-            for idx in range(count):
-                node = locator.nth(idx)
-                try:
-                    input_type = (node.get_attribute("type") or "").lower()
-                    if input_type in ("hidden", "submit", "radio", "checkbox", "button"):
-                        continue
-                    if node.is_visible() and not node.is_disabled():
-                        candidates.append(node)
-                except Exception:
-                    continue
-        return candidates
+        # 假设转账页打开后焦点位于首个表单字段附近，按页面顺序依次填写。
+        # 如果支付宝页面后续改版，只需要微调这里的 tab 节奏即可。
+        if bank_name:
+            self._paste_value(pyautogui, bank_name)
+            pyautogui.press("down")
+            time.sleep(0.15)
+            pyautogui.press("enter")
+            time.sleep(0.2)
 
-    def _fill_transfer_form(self, page, payload: dict):
-        page.wait_for_load_state("domcontentloaded")
-        page.wait_for_timeout(1500)
+        self._press_tab(pyautogui, 1)
+        if card_no:
+            self._paste_value(pyautogui, card_no)
 
-        bank_field = self._find_field_after_labels(page, ["收款方", "收款银行", "银行"])
-        card_field = self._find_field_after_labels(page, ["银行卡号", "卡号", "收款卡号"])
-        name_field = self._find_field_after_labels(page, ["姓名", "收款人姓名", "开户姓名", "户名"])
-        amount_field = self._find_field_after_labels(page, ["付款金额", "金额"])
-        note_field = self._find_field_after_labels(page, ["付款说明", "备注"], ("input", "textarea"))
+        self._press_tab(pyautogui, 1)
+        if account_name:
+            self._paste_value(pyautogui, account_name)
 
-        fallbacks = self._visible_fill_fields(page)
-        fallback_index = 0
+        self._press_tab(pyautogui, 1)
+        self._paste_value(pyautogui, f"{amount:.2f}")
 
-        def pick(field):
-            nonlocal fallback_index
-            if field is not None:
-                return field
-            if fallback_index < len(fallbacks):
-                field = fallbacks[fallback_index]
-                fallback_index += 1
-                return field
-            return None
-
-        bank_field = pick(bank_field)
-        card_field = pick(card_field)
-        name_field = pick(name_field)
-        amount_field = pick(amount_field)
-        note_field = pick(note_field)
-
-        if bank_field and payload.get("bank_name"):
-            self._clear_and_fill(bank_field, payload["bank_name"])
-            try:
-                bank_field.press("ArrowDown")
-                bank_field.press("Enter")
-                page.wait_for_timeout(300)
-            except Exception:
-                pass
-
-        if card_field and payload.get("card_no"):
-            self._clear_and_fill(card_field, payload["card_no"])
-
-        if name_field and payload.get("account_name"):
-            self._clear_and_fill(name_field, payload["account_name"])
-
-        if amount_field and payload.get("amount") is not None:
-            self._clear_and_fill(amount_field, f"{float(payload['amount']):.2f}")
-
-        if note_field and payload.get("note"):
-            self._clear_and_fill(note_field, payload["note"])
-
-        page.wait_for_timeout(500)
+        if note:
+            self._press_tab(pyautogui, 3)
+            self._paste_value(pyautogui, note)
 
     def autofill_bank_transfer(self, payload: dict):
+        pyautogui, error = self._load_pyautogui()
+        if error:
+            return {"ok": False, "error": error}
+
         with self._lock:
-            page, error = self._ensure_context()
-            if error:
-                return {"ok": False, "error": error}
-
             try:
-                page.goto(TRANSFER_URL, wait_until="domcontentloaded")
-                page.bring_to_front()
-                page.wait_for_timeout(1200)
+                opened = webbrowser.open(TRANSFER_URL, new=1)
+                if not opened:
+                    return {"ok": False, "error": "未能打开系统默认浏览器。"}
 
-                if self._needs_login(page):
-                    return {
-                        "ok": False,
-                        "requires_login": True,
-                        "error": "请先在自动化浏览器中登录支付宝，登录完成后再次点击工资打款。",
-                    }
-
-                self._fill_transfer_form(page, payload)
-                page.bring_to_front()
+                # 给默认浏览器和支付宝页面一些加载时间，尽量复用当前登录态。
+                time.sleep(3.6)
+                self._autofill_via_keyboard(pyautogui, payload)
                 return {
                     "ok": True,
-                    "message": "已自动填写支付宝转账表单，请在浏览器中核对后手动确认付款。",
-                    "browser": self._channel or "",
+                    "message": "已在默认浏览器中尝试自动填写支付宝转账表单，请立即核对内容并手动确认付款。填表期间请不要操作鼠标键盘。",
+                    "browser": "default",
                 }
             except Exception as exc:
-                return {"ok": False, "error": f"自动填表失败：{exc}"}
+                return {"ok": False, "error": f"默认浏览器自动填表失败：{exc}"}
 
 
 manager = AlipayAutomationManager()

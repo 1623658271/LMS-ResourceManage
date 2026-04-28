@@ -243,7 +243,7 @@ function showBankPayoutModal(empId) {
   openModal(`
     <div class="modal-title">工资打款辅助</div>
     <div class="bank-pay-tip">
-      将打开独立的支付宝自动化浏览器并尝试自动填表。首次使用需要先在这个浏览器里登录一次支付宝，之后会自动带出信息，最终付款仍需你手动确认。
+      将直接打开你电脑的默认浏览器并尝试自动填写支付宝银行卡转账页，方便复用你平时已经登录好的支付宝。自动填写时请暂时不要操作鼠标和键盘，最终付款仍需你手动确认。
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -360,11 +360,6 @@ async function openAlipayForPayout(empId, year, month, source) {
 
   if (result && result.ok) {
     showToast(result.message || '已自动填写支付宝表单', 'success');
-    return;
-  }
-
-  if (result && result.requires_login) {
-    showToast(result.error || '请先在自动化浏览器中登录支付宝', 'info');
     return;
   }
 
