@@ -7,3 +7,4 @@ __pycache__/
 /alipay_browser_profile/
 data.db
 seed_data.py
+b.json

@@ -243,7 +243,7 @@ function showBankPayoutModal(empId) {
   openModal(`
     <div class="modal-title">工资打款辅助</div>
     <div class="bank-pay-tip">
-      将直接打开你电脑的默认浏览器并尝试自动填写支付宝银行卡转账页，方便复用你平时已经登录好的支付宝。自动填写时请暂时不要操作鼠标和键盘，最终付款仍需你手动确认。
+      将直接打开你电脑的默认浏览器，并按支付宝转账页的表单元素自动填写银行、卡号、开户人、金额和付款说明，方便复用你平时已经登录好的支付宝。自动填写时请暂时不要操作鼠标和键盘，最终付款仍需你手动确认。
     </div>
     <div class="form-row">
       <div class="form-group">
