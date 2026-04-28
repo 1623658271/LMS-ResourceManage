@@ -10,6 +10,7 @@ import os
 import json
 import shutil
 import uuid
+from urllib import parse, request
 
 from services.db import init_database
 from services import crud
@@ -18,6 +19,9 @@ from services.alipay_automation import autofill_alipay_bank_transfer
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
 FONTS_DIR = os.path.join(WEB_DIR, "fonts")
+BANK_MAP_PATH = os.path.join(BASE_DIR, "b.json")
+
+_bank_name_map = None
 
 app = FastAPI(title="立杰HR API")
 
@@ -109,6 +113,61 @@ async def api_save_bank_account(emp_id: int, body: dict):
 @app.post("/api/alipay-transfer/autofill")
 async def api_autofill_alipay_transfer(body: dict):
     return await run_in_threadpool(autofill_alipay_bank_transfer, body)
+
+
+def _load_bank_name_map():
+    global _bank_name_map
+    if _bank_name_map is not None:
+        return _bank_name_map
+
+    if not os.path.exists(BANK_MAP_PATH):
+        _bank_name_map = {}
+        return _bank_name_map
+
+    with open(BANK_MAP_PATH, "r", encoding="utf-8") as f:
+        _bank_name_map = json.load(f)
+    return _bank_name_map
+
+
+def _lookup_bank_info(card_no: str):
+    clean_card = "".join(str(card_no or "").split())
+    if not clean_card:
+        return {"ok": False, "error": "银行卡号不能为空"}
+
+    api_url = (
+        "https://ccdcapi.alipay.com/validateAndCacheCardInfo.json?"
+        + parse.urlencode({"cardNo": clean_card, "cardBinCheck": "true"})
+    )
+    req = request.Request(
+        api_url,
+        headers={
+            "User-Agent": "Mozilla/5.0",
+            "Accept": "application/json,text/plain,*/*",
+        },
+    )
+
+    try:
+        with request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except Exception as exc:
+        return {"ok": False, "error": f"查询开户行失败：{exc}"}
+
+    if not data.get("validated") or data.get("stat") != "ok":
+        return {"ok": False, "error": "未查询到该银行卡的开户行信息", "raw": data}
+
+    bank_code = str(data.get("bank") or "").strip()
+    bank_name = _load_bank_name_map().get(bank_code, bank_code)
+    return {
+        "ok": True,
+        "bank_code": bank_code,
+        "bank_name": bank_name,
+        "raw": data,
+    }
+
+
+@app.get("/api/bank-lookup")
+async def api_lookup_bank(card_no: str = Query(...)):
+    return await run_in_threadpool(_lookup_bank_info, card_no)
 
 
 @app.post("/api/employees")

@@ -810,6 +810,38 @@ tr:hover td { background: #f8fafc; }
   flex-direction: column;
   gap: 10px;
 }
+.bank-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+}
+.bank-edit-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bank-edit-item-wide {
+  grid-column: 1 / -1;
+}
+.bank-inline-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.bank-inline-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: var(--font-size-12);
+}
+.bank-inline-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.12);
+}
 .bank-info-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -892,9 +924,14 @@ tr:hover td { background: #f8fafc; }
   .bank-card-header {
     flex-direction: column;
   }
+  .bank-edit-grid,
   .bank-info-grid,
   .bank-stats {
     grid-template-columns: 1fr;
+  }
+  .bank-inline-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 

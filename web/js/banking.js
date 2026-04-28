@@ -17,6 +17,16 @@ function getBankAccountRow(empId) {
   return (_bankAccountRows || []).find(item => item.emp_id === empId) || null;
 }
 
+function getBankDefaultNote(year, month) {
+  return `${year}-${pad(month)}-工资`;
+}
+
+function getBankFieldValue(empId, field, fallback = '') {
+  const el = document.getElementById(`bank-${field}-${empId}`);
+  if (!el) return fallback;
+  return el.value != null ? String(el.value) : fallback;
+}
+
 function maskBankCard(cardNo) {
   const clean = String(cardNo || '').replace(/\s+/g, '');
   if (!clean) return '未填写银行卡';
@@ -73,6 +83,17 @@ function buildTransferSummary(item, amount, note, year, month, source) {
   return lines.join('\n');
 }
 
+function buildBankSavePayload(empId, year, month) {
+  const item = getBankAccountRow(empId) || {};
+  return {
+    account_name: getBankFieldValue(empId, 'account-name', item.account_name || item.name || '').trim(),
+    bank_name: getBankFieldValue(empId, 'bank-name', item.bank_name || '').trim(),
+    card_no: getBankFieldValue(empId, 'card-no', item.card_no || '').trim(),
+    reserved_phone: item.reserved_phone || '',
+    note: getBankFieldValue(empId, 'note', item.note || getBankDefaultNote(year, month)).trim(),
+  };
+}
+
 async function copyBankModalField(inputId, label) {
   const el = document.getElementById(inputId);
   const text = el ? el.value : '';
@@ -110,6 +131,31 @@ function renderBankCards(rows, year, month, source) {
         </div>
       </div>
       <div class="bank-card-body">
+        <div class="bank-edit-grid">
+          <div class="bank-edit-item">
+            <label class="bank-info-label" for="bank-card-no-${item.emp_id}">银行卡号</label>
+            <input id="bank-card-no-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.card_no || '')}" placeholder="有缓存则默认带出">
+          </div>
+          <div class="bank-edit-item">
+            <label class="bank-info-label" for="bank-account-name-${item.emp_id}">开户人</label>
+            <input id="bank-account-name-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.account_name || item.name || '')}" placeholder="默认成员名">
+          </div>
+          <div class="bank-edit-item">
+            <label class="bank-info-label" for="bank-amount-${item.emp_id}">金额</label>
+            <input id="bank-amount-${item.emp_id}" class="bank-inline-input" type="number" step="0.01" value="${fmt(item.total || 0)}" placeholder="默认当月工资">
+          </div>
+          <div class="bank-edit-item">
+            <label class="bank-info-label" for="bank-note-${item.emp_id}">备注</label>
+            <input id="bank-note-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.note || getBankDefaultNote(year, month))}" placeholder="默认日期-工资">
+          </div>
+          <div class="bank-edit-item bank-edit-item-wide">
+            <label class="bank-info-label" for="bank-bank-name-${item.emp_id}">银行卡开户行</label>
+            <div class="bank-inline-row">
+              <input id="bank-bank-name-${item.emp_id}" class="bank-inline-input" type="text" value="${escHtml(item.bank_name || '')}" placeholder="有缓存则默认带出">
+              <button class="btn btn-sm btn-secondary" onclick="lookupBankName(${item.emp_id})">更新开户行</button>
+            </div>
+          </div>
+        </div>
         <div class="bank-info-grid">
           <div class="bank-info-item">
             <span class="bank-info-label">收款人</span>
@@ -145,7 +191,7 @@ function renderBankCards(rows, year, month, source) {
         </div>
       </div>
       <div class="bank-actions">
-        <button class="btn btn-sm btn-secondary" onclick="showEditBankAccountModal(${item.emp_id})">编辑银行卡</button>
+        <button class="btn btn-sm btn-secondary" onclick="saveBankAccount(${item.emp_id}, ${year}, ${month})">保存</button>
         <button class="btn btn-sm btn-primary" onclick="showBankPayoutModal(${item.emp_id})">工资打款</button>
       </div>
     </div>
@@ -164,68 +210,32 @@ async function loadBankAccounts() {
   renderBankCards(_bankAccountRows, year, month, source);
 }
 
-function showEditBankAccountModal(empId) {
-  const item = getBankAccountRow(empId);
-  if (!item) {
-    showToast('未找到该成员的银行卡信息', 'error');
-    return;
-  }
-
-  openModal(`
-    <div class="modal-title">编辑银行卡信息</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>成员姓名</label>
-        <input type="text" value="${escHtml(item.name)}" disabled>
-      </div>
-      <div class="form-group">
-        <label>收款人姓名</label>
-        <input id="bank-account-name" type="text" value="${escHtml(item.account_name || item.name || '')}" placeholder="默认使用成员姓名">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>开户行</label>
-        <input id="bank-bank-name" type="text" value="${escHtml(item.bank_name || '')}" placeholder="例如：中国农业银行">
-      </div>
-      <div class="form-group">
-        <label>银行卡号</label>
-        <input id="bank-card-no" type="text" value="${escHtml(item.card_no || '')}" placeholder="请输入银行卡号">
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label>预留手机</label>
-        <input id="bank-phone" type="text" value="${escHtml(item.reserved_phone || '')}" placeholder="选填">
-      </div>
-      <div class="form-group">
-        <label>备注</label>
-        <input id="bank-note" type="text" value="${escHtml(item.note || '')}" placeholder="选填">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="saveBankAccount(${empId})">保存</button>
-    </div>
-  `);
-}
-
-async function saveBankAccount(empId) {
-  const payload = {
-    account_name: document.getElementById('bank-account-name')?.value.trim() || '',
-    bank_name: document.getElementById('bank-bank-name')?.value.trim() || '',
-    card_no: document.getElementById('bank-card-no')?.value.trim() || '',
-    reserved_phone: document.getElementById('bank-phone')?.value.trim() || '',
-    note: document.getElementById('bank-note')?.value.trim() || '',
-  };
+async function saveBankAccount(empId, year, month) {
+  const payload = buildBankSavePayload(empId, year, month);
 
   const result = await post(`/api/bank-accounts/${empId}`, payload);
   if (result && result.ok) {
-    closeModal();
     showToast('银行卡信息已保存', 'success');
     loadBankAccounts();
   } else {
     showToast((result && result.error) || '保存失败', 'error');
+  }
+}
+
+async function lookupBankName(empId) {
+  const cardNo = getBankFieldValue(empId, 'card-no', '').trim();
+  if (!cardNo) {
+    showToast('请先输入银行卡号', 'info');
+    return;
+  }
+
+  const result = await get(`/api/bank-lookup?card_no=${encodeURIComponent(cardNo)}`);
+  if (result && result.ok) {
+    const bankInput = document.getElementById(`bank-bank-name-${empId}`);
+    if (bankInput) bankInput.value = result.bank_name || '';
+    showToast(`已识别开户行：${result.bank_name || result.bank_code}`, 'success');
+  } else {
+    showToast((result && result.error) || '开户行查询失败', 'error');
   }
 }
 
@@ -238,7 +248,11 @@ function showBankPayoutModal(empId) {
 
   const { year, month } = getBankTargetMonth();
   const source = getBankSalarySource();
-  const amount = Number(item.total || 0).toFixed(2);
+  const amount = getBankFieldValue(empId, 'amount', fmt(item.total || 0));
+  const accountName = getBankFieldValue(empId, 'account-name', item.account_name || item.name || '');
+  const bankName = getBankFieldValue(empId, 'bank-name', item.bank_name || '');
+  const cardNo = getBankFieldValue(empId, 'card-no', item.card_no || '');
+  const note = getBankFieldValue(empId, 'note', item.note || getBankDefaultNote(year, month));
 
   openModal(`
     <div class="modal-title">工资打款辅助</div>
@@ -258,17 +272,17 @@ function showBankPayoutModal(empId) {
     <div class="form-row">
       <div class="form-group">
         <label>收款人姓名</label>
-        <input id="pay-account-name" type="text" value="${escHtml(item.account_name || item.name || '')}">
+        <input id="pay-account-name" type="text" value="${escHtml(accountName)}">
       </div>
       <div class="form-group">
         <label>开户行</label>
-        <input id="pay-bank-name" type="text" value="${escHtml(item.bank_name || '')}">
+        <input id="pay-bank-name" type="text" value="${escHtml(bankName)}">
       </div>
     </div>
     <div class="form-row">
       <div class="form-group">
         <label>银行卡号</label>
-        <input id="pay-card-no" type="text" value="${escHtml(item.card_no || '')}">
+        <input id="pay-card-no" type="text" value="${escHtml(cardNo)}">
       </div>
       <div class="form-group">
         <label>打款金额</label>
@@ -282,7 +296,7 @@ function showBankPayoutModal(empId) {
       </div>
       <div class="form-group">
         <label>备注</label>
-        <input id="pay-note" type="text" value="${escHtml(item.note || '')}" placeholder="例如：${year}-${pad(month)} 工资">
+        <input id="pay-note" type="text" value="${escHtml(note)}" placeholder="例如：${year}-${pad(month)}-工资">
       </div>
     </div>
     <div class="bank-copy-actions">
