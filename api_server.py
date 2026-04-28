@@ -19,7 +19,9 @@ from services.alipay_automation import autofill_alipay_bank_transfer
 DATA_DIR = get_base_dir()
 RESOURCE_DIR = get_resource_dir()
 WEB_DIR = os.path.join(RESOURCE_DIR, "web")
-FONTS_DIR = os.path.join(DATA_DIR, "web", "fonts")
+RESOURCE_FONTS_DIR = os.path.join(WEB_DIR, "fonts")
+USER_FONTS_DIR = os.path.join(DATA_DIR, "fonts")
+LEGACY_USER_FONTS_DIR = os.path.join(DATA_DIR, "web", "fonts")
 BANK_MAP_PATH = os.path.join(RESOURCE_DIR, "b.json")
 
 _bank_name_map = None
@@ -41,15 +43,33 @@ app.mount("/js", StaticFiles(directory=os.path.join(WEB_DIR, "js")), name="js")
 # 挂载 CSS 目录
 app.mount("/css", StaticFiles(directory=os.path.join(WEB_DIR, "css")), name="css")
 
-# 确保 fonts 目录存在并挂载
-os.makedirs(FONTS_DIR, exist_ok=True)
-app.mount("/fonts", StaticFiles(directory=FONTS_DIR), name="fonts")
+# 确保用户字体目录存在
+os.makedirs(USER_FONTS_DIR, exist_ok=True)
 
 
 # ── 挂载静态文件（前端页面） ───────────────────────────
 @app.get("/")
 async def root():
     return FileResponse(os.path.join(WEB_DIR, "index.html"))
+
+
+def _resolve_font_path(filename: str):
+    safe_name = os.path.basename(filename or "")
+    if not safe_name:
+        return None
+    for directory in (USER_FONTS_DIR, LEGACY_USER_FONTS_DIR, RESOURCE_FONTS_DIR):
+        candidate = os.path.join(directory, safe_name)
+        if os.path.exists(candidate) and os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+@app.get("/fonts/{filename:path}")
+async def serve_font(filename: str):
+    font_path = _resolve_font_path(filename)
+    if not font_path:
+        raise HTTPException(status_code=404, detail="字体文件不存在")
+    return FileResponse(font_path)
 
 
 # ── 部门管理 ────────────────────────────────────────────
@@ -653,7 +673,7 @@ async def api_upload_font(file: UploadFile = File(...)):
             return {"ok": False, "error": "字体文件过大（超过 50MB）"}
 
         safe_name = _get_safe_filename(file.filename)
-        file_path = os.path.join(FONTS_DIR, safe_name)
+        file_path = os.path.join(USER_FONTS_DIR, safe_name)
 
         with open(file_path, 'wb') as f:
             f.write(content)
@@ -663,9 +683,10 @@ async def api_upload_font(file: UploadFile = File(...)):
         fonts_list = _get_custom_fonts_list()
         existing = next((f for f in fonts_list if f['display_name'] == display_name), None)
         if existing:
-            old_path = os.path.join(FONTS_DIR, existing['filename'])
-            if os.path.exists(old_path):
-                os.remove(old_path)
+            for font_dir in (USER_FONTS_DIR, LEGACY_USER_FONTS_DIR):
+                old_path = os.path.join(font_dir, existing['filename'])
+                if os.path.exists(old_path):
+                    os.remove(old_path)
             existing['filename'] = safe_name
         else:
             fonts_list.append({
@@ -690,12 +711,18 @@ async def api_list_fonts():
 @app.delete("/api/fonts/{filename}")
 async def api_delete_font(filename: str):
     """删除自定义字体文件"""
-    safe_path = os.path.join(FONTS_DIR, os.path.basename(filename))
-    if not os.path.exists(safe_path):
+    safe_name = os.path.basename(filename)
+    delete_targets = [
+        os.path.join(USER_FONTS_DIR, safe_name),
+        os.path.join(LEGACY_USER_FONTS_DIR, safe_name),
+    ]
+    existing_targets = [path for path in delete_targets if os.path.exists(path)]
+    if not existing_targets:
         return {"ok": False, "error": "字体文件不存在"}
 
     try:
-        os.remove(safe_path)
+        for safe_path in existing_targets:
+            os.remove(safe_path)
         fonts_list = _get_custom_fonts_list()
         fonts_list = [f for f in fonts_list if f['filename'] != filename]
         _save_custom_fonts_list(fonts_list)
