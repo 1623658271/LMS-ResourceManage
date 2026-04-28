@@ -2,7 +2,7 @@
 // 银行卡管理
 // ============================================================
 
-const ALIPAY_WEB_URL = 'https://www.alipay.com/';
+const ALIPAY_WEB_URL = 'https://shenghuo.alipay.com/transfercore/fill.htm?_tosheet=true&_pdType=afcabecbcahiibffiiih';
 let _bankAccountRows = [];
 
 function getBankSalarySource() {
@@ -243,7 +243,7 @@ function showBankPayoutModal(empId) {
   openModal(`
     <div class="modal-title">工资打款辅助</div>
     <div class="bank-pay-tip">
-      将复制打款信息并打开支付宝网页。为了稳定和免接口使用，最终付款仍需你在支付宝里手动确认完成。
+      将打开独立的支付宝自动化浏览器并尝试自动填表。首次使用需要先在这个浏览器里登录一次支付宝，之后会自动带出信息，最终付款仍需你手动确认。
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -292,7 +292,7 @@ function showBankPayoutModal(empId) {
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" onclick="openAlipayForPayout(${empId}, ${year}, ${month}, '${source}')">复制信息并打开支付宝</button>
+      <button class="btn btn-primary" onclick="openAlipayForPayout(${empId}, ${year}, ${month}, '${source}')">自动填表并打开支付宝</button>
     </div>
   `);
 }
@@ -342,6 +342,31 @@ async function openAlipayForPayout(empId, year, month, source) {
   );
 
   const copied = await copyTextToClipboard(transferInfo);
+  const payload = {
+    emp_id: empId,
+    year,
+    month,
+    source,
+    account_name: accountName,
+    bank_name: bankName,
+    card_no: cardNo,
+    reserved_phone: phone,
+    note,
+    amount,
+  };
+
+  const result = await post('/api/alipay-transfer/autofill', payload);
+  closeModal();
+
+  if (result && result.ok) {
+    showToast(result.message || '已自动填写支付宝表单', 'success');
+    return;
+  }
+
+  if (result && result.requires_login) {
+    showToast(result.error || '请先在自动化浏览器中登录支付宝', 'info');
+    return;
+  }
 
   let opened = false;
   try {
@@ -356,16 +381,14 @@ async function openAlipayForPayout(empId, year, month, source) {
     opened = !!win;
   }
 
-  closeModal();
-  if (!opened) {
-    showToast('未能自动打开支付宝网页，请手动打开支付宝官网', 'error');
-    return;
+  if (opened) {
+    showToast((result && result.error) ? `${result.error}，已回退到手动页面` : '已打开支付宝页面，请手动填写', 'info');
+  } else {
+    showToast((result && result.error) || '未能自动打开支付宝页面', 'error');
   }
 
-  if (copied) {
-    showToast('已复制打款信息并打开支付宝网页', 'success');
-  } else {
-    showToast('已打开支付宝网页，请手动复制打款信息', 'info');
+  if (!copied) {
+    showToast('自动填表失败时，打款信息复制也失败了', 'error');
   }
 }
 

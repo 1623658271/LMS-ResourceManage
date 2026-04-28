@@ -12,6 +12,7 @@ import uuid
 
 from services.db import init_database
 from services import crud
+from services.alipay_automation import autofill_alipay_bank_transfer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(BASE_DIR, "web")
@@ -102,6 +103,11 @@ async def api_save_bank_account(emp_id: int, body: dict):
         body.get("reserved_phone", ""),
         body.get("note", ""),
     )
+
+
+@app.post("/api/alipay-transfer/autofill")
+async def api_autofill_alipay_transfer(body: dict):
+    return autofill_alipay_bank_transfer(body)
 
 
 @app.post("/api/employees")

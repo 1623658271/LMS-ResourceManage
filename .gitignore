@@ -4,5 +4,6 @@
 /.idea/
 __pycache__/
 *.pyc
+/alipay_browser_profile/
 data.db
 seed_data.py
