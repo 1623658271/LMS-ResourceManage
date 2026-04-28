@@ -47,6 +47,7 @@ def build(debug=False):
         '--add-data', 'web;web',
         '--add-data', 'database;database',
         '--add-data', 'services;services',
+        '--add-data', 'b.json;.',
         '--add-data', 'api.py;.',
         '--add-data', 'api_server.py;.',
         '--hidden-import', 'webview',

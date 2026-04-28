@@ -12,11 +12,11 @@ import shutil
 import uuid
 from urllib import parse, request
 
-from services.db import init_database
+from services.db import init_database, get_base_dir
 from services import crud
 from services.alipay_automation import autofill_alipay_bank_transfer
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = get_base_dir()
 WEB_DIR = os.path.join(BASE_DIR, "web")
 FONTS_DIR = os.path.join(WEB_DIR, "fonts")
 BANK_MAP_PATH = os.path.join(BASE_DIR, "b.json")
