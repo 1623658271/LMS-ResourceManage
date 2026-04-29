@@ -260,7 +260,7 @@ function onQcColumnDragOver(event) {
   event.preventDefault();
   const th = event.currentTarget;
   if (parseInt(th.dataset.empId, 10) !== qcColumnDraggingEmpId) {
-    markDragOverPosition(th, event, 'horizontal');
+    markDragOverPosition(th);
   }
 }
 
@@ -286,9 +286,10 @@ function onQcColumnDrop(event) {
   setManualEmployeeOrder(
     'quickcalc',
     targetDeptId,
-    moveIdRelative(currentIds, qcColumnDraggingEmpId, targetEmpId, isDropAfterTarget(event, th, 'horizontal'))
+    swapIds(currentIds, qcColumnDraggingEmpId, targetEmpId)
   );
   renderQcDeptTables();
+  markSwapSuccess('.quick-employee-header', [qcColumnDraggingEmpId, targetEmpId]);
 }
 
 function onQcColumnDragEnd(event) {

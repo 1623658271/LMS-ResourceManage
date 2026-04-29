@@ -161,42 +161,40 @@ function moveIdBefore(list, movingId, beforeId) {
   return next;
 }
 
-function moveIdRelative(list, movingId, targetId, placeAfter = false) {
-  const id = parseInt(movingId, 10);
-  const target = parseInt(targetId, 10);
-  const original = (list || []).map(v => parseInt(v, 10)).filter(Boolean);
-  if (!id || !target || id === target) return original;
+function swapIds(list, firstId, secondId) {
+  const a = parseInt(firstId, 10);
+  const b = parseInt(secondId, 10);
+  const next = (list || []).map(v => parseInt(v, 10)).filter(Boolean);
+  if (!a || !b || a === b) return next;
 
-  const next = original.filter(v => v !== id);
-  const targetIndex = next.indexOf(target);
-  if (targetIndex < 0) {
-    next.push(id);
-    return next;
-  }
+  const ai = next.indexOf(a);
+  const bi = next.indexOf(b);
+  if (ai < 0 || bi < 0) return next;
 
-  next.splice(targetIndex + (placeAfter ? 1 : 0), 0, id);
+  [next[ai], next[bi]] = [next[bi], next[ai]];
   return next;
 }
 
-function isDropAfterTarget(event, target, axis = 'vertical') {
-  const rect = target.getBoundingClientRect();
-  if (axis === 'horizontal') {
-    return event.clientX > rect.left + rect.width / 2;
-  }
-  return event.clientY > rect.top + rect.height / 2;
-}
-
-function markDragOverPosition(target, event, axis = 'vertical') {
+function markDragOverPosition(target) {
   if (!target) return;
-  const after = isDropAfterTarget(event, target, axis);
   target.classList.add('drag-over');
-  target.classList.toggle('drag-over-before', !after);
-  target.classList.toggle('drag-over-after', after);
 }
 
 function clearDragOverPosition(target) {
   if (!target) return;
-  target.classList.remove('drag-over', 'drag-over-before', 'drag-over-after');
+  target.classList.remove('drag-over');
+}
+
+function markSwapSuccess(selector, ids, attr = 'data-emp-id') {
+  requestAnimationFrame(() => {
+    for (const id of ids || []) {
+      const el = document.querySelector(`${selector}[${attr}="${id}"]`);
+      if (!el) continue;
+      el.classList.remove('swap-success');
+      void el.offsetWidth;
+      el.classList.add('swap-success');
+    }
+  });
 }
 
 function ensureMemberOrderSyncSwitch(page, toolbar, onChange) {

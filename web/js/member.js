@@ -110,7 +110,7 @@ function onMemberDragOver(event) {
   event.preventDefault();
   const card = event.currentTarget;
   if (parseInt(card.dataset.empId, 10) !== memberDraggingId) {
-    markDragOverPosition(card, event, 'vertical');
+    markDragOverPosition(card);
   }
 }
 
@@ -124,8 +124,7 @@ function onMemberDrop(event) {
   const card = event.currentTarget;
   applyMemberDrop(
     parseInt(card.dataset.deptId, 10),
-    parseInt(card.dataset.empId, 10),
-    isDropAfterTarget(event, card, 'vertical')
+    parseInt(card.dataset.empId, 10)
   );
 }
 
@@ -153,7 +152,7 @@ function clearMemberDragState() {
   });
 }
 
-async function applyMemberDrop(targetDeptId, targetEmpId, placeAfter = false) {
+async function applyMemberDrop(targetDeptId, targetEmpId) {
   const empId = memberDraggingId;
   if (!empId) return;
   if (targetDeptId !== memberDraggingDeptId) {
@@ -168,7 +167,7 @@ async function applyMemberDrop(targetDeptId, targetEmpId, placeAfter = false) {
     .filter(emp => emp.dept_id === targetDeptId)
     .map(emp => emp.id);
   const nextIds = targetEmpId
-    ? moveIdRelative(currentIds, empId, targetEmpId, placeAfter)
+    ? swapIds(currentIds, empId, targetEmpId)
     : currentIds.filter(id => id !== empId).concat(empId);
   const result = await put('/api/employees/order', {
     dept_id: targetDeptId,
@@ -178,6 +177,7 @@ async function applyMemberDrop(targetDeptId, targetEmpId, placeAfter = false) {
   if (result && result.ok !== false) {
     showToast('成员顺序已保存', 'success');
     await loadMembers({ animate: false });
+    if (targetEmpId) markSwapSuccess('.member-card', [empId, targetEmpId]);
   } else {
     showToast(result?.error || '保存成员顺序失败', 'error');
     await loadMembers({ animate: false });

@@ -121,7 +121,7 @@ function onSalaryRowDragOver(event) {
   event.preventDefault();
   const row = event.currentTarget;
   if (parseInt(row.dataset.empId, 10) !== salaryDraggingEmpId) {
-    markDragOverPosition(row, event, 'vertical');
+    markDragOverPosition(row);
   }
 }
 
@@ -129,7 +129,7 @@ function onSalaryRowDragLeave(event) {
   clearDragOverPosition(event.currentTarget);
 }
 
-function onSalaryRowDrop(event) {
+async function onSalaryRowDrop(event) {
   event.preventDefault();
   event.stopPropagation();
   const row = event.currentTarget;
@@ -146,9 +146,10 @@ function onSalaryRowDrop(event) {
   setManualEmployeeOrder(
     'salary',
     targetDeptId,
-    moveIdRelative(currentIds, salaryDraggingEmpId, targetEmpId, isDropAfterTarget(event, row, 'vertical'))
+    swapIds(currentIds, salaryDraggingEmpId, targetEmpId)
   );
-  loadSalary({ animate: false });
+  await loadSalary({ animate: false });
+  markSwapSuccess('.salary-dept-block tr', [salaryDraggingEmpId, targetEmpId]);
 }
 
 function onSalaryRowDragEnd(event) {

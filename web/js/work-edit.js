@@ -418,7 +418,7 @@ function onWorkColumnDragOver(event) {
   event.preventDefault();
   const th = event.currentTarget;
   if (parseInt(th.dataset.empId, 10) !== workColumnDraggingEmpId) {
-    markDragOverPosition(th, event, 'horizontal');
+    markDragOverPosition(th);
   }
 }
 
@@ -444,9 +444,10 @@ function onWorkColumnDrop(event) {
   setManualEmployeeOrder(
     'work',
     targetDeptId,
-    moveIdRelative(currentIds, workColumnDraggingEmpId, targetEmpId, isDropAfterTarget(event, th, 'horizontal'))
+    swapIds(currentIds, workColumnDraggingEmpId, targetEmpId)
   );
   renderSpreadsheet();
+  markSwapSuccess('.work-employee-header', [workColumnDraggingEmpId, targetEmpId]);
 }
 
 function onWorkColumnDragEnd(event) {

@@ -244,7 +244,7 @@ function onBankCardDragOver(event) {
   event.preventDefault();
   const card = event.currentTarget;
   if (parseInt(card.dataset.empId, 10) !== bankDraggingEmpId) {
-    markDragOverPosition(card, event, 'vertical');
+    markDragOverPosition(card);
   }
 }
 
@@ -270,10 +270,11 @@ function onBankCardDrop(event) {
   setManualEmployeeOrder(
     'banking',
     targetDeptId,
-    moveIdRelative(currentIds, bankDraggingEmpId, targetEmpId, isDropAfterTarget(event, card, 'vertical'))
+    swapIds(currentIds, bankDraggingEmpId, targetEmpId)
   );
   const { year, month } = getBankTargetMonth();
   renderBankCards(_bankAccountRows, year, month, getBankSalarySource());
+  markSwapSuccess('.bank-card-sortable', [bankDraggingEmpId, targetEmpId]);
 }
 
 function onBankCardDragEnd(event) {
