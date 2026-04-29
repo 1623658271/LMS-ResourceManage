@@ -1360,20 +1360,19 @@ tr:hover td { background: var(--surface-soft); }
 .single-table-mode { min-width: max-content; }
 /* 工资格紧凑显示（数字过长时缩小字号） */
 .cell-input.wage-cell-display {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-block;
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
   white-space: nowrap;
   font-size: var(--table-font-size-xs);
 }
 .cell-input.wage-cell-display.compact { font-size: var(--table-font-size-xxs); }
 /* 行合计紧凑样式 */
 .row-total-display {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
   white-space: nowrap;
   padding: 0 4px;
   font-size: var(--table-font-size);
@@ -1442,7 +1441,9 @@ tr:hover td { background: var(--surface-soft); }
   overflow: auto;
 }
 .qc-dept-table-wrap .spreadsheet {
-  table-layout: fixed;
+  table-layout: auto;
+  width: max-content;
+  min-width: 100%;
 }
 .qc-dept-table-wrap .spreadsheet th,
 .qc-dept-table-wrap .spreadsheet td,
@@ -1464,11 +1465,10 @@ tr:hover td { background: var(--surface-soft); }
   color: #6b7280;
 }
 .qc-dept-table-wrap .qc-price-display {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  display: inline-block;
+  width: max-content;
+  min-width: 100%;
+  overflow: visible;
   white-space: nowrap;
   color: #374151;
 }
