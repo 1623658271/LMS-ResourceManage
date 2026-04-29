@@ -677,6 +677,13 @@ tr:hover td { background: var(--surface-soft); }
   margin-top: 8px;
 }
 
+.overview-section-title {
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 12px 4px;
+}
+
 .overview-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
@@ -687,6 +694,7 @@ tr:hover td { background: var(--surface-soft); }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
 }
 .overview-card:hover {
   border-color: var(--primary);
@@ -701,6 +709,42 @@ tr:hover td { background: var(--surface-soft); }
 }
 .overview-card .oc-title { font-size: var(--font-size-14); font-weight: 600; }
 .overview-card .oc-desc { font-size: var(--font-size-12); color: var(--text-muted); }
+
+.overview-favorite-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.overview-favorite-btn:hover,
+.overview-favorite-btn.active {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #d97706;
+}
+.overview-favorite-btn svg {
+  width: 15px;
+  height: 15px;
+}
+.overview-empty {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-align: center;
+  font-size: var(--font-size-12);
+}
 
 /* ============================================================
    部门管理 - 树形布局

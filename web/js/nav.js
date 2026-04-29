@@ -79,7 +79,8 @@ function _doNavigateTo(view) {
   };
   document.getElementById('topbarTitle').textContent = titles[view] || view;
 
-  if (view === 'members') loadMembers({ animate: false });
+  if (view === 'overview' && typeof renderOverviewCards === 'function') renderOverviewCards();
+  else if (view === 'members') loadMembers({ animate: false });
   else if (view === 'departments') loadDepartments();
   else if (view === 'orders') loadOrders({ animate: false });
   else if (view === 'prices') loadPriceTable();
