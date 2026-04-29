@@ -143,9 +143,9 @@ function renderSpreadsheet() {
   }
 
   function buildGroupTable(groupIdx, groupEmps, isOnlyGroup) {
-    const actionColStyle = 'left:0;min-width:50px;width:50px;';
-    const orderColStyle = 'left:50px;min-width:100px;width:100px;';
-    const modelColStyle = 'left:150px;min-width:90px;width:90px;';
+    const actionColStyle = 'left:0;min-width:58px;width:58px;';
+    const orderColStyle = 'left:58px;min-width:150px;width:150px;';
+    const modelColStyle = 'left:208px;min-width:120px;width:120px;';
 
     const headerHtml = `<thead>
     <tr class="work-dept-hint-row">
@@ -215,16 +215,16 @@ function renderSpreadsheet() {
             onclick="deleteWorkRow('${mapKey}')">删除</button>
         </td>
         <td class="col-fixed work-sticky-order" style="${orderColStyle}background:var(--work-select-bg);z-index:8;">
-          <select class="cell-input"
-            style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:80px;"
+          <select class="cell-input work-floating-select"
+            style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:120px;"
             data-row="${mapKey}" data-type="order"
             onchange="onWorkSelectChange(this)">
             ${orderOptions}
           </select>
         </td>
         <td class="col-fixed work-sticky-model" style="${modelColStyle}background:var(--work-select-bg);z-index:7;">
-          <select class="cell-input"
-            style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:70px;"
+          <select class="cell-input work-floating-select"
+            style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:96px;"
             data-row="${mapKey}" data-type="model"
             onchange="onWorkSelectChange(this)">
             ${modelOptions}

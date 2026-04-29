@@ -102,19 +102,19 @@ function renderQcDeptTables() {
 
       // 表头 - 只有单价列和成员列，没有型号列，操作列在最左边
       html += '<thead><tr>';
-      html += `<th style="min-width:60px;background:#059669;color:#fff;position:sticky;top:0;z-index:10;text-align:center;">操作</th>`;
+      html += `<th style="min-width:58px;width:58px;background:#059669;color:#fff;position:sticky;top:0;z-index:10;text-align:center;">操作</th>`;
       for (const sub of deptSubs) {
-        html += `<th style="min-width:75px;background:#d1fae5;color:#065f46;position:sticky;top:0;z-index:10;text-align:center;">
+        html += `<th style="min-width:70px;width:70px;background:#d1fae5;color:#065f46;position:sticky;top:0;z-index:10;text-align:center;">
           ${escHtml(sub.name)}<br><span class="qc-th-subtext">单价</span>
         </th>`;
       }
       for (const emp of deptEmps) {
-        html += `<th style="min-width:75px;background:#e0e7ff;color:#3730a3;position:sticky;top:0;z-index:10;text-align:center;">
+        html += `<th style="min-width:70px;width:70px;background:#e0e7ff;color:#3730a3;position:sticky;top:0;z-index:10;text-align:center;">
           <span class="member-list-name-color" onclick="showEmployeeDetail(${emp.id})">${escHtml(emp.name)}</span>
           <br><span class="qc-th-subtext">${escHtml(emp.sub_dept_name)}</span>
         </th>`;
       }
-      html += `<th style="min-width:70px;background:#fef9c3;color:#92400e;position:sticky;top:0;z-index:10;text-align:center;">行合计</th>`;
+      html += `<th style="min-width:70px;width:70px;background:#fef9c3;color:#92400e;position:sticky;top:0;z-index:10;text-align:center;">行合计</th>`;
       html += '</tr></thead>';
 
       // 表体
@@ -151,7 +151,7 @@ function renderQcDeptTables() {
           } else {
             html += `<td class="qc-price-cell" style="text-align:center;background:#f0fdf4;">
               <input type="number" min="0" step="0.01" class="cell-input qc-price-input"
-                style="text-align:center;"
+                style="width:65px;text-align:center;"
                 value="${priceVal || ''}" placeholder="0"
                 data-row-key="${escHtml(rowKey)}" data-sub-id="${sub.id}"
                 onfocus="onQcCellFocus(this, 'price')"
@@ -183,7 +183,7 @@ function renderQcDeptTables() {
             const bgStyle = hasQty ? 'background:#bfdbfe;' : '';
             html += `<td class="emp-cell" style="text-align:center;">
               <input type="number" min="0" class="cell-input qc-qty-input"
-                style="text-align:center;${bgStyle}"
+                style="width:65px;text-align:center;${bgStyle}"
                 value="${qty || ''}" placeholder="0"
                 data-key="${qtyKey}"
                 data-row-key="${escHtml(rowKey)}"
