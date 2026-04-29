@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS employees (
     gender TEXT NOT NULL CHECK(gender IN ('男', '女')),
     dept_id INTEGER NOT NULL,
     sub_dept_id INTEGER NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (dept_id) REFERENCES departments(id) ON DELETE CASCADE,
     FOREIGN KEY (sub_dept_id) REFERENCES sub_departments(id) ON DELETE CASCADE
 );

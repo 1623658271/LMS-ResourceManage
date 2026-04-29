@@ -1,6 +1,10 @@
 // ============================================================
 // 成员管理
 // ============================================================
+let memberDraggingId = 0;
+let memberDraggingDeptId = 0;
+let memberSuppressClickUntil = 0;
+
 async function loadMembers(options = {}) {
   const { animate = true } = options;
   const container = document.getElementById('memberList');
@@ -18,24 +22,171 @@ async function loadMembers(options = {}) {
       return;
     }
 
-    container.innerHTML = emps.map(emp => `
-      <div class="member-card">
-        <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
-        <div class="member-card-info">
-          <span class="member-name member-list-name-color" onclick="showEditMemberModal(${emp.id})" title="点击编辑">${escHtml(emp.name)}</span>
-          <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
-          <span class="dept-large">${escHtml(emp.dept_name)}</span>
-          <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
-        </div>
-        <div class="member-card-actions">
-          <button class="btn btn-sm btn-primary" onclick="navigateToMemberDetail(${emp.id})">详情</button>
-          <button class="btn btn-sm btn-secondary" onclick="showEditMemberModal(${emp.id})">编辑</button>
-          <button class="btn btn-sm btn-danger" onclick="delMember(${emp.id})">删除</button>
-        </div>
-      </div>
-    `).join('');
+    container.innerHTML = buildMemberDepartmentBlocks(emps);
   } finally {
     finishRefresh();
+  }
+}
+
+function buildMemberDepartmentBlocks(emps) {
+  const groups = [];
+  const groupMap = new Map();
+  emps.forEach(emp => {
+    if (!groupMap.has(emp.dept_id)) {
+      const group = {
+        dept_id: emp.dept_id,
+        dept_name: emp.dept_name,
+        employees: [],
+      };
+      groups.push(group);
+      groupMap.set(emp.dept_id, group);
+    }
+    groupMap.get(emp.dept_id).employees.push(emp);
+  });
+
+  return groups.map(group => `
+    <div class="dept-block member-dept-block" data-dept-id="${group.dept_id}">
+      <div class="dept-block-header member-dept-header">
+        <span><span class="dept-large">${escHtml(group.dept_name)}</span></span>
+        <span class="dept-totals">${group.employees.length} 名成员 · 仅支持本部门内拖拽排序</span>
+      </div>
+      <div class="member-dept-body"
+        data-dept-id="${group.dept_id}"
+        ondragover="onMemberGroupDragOver(event)"
+        ondrop="onMemberGroupDrop(event)">
+        ${group.employees.map(emp => buildMemberCard(emp)).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildMemberCard(emp) {
+  return `
+    <div class="member-card" draggable="true" data-emp-id="${emp.id}" data-dept-id="${emp.dept_id}"
+      ondragstart="onMemberDragStart(event)"
+      ondragover="onMemberDragOver(event)"
+      ondragleave="onMemberDragLeave(event)"
+      ondrop="onMemberDrop(event)"
+      ondragend="onMemberDragEnd(event)">
+      <span class="member-drag-handle" title="拖拽调整同部门内顺序">⋮⋮</span>
+      <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
+      <div class="member-card-info">
+        <span class="member-name member-list-name-color" onclick="safeShowEditMemberModal(${emp.id}, event)" title="点击编辑">${escHtml(emp.name)}</span>
+        <span class="member-gender-badge">${emp.gender === '女' ? '♀' : '♂'}</span>
+        <span class="dept-large">${escHtml(emp.dept_name)}</span>
+        <span class="dept-sub">/ ${escHtml(emp.sub_dept_name)}</span>
+      </div>
+      <div class="member-card-actions">
+        <button class="btn btn-sm btn-primary" onclick="navigateToMemberDetail(${emp.id})">详情</button>
+        <button class="btn btn-sm btn-secondary" onclick="showEditMemberModal(${emp.id})">编辑</button>
+        <button class="btn btn-sm btn-danger" onclick="delMember(${emp.id})">删除</button>
+      </div>
+    </div>
+  `;
+}
+
+function safeShowEditMemberModal(empId, event) {
+  if (Date.now() < memberSuppressClickUntil) {
+    if (event) event.preventDefault();
+    return;
+  }
+  showEditMemberModal(empId);
+}
+
+function onMemberDragStart(event) {
+  if (event.target.closest('button,input,.member-list-name-color')) {
+    event.preventDefault();
+    return;
+  }
+  const card = event.currentTarget;
+  memberDraggingId = parseInt(card.dataset.empId, 10);
+  memberDraggingDeptId = parseInt(card.dataset.deptId, 10);
+  card.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(memberDraggingId));
+}
+
+function onMemberDragOver(event) {
+  event.preventDefault();
+  const card = event.currentTarget;
+  if (parseInt(card.dataset.empId, 10) !== memberDraggingId) {
+    card.classList.add('drag-over');
+  }
+}
+
+function onMemberDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onMemberDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const card = event.currentTarget;
+  applyMemberDrop(parseInt(card.dataset.deptId, 10), parseInt(card.dataset.empId, 10));
+}
+
+function onMemberGroupDragOver(event) {
+  event.preventDefault();
+}
+
+function onMemberGroupDrop(event) {
+  if (event.target.closest && event.target.closest('.member-card')) return;
+  event.preventDefault();
+  applyMemberDrop(parseInt(event.currentTarget.dataset.deptId, 10), 0);
+}
+
+function onMemberDragEnd(event) {
+  event.currentTarget.classList.remove('dragging');
+  clearMemberDragState();
+  memberDraggingId = 0;
+  memberDraggingDeptId = 0;
+}
+
+function clearMemberDragState() {
+  document.querySelectorAll('.member-card.drag-over').forEach(card => {
+    card.classList.remove('drag-over');
+  });
+}
+
+function moveMemberId(list, empId, beforeId) {
+  const next = list.filter(id => id !== empId);
+  if (beforeId && beforeId !== empId) {
+    const index = next.indexOf(beforeId);
+    if (index >= 0) {
+      next.splice(index, 0, empId);
+      return next;
+    }
+  }
+  next.push(empId);
+  return next;
+}
+
+async function applyMemberDrop(targetDeptId, beforeEmpId) {
+  const empId = memberDraggingId;
+  if (!empId) return;
+  if (targetDeptId !== memberDraggingDeptId) {
+    showToast('成员只能在同一部门内调整顺序', 'info');
+    return;
+  }
+
+  memberSuppressClickUntil = Date.now() + 300;
+  if (beforeEmpId === empId) return;
+
+  const currentIds = _state.employees
+    .filter(emp => emp.dept_id === targetDeptId)
+    .map(emp => emp.id);
+  const nextIds = moveMemberId(currentIds, empId, beforeEmpId);
+  const result = await put('/api/employees/order', {
+    dept_id: targetDeptId,
+    emp_ids: nextIds,
+  });
+
+  if (result && result.ok !== false) {
+    showToast('成员顺序已保存', 'success');
+    await loadMembers({ animate: false });
+  } else {
+    showToast(result?.error || '保存成员顺序失败', 'error');
+    await loadMembers({ animate: false });
   }
 }
 

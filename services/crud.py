@@ -143,7 +143,7 @@ def get_employees():
         "FROM employees e "
         "JOIN departments d ON e.dept_id=d.id "
         "JOIN sub_departments sd ON e.sub_dept_id=sd.id "
-        "ORDER BY e.id"
+        "ORDER BY d.id, COALESCE(NULLIF(e.sort_order, 0), e.id), e.id"
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
@@ -152,9 +152,13 @@ def get_employees():
 def add_employee(name: str, gender: str, dept_id: int, sub_dept_id: int):
     conn = get_connection()
     try:
+        sort_order = conn.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) + 1 FROM employees WHERE dept_id=?",
+            (dept_id,)
+        ).fetchone()[0]
         conn.execute(
-            "INSERT INTO employees (name, gender, dept_id, sub_dept_id) VALUES (?,?,?,?)",
-            (name, gender, dept_id, sub_dept_id)
+            "INSERT INTO employees (name, gender, dept_id, sub_dept_id, sort_order) VALUES (?,?,?,?,?)",
+            (name, gender, dept_id, sub_dept_id, sort_order)
         )
         conn.commit()
         conn.close()
@@ -166,10 +170,48 @@ def add_employee(name: str, gender: str, dept_id: int, sub_dept_id: int):
 
 def update_employee(emp_id: int, name: str, gender: str, dept_id: int, sub_dept_id: int):
     conn = get_connection()
-    conn.execute(
-        "UPDATE employees SET name=?, gender=?, dept_id=?, sub_dept_id=? WHERE id=?",
-        (name, gender, dept_id, sub_dept_id, emp_id)
-    )
+    current = conn.execute("SELECT dept_id FROM employees WHERE id=?", (emp_id,)).fetchone()
+    if current and current["dept_id"] != dept_id:
+        sort_order = conn.execute(
+            "SELECT COALESCE(MAX(sort_order), 0) + 1 FROM employees WHERE dept_id=?",
+            (dept_id,)
+        ).fetchone()[0]
+        conn.execute(
+            "UPDATE employees SET name=?, gender=?, dept_id=?, sub_dept_id=?, sort_order=? WHERE id=?",
+            (name, gender, dept_id, sub_dept_id, sort_order, emp_id)
+        )
+    else:
+        conn.execute(
+            "UPDATE employees SET name=?, gender=?, dept_id=?, sub_dept_id=? WHERE id=?",
+            (name, gender, dept_id, sub_dept_id, emp_id)
+        )
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+def update_employee_order(dept_id: int, emp_ids: list[int]):
+    clean_ids = [int(emp_id) for emp_id in emp_ids if emp_id]
+    if not clean_ids:
+        return {"ok": False, "error": "排序成员不能为空"}
+
+    conn = get_connection()
+    placeholders = ",".join("?" for _ in clean_ids)
+    rows = conn.execute(
+        f"SELECT id, dept_id FROM employees WHERE id IN ({placeholders})",
+        clean_ids,
+    ).fetchall()
+    found_ids = {row["id"] for row in rows}
+    wrong_dept = [row["id"] for row in rows if row["dept_id"] != dept_id]
+    if len(found_ids) != len(clean_ids) or wrong_dept:
+        conn.close()
+        return {"ok": False, "error": "只能调整同一部门内的成员顺序"}
+
+    for index, emp_id in enumerate(clean_ids, start=1):
+        conn.execute(
+            "UPDATE employees SET sort_order=? WHERE id=? AND dept_id=?",
+            (index, emp_id, dept_id)
+        )
     conn.commit()
     conn.close()
     return {"ok": True}

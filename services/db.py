@@ -38,6 +38,8 @@ def init_database():
     has_work_records = cur.fetchone() is not None
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='salary_adjustments'")
     has_adjustments = cur.fetchone() is not None
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='employees'")
+    has_employees = cur.fetchone() is not None
 
     needs_work_migration = False
     has_line_id = False
@@ -46,6 +48,12 @@ def init_database():
         work_cols = {row[1] for row in cur.fetchall()}
         needs_work_migration = "order_id" not in work_cols
         has_line_id = "line_id" in work_cols
+
+    has_employee_sort_order = False
+    if has_employees:
+        cur.execute("PRAGMA table_info(employees)")
+        employee_cols = {row[1] for row in cur.fetchall()}
+        has_employee_sort_order = "sort_order" in employee_cols
 
     needs_adjustment_migration = False
     if has_adjustments:
@@ -126,6 +134,12 @@ def init_database():
         cur.execute("ALTER TABLE work_records ADD COLUMN line_id INTEGER NOT NULL DEFAULT 0")
         conn.commit()
         print("[db] line_id column added")
+
+    if has_employees and not has_employee_sort_order:
+        cur.execute("ALTER TABLE employees ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0")
+        cur.execute("UPDATE employees SET sort_order = id WHERE sort_order = 0")
+        conn.commit()
+        print("[db] employee sort_order column added")
 
     conn.close()
     print(f"[db] database ready: {DB_PATH}")

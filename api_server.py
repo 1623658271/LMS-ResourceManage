@@ -193,6 +193,14 @@ async def api_add_employee(body: dict):
     )
 
 
+@app.put("/api/employees/order")
+async def api_update_employee_order(body: dict):
+    return crud.update_employee_order(
+        int(body.get("dept_id") or 0),
+        body.get("emp_ids") or []
+    )
+
+
 @app.put("/api/employees/{emp_id}")
 async def api_update_employee(emp_id: int, body: dict):
     return crud.update_employee(
