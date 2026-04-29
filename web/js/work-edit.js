@@ -15,7 +15,21 @@ let _workViewModeBusy = false;
 // ─────────────────────────────────────────────────────────
 // loadWorkRecords：每条 DB 记录独立一行，不合并
 // ─────────────────────────────────────────────────────────
+function ensureWorkSaveButton() {
+  if (document.getElementById('workSaveBtn')) return;
+  const undoBtn = document.getElementById('undoBtnWork');
+  if (!undoBtn || !undoBtn.parentElement) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-primary btn-sm';
+  btn.id = 'workSaveBtn';
+  btn.type = 'button';
+  btn.textContent = '💾 保存';
+  btn.onclick = saveWorkRecords;
+  undoBtn.parentElement.insertBefore(btn, undoBtn);
+}
+
 async function loadWorkRecords() {
+  ensureWorkSaveButton();
   const year = parseInt(document.getElementById('workYear').value);
   const month = parseInt(document.getElementById('workMonth').value);
   _state.currentYear = year;
@@ -206,7 +220,7 @@ function renderSpreadsheet() {
       const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
       const compact = String(totalDisplay).length > 8 ? ' compact' : '';
 
-      tbodyHtml += `<tr>
+      tbodyHtml += `<tr data-row-key="${escHtml(mapKey)}">
         <td class="col-fixed work-sticky-action" style="${actionColStyle}text-align:center;z-index:9;">
           <button class="btn btn-sm"
             style="padding:4px 10px;font-size:var(--font-size-11);background:var(--work-delete-bg);color:var(--work-delete-text);"
@@ -399,6 +413,10 @@ function positionWorkChoiceMenu(menu, trigger) {
 
 function openWorkChoiceMenu(event, trigger) {
   event.stopPropagation();
+  if (_workChoiceMenu && _workChoiceMenu.dataset.row === trigger.dataset.row && _workChoiceMenu.dataset.type === trigger.dataset.type) {
+    closeWorkChoiceMenu();
+    return;
+  }
   closeWorkChoiceMenu();
 
   const row = trigger.dataset.row;
@@ -406,6 +424,8 @@ function openWorkChoiceMenu(event, trigger) {
   const currentValue = parseInt(trigger.dataset.value || '0', 10);
   const menu = document.createElement('div');
   menu.className = 'work-choice-menu';
+  menu.dataset.row = row;
+  menu.dataset.type = type;
   menu.innerHTML = getWorkChoiceItems(type).map(item => `
     <button type="button"
       class="work-choice-option${item.value === currentValue ? ' active' : ''}"
@@ -597,7 +617,7 @@ function updateRowTotal(rowId) {
   const compact = String(displayVal).length > 8 ? ' compact' : '';
   const allTables = document.querySelectorAll('#spreadsheetWrap .spreadsheet');
   for (const tbl of allTables) {
-    const rowTr = tbl.querySelector(`tr:has(button[onclick="deleteWorkRow(${rowId})"])`);
+    const rowTr = Array.from(tbl.querySelectorAll('tbody tr')).find(tr => tr.dataset.rowKey === rowId);
     if (rowTr) {
       const totalEl = rowTr.querySelector('.row-total');
       if (totalEl) {
@@ -611,6 +631,22 @@ function updateRowTotal(rowId) {
 // ─────────────────────────────────────────────────────────
 // calcCellWage：工资计算
 // ─────────────────────────────────────────────────────────
+async function saveWorkRecords() {
+  await autoSaveWorkRecords();
+  const btn = document.getElementById('workSaveBtn');
+  if (btn) {
+    btn.textContent = '✓ 已保存';
+    btn.style.background = '#d1fae5';
+    btn.style.color = '#065f46';
+    setTimeout(() => {
+      btn.textContent = '💾 保存';
+      btn.style.background = '';
+      btn.style.color = '';
+    }, 2000);
+  }
+  toast('保存成功', 'success');
+}
+
 function calcCellWage(empId, empSubDeptId, modelId, qty) {
   if (!qty || qty <= 0) return 0;
   const priceKey = `${modelId},${empSubDeptId}`;

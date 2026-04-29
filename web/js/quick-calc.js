@@ -135,7 +135,7 @@ function renderQcDeptTables() {
         const rowDisplay = rowTotal > 0 ? fmtCompact(rowTotal) : '';
         const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
 
-        html += '<tr>';
+        html += `<tr data-row-key="${escHtml(rowKey)}">`;
 
         // 操作列（删除按钮）- 移到最左边
         html += `<td style="text-align:center;">
@@ -418,10 +418,9 @@ function updateDeptRowTotals(rowKey) {
   const tables = wrap.querySelectorAll('.spreadsheet');
   for (const table of tables) {
     const rows = table.querySelectorAll('tbody tr');
-    // 找出 rowKey 对应的行（通过 data-row-key 属性在单价 input 上匹配）
+    // 直接用行标识匹配，新增行也能稳定更新合计。
     for (const tr of rows) {
-      const rowMarker = tr.querySelector(`.qc-price-input[data-row-key="${rowKey}"], .wage-cell-display[data-key^="${rowKey},"]`);
-      if (rowMarker) {
+      if (tr.dataset.rowKey === rowKey) {
         const totalEl = tr.querySelector('.row-total-display');
         if (totalEl) {
           rowTotal = roundNumber(rowTotal);
