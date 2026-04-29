@@ -51,6 +51,106 @@ let _deletedRowKeys = new Set();
 // 当前视图
 let _currentView = 'overview';
 
+const MEMBER_ORDER_SYNC_PREFIX = 'lms.memberOrderSync.';
+const MANUAL_EMP_ORDER_PREFIX = 'lms.manualEmployeeOrder.';
+
+function getMemberOrderSync(page) {
+  return localStorage.getItem(MEMBER_ORDER_SYNC_PREFIX + page) === 'true';
+}
+
+function setMemberOrderSync(page, enabled) {
+  localStorage.setItem(MEMBER_ORDER_SYNC_PREFIX + page, enabled ? 'true' : 'false');
+}
+
+function getManualEmployeeOrder(page, deptId) {
+  try {
+    const raw = localStorage.getItem(`${MANUAL_EMP_ORDER_PREFIX}${page}.${deptId}`);
+    const ids = raw ? JSON.parse(raw) : [];
+    return Array.isArray(ids) ? ids.map(id => parseInt(id, 10)).filter(Boolean) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function setManualEmployeeOrder(page, deptId, empIds) {
+  localStorage.setItem(
+    `${MANUAL_EMP_ORDER_PREFIX}${page}.${deptId}`,
+    JSON.stringify((empIds || []).map(id => parseInt(id, 10)).filter(Boolean))
+  );
+}
+
+function sortItemsByIds(items, ids, getId) {
+  const rank = new Map((ids || []).map((id, index) => [parseInt(id, 10), index]));
+  return [...items].sort((a, b) => {
+    const ai = rank.has(getId(a)) ? rank.get(getId(a)) : Number.MAX_SAFE_INTEGER;
+    const bi = rank.has(getId(b)) ? rank.get(getId(b)) : Number.MAX_SAFE_INTEGER;
+    if (ai !== bi) return ai - bi;
+    return 0;
+  });
+}
+
+function orderEmployeesByDisplayPreference(page, employees) {
+  if (!Array.isArray(employees)) return [];
+  if (getMemberOrderSync(page)) return [...employees];
+
+  const groups = [];
+  const groupMap = new Map();
+  for (const emp of employees) {
+    if (!groupMap.has(emp.dept_id)) {
+      const group = { deptId: emp.dept_id, employees: [] };
+      groups.push(group);
+      groupMap.set(emp.dept_id, group);
+    }
+    groupMap.get(emp.dept_id).employees.push(emp);
+  }
+
+  return groups.flatMap(group => {
+    const ids = getManualEmployeeOrder(page, group.deptId);
+    return ids.length ? sortItemsByIds(group.employees, ids, emp => emp.id) : group.employees;
+  });
+}
+
+function moveIdBefore(list, movingId, beforeId) {
+  const id = parseInt(movingId, 10);
+  const before = parseInt(beforeId, 10);
+  if (before && before === id) {
+    return (list || []).map(v => parseInt(v, 10)).filter(Boolean);
+  }
+  const next = (list || []).map(v => parseInt(v, 10)).filter(v => v && v !== id);
+  if (before && before !== id) {
+    const index = next.indexOf(before);
+    if (index >= 0) {
+      next.splice(index, 0, id);
+      return next;
+    }
+  }
+  next.push(id);
+  return next;
+}
+
+function ensureMemberOrderSyncSwitch(page, toolbar, onChange) {
+  if (!toolbar) return null;
+  const id = `memberOrderSync_${page}`;
+  let label = document.getElementById(id);
+  if (!label) {
+    label = document.createElement('label');
+    label.className = 'order-sync-toggle';
+    label.id = id;
+    label.innerHTML = `<input type="checkbox"><span>显示顺序同步成员管理页</span>`;
+    toolbar.appendChild(label);
+  }
+
+  const input = label.querySelector('input');
+  if (input) {
+    input.checked = getMemberOrderSync(page);
+    input.onchange = () => {
+      setMemberOrderSync(page, input.checked);
+      if (typeof onChange === 'function') onChange(input.checked);
+    };
+  }
+  return label;
+}
+
 // ============================================================
 // 撤销/重做历史栈
 // ============================================================

@@ -2,6 +2,8 @@
 // 快捷计算 - 按大部门分组的多表格（无型号，纯手工输入）
 // ============================================================
 let _qcViewModeBusy = false;
+let qcColumnDraggingEmpId = 0;
+let qcColumnDraggingDeptId = 0;
 
 // ---- 初始化 ----
 async function initQuickCalc() {
@@ -48,6 +50,11 @@ async function initQuickCalc() {
     btn.style.background = '#fef3c7';
     btn.style.color = '#92400e';
   }
+  ensureMemberOrderSyncSwitch(
+    'quickcalc',
+    document.getElementById('qcViewModeBtn')?.parentElement || document.querySelector('#view-quickcalc .work-toolbar'),
+    () => renderQcDeptTables()
+  );
 
   // 保存初始状态到历史栈（清空之前的历史）
   clearHistory();
@@ -61,7 +68,8 @@ function renderQcDeptTables() {
   const wrap = document.getElementById('qcDeptTablesWrap');
   if (!wrap) return;
 
-  const { departments, subDepartments, employees } = _qcState;
+  const { departments, subDepartments } = _qcState;
+  const employees = orderEmployeesByDisplayPreference('quickcalc', _qcState.employees);
   const isWage = _qcState.qcViewMode === 'wage';
 
   if (!departments.length) {
@@ -109,7 +117,11 @@ function renderQcDeptTables() {
         </th>`;
       }
       for (const emp of deptEmps) {
-        html += `<th style="min-width:70px;width:70px;background:#e0e7ff;color:#3730a3;position:sticky;top:0;z-index:10;text-align:center;">
+        html += `<th class="employee-order-header quick-employee-header" data-emp-id="${emp.id}" data-dept-id="${emp.dept_id}"
+          ondragover="onQcColumnDragOver(event)" ondragleave="onQcColumnDragLeave(event)" ondrop="onQcColumnDrop(event)"
+          style="min-width:70px;width:70px;background:#e0e7ff;color:#3730a3;position:sticky;top:0;z-index:10;text-align:center;">
+          <span class="column-drag-handle" draggable="true" data-emp-id="${emp.id}" data-dept-id="${emp.dept_id}"
+            ondragstart="onQcColumnDragStart(event)" ondragend="onQcColumnDragEnd(event)" title="按住拖拽调整同部门内列顺序">•••</span>
           <span class="member-list-name-color" onclick="showEmployeeDetail(${emp.id})">${escHtml(emp.name)}</span>
           <br><span class="qc-th-subtext">${escHtml(emp.sub_dept_name)}</span>
         </th>`;
@@ -228,6 +240,60 @@ function renderQcDeptTables() {
 }
 
 // ---- 单元格获得焦点 ----
+function onQcColumnDragStart(event) {
+  const handle = event.currentTarget;
+  const th = handle.closest('th');
+  qcColumnDraggingEmpId = parseInt(handle.dataset.empId, 10);
+  qcColumnDraggingDeptId = parseInt(handle.dataset.deptId, 10);
+  if (getMemberOrderSync('quickcalc')) {
+    setMemberOrderSync('quickcalc', false);
+    const syncInput = document.querySelector('#memberOrderSync_quickcalc input');
+    if (syncInput) syncInput.checked = false;
+  }
+  if (th) th.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(qcColumnDraggingEmpId));
+}
+
+function onQcColumnDragOver(event) {
+  event.preventDefault();
+  const th = event.currentTarget;
+  if (parseInt(th.dataset.empId, 10) !== qcColumnDraggingEmpId) {
+    th.classList.add('drag-over');
+  }
+}
+
+function onQcColumnDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onQcColumnDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const th = event.currentTarget;
+  const targetDeptId = parseInt(th.dataset.deptId, 10);
+  const targetEmpId = parseInt(th.dataset.empId, 10);
+  if (!qcColumnDraggingEmpId) return;
+  if (targetDeptId !== qcColumnDraggingDeptId) {
+    showToast('只能在同一部门内调整列顺序', 'info');
+    return;
+  }
+
+  const headers = Array.from(th.closest('tr').querySelectorAll('.quick-employee-header[data-emp-id]'))
+    .filter(item => parseInt(item.dataset.deptId, 10) === targetDeptId);
+  const currentIds = headers.map(item => parseInt(item.dataset.empId, 10));
+  setManualEmployeeOrder('quickcalc', targetDeptId, moveIdBefore(currentIds, qcColumnDraggingEmpId, targetEmpId));
+  renderQcDeptTables();
+}
+
+function onQcColumnDragEnd(event) {
+  const th = event.currentTarget.closest('th');
+  if (th) th.classList.remove('dragging');
+  document.querySelectorAll('.quick-employee-header.drag-over').forEach(item => item.classList.remove('drag-over'));
+  qcColumnDraggingEmpId = 0;
+  qcColumnDraggingDeptId = 0;
+}
+
 function onQcCellFocus(el, type) {
   if (type === 'price') {
     const rowKey = el.dataset.rowKey;

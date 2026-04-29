@@ -1825,3 +1825,100 @@ tr:hover td { background: var(--surface-soft); }
 .gap-6 { gap: 6px; }
 .items-center { align-items: center; }
 .justify-between { justify-content: space-between; }
+
+/* ============================================================
+   文本复制与排序拖拽
+   ============================================================ */
+body,
+body * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.member-drag-handle,
+.salary-drag-handle,
+.column-drag-handle,
+.overview-card[draggable="true"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.member-card[draggable="true"] {
+  cursor: default;
+}
+
+.member-drag-handle,
+.salary-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  min-width: 18px;
+  height: 26px;
+  color: var(--text-muted);
+  cursor: grab;
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: normal;
+  line-height: 1;
+}
+
+.member-drag-handle:active,
+.salary-drag-handle:active,
+.column-drag-handle:active {
+  cursor: grabbing;
+}
+
+.salary-drag-handle {
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.member-card.dragging,
+.salary-dept-block tr.dragging,
+.employee-order-header.dragging {
+  opacity: 0.48;
+}
+
+.salary-dept-block tr.drag-over,
+.employee-order-header.drag-over {
+  outline: 2px solid rgba(37,99,235,0.45);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 999px rgba(37,99,235,0.06);
+}
+
+.order-sync-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text-muted);
+  font-size: var(--font-size-11);
+  white-space: nowrap;
+}
+
+.order-sync-toggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary);
+}
+
+.employee-order-header {
+  position: sticky;
+}
+
+.column-drag-handle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 10px;
+  margin: -4px auto 3px;
+  color: rgba(71,85,105,0.75);
+  cursor: grab;
+  font-size: var(--font-size-12);
+  line-height: 1;
+  letter-spacing: 1px;
+}

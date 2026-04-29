@@ -62,13 +62,15 @@ function buildMemberDepartmentBlocks(emps) {
 
 function buildMemberCard(emp) {
   return `
-    <div class="member-card" draggable="true" data-emp-id="${emp.id}" data-dept-id="${emp.dept_id}"
-      ondragstart="onMemberDragStart(event)"
+    <div class="member-card" data-emp-id="${emp.id}" data-dept-id="${emp.dept_id}"
       ondragover="onMemberDragOver(event)"
       ondragleave="onMemberDragLeave(event)"
       ondrop="onMemberDrop(event)"
       ondragend="onMemberDragEnd(event)">
-      <span class="member-drag-handle" title="拖拽调整同部门内顺序">⋮⋮</span>
+      <span class="member-drag-handle" draggable="true"
+        ondragstart="onMemberDragStart(event)"
+        ondragend="onMemberDragEnd(event)"
+        title="按住拖拽调整同部门内顺序">⋮</span>
       <input type="checkbox" class="member-check" value="${emp.id}" onchange="updateBatchDelBtn()">
       <div class="member-card-info">
         <span class="member-name member-list-name-color" onclick="safeShowEditMemberModal(${emp.id}, event)" title="点击编辑">${escHtml(emp.name)}</span>
@@ -94,11 +96,9 @@ function safeShowEditMemberModal(empId, event) {
 }
 
 function onMemberDragStart(event) {
-  if (event.target.closest('button,input,.member-list-name-color')) {
-    event.preventDefault();
-    return;
-  }
-  const card = event.currentTarget;
+  const card = event.currentTarget.closest('.member-card');
+  if (!card) return;
+  event.stopPropagation();
   memberDraggingId = parseInt(card.dataset.empId, 10);
   memberDraggingDeptId = parseInt(card.dataset.deptId, 10);
   card.classList.add('dragging');
@@ -136,7 +136,8 @@ function onMemberGroupDrop(event) {
 }
 
 function onMemberDragEnd(event) {
-  event.currentTarget.classList.remove('dragging');
+  const card = event.currentTarget.closest('.member-card') || event.currentTarget;
+  card.classList.remove('dragging');
   clearMemberDragState();
   memberDraggingId = 0;
   memberDraggingDeptId = 0;

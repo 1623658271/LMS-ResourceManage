@@ -11,6 +11,8 @@ let _weRowMap = {};     // { rowId: { orderId, modelId, lineId, emps: {empId: qt
 let _weRowCounter = 0;  // 新增行的 rowId 起始（正整数递增）
 let _weMaxLineId = 0;   // 当前年月最大 lineId（新增行从这里递增）
 let _workViewModeBusy = false;
+let workColumnDraggingEmpId = 0;
+let workColumnDraggingDeptId = 0;
 
 // ─────────────────────────────────────────────────────────
 // loadWorkRecords：每条 DB 记录独立一行，不合并
@@ -38,6 +40,8 @@ function ensureWorkSaveButton() {
   } else if (!btn.parentElement) {
     parent.appendChild(btn);
   }
+
+  ensureMemberOrderSyncSwitch('work', document.querySelector('#view-work .work-toolbar'), () => renderSpreadsheet());
 }
 
 async function loadWorkRecords() {
@@ -103,7 +107,7 @@ async function loadWorkRecords() {
 // 排序：lineId DESC（新增行 lineId 递增，所以新增行在前；DB 行按 lineId 升序）
 // ─────────────────────────────────────────────────────────
 function renderSpreadsheet() {
-  const emps = _state.workEmployees;
+  const emps = orderEmployeesByDisplayPreference('work', _state.workEmployees);
   const orders = _state.workOrders;
   const models = _state.workModels;
   const isWage = _state.viewMode === 'wage';
@@ -185,7 +189,11 @@ function renderSpreadsheet() {
       <th class="col-fixed work-sticky-action" style="${actionColStyle}background:var(--work-header-bg);color:var(--work-header-text);z-index:24;">操作</th>
       <th class="col-fixed work-sticky-order" style="${orderColStyle}background:var(--work-header-bg);color:var(--work-header-text);z-index:23;">订单号</th>
       <th class="col-fixed work-sticky-model" style="${modelColStyle}background:var(--work-header-bg);color:var(--work-header-text);z-index:22;">型号</th>
-      ${groupEmps.map(e => `<th style="min-width:70px;background:var(--work-select-bg);color:var(--work-select-text);">
+      ${groupEmps.map(e => `<th class="employee-order-header work-employee-header" data-emp-id="${e.id}" data-dept-id="${e.dept_id}"
+        ondragover="onWorkColumnDragOver(event)" ondragleave="onWorkColumnDragLeave(event)" ondrop="onWorkColumnDrop(event)"
+        style="min-width:70px;background:var(--work-select-bg);color:var(--work-select-text);">
+        <span class="column-drag-handle" draggable="true" data-emp-id="${e.id}" data-dept-id="${e.dept_id}"
+          ondragstart="onWorkColumnDragStart(event)" ondragend="onWorkColumnDragEnd(event)" title="按住拖拽调整同部门内列顺序">•••</span>
         <span class="member-list-name-color" onclick="showEmployeeDetail(${e.id})">${escHtml(e.name)}</span>
       </th>`).join('')}
       <th style="background:var(--work-total-bg);color:var(--work-total-text);min-width:80px;">行合计</th>
@@ -389,6 +397,60 @@ function onWorkCellKeydown(e, el) {
 //   - 若旧 combo 也是有效的 → 删旧 DB 记录，autoSave 保存新 combo
 //   - 若旧 combo 无效(lineId=0) → 分配 lineId，autoSave 保存新 combo
 // ─────────────────────────────────────────────────────────
+function onWorkColumnDragStart(event) {
+  const handle = event.currentTarget;
+  const th = handle.closest('th');
+  workColumnDraggingEmpId = parseInt(handle.dataset.empId, 10);
+  workColumnDraggingDeptId = parseInt(handle.dataset.deptId, 10);
+  if (getMemberOrderSync('work')) {
+    setMemberOrderSync('work', false);
+    const syncInput = document.querySelector('#memberOrderSync_work input');
+    if (syncInput) syncInput.checked = false;
+  }
+  if (th) th.classList.add('dragging');
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(workColumnDraggingEmpId));
+}
+
+function onWorkColumnDragOver(event) {
+  event.preventDefault();
+  const th = event.currentTarget;
+  if (parseInt(th.dataset.empId, 10) !== workColumnDraggingEmpId) {
+    th.classList.add('drag-over');
+  }
+}
+
+function onWorkColumnDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+
+function onWorkColumnDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const th = event.currentTarget;
+  const targetDeptId = parseInt(th.dataset.deptId, 10);
+  const targetEmpId = parseInt(th.dataset.empId, 10);
+  if (!workColumnDraggingEmpId) return;
+  if (targetDeptId !== workColumnDraggingDeptId) {
+    showToast('只能在同一部门内调整列顺序', 'info');
+    return;
+  }
+
+  const headers = Array.from(th.closest('tr').querySelectorAll('.work-employee-header[data-emp-id]'))
+    .filter(item => parseInt(item.dataset.deptId, 10) === targetDeptId);
+  const currentIds = headers.map(item => parseInt(item.dataset.empId, 10));
+  setManualEmployeeOrder('work', targetDeptId, moveIdBefore(currentIds, workColumnDraggingEmpId, targetEmpId));
+  renderSpreadsheet();
+}
+
+function onWorkColumnDragEnd(event) {
+  const th = event.currentTarget.closest('th');
+  if (th) th.classList.remove('dragging');
+  document.querySelectorAll('.work-employee-header.drag-over').forEach(item => item.classList.remove('drag-over'));
+  workColumnDraggingEmpId = 0;
+  workColumnDraggingDeptId = 0;
+}
+
 let _workChoiceMenu = null;
 
 function closeWorkChoiceMenu() {
