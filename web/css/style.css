@@ -1258,9 +1258,16 @@ tr:hover td { background: var(--surface-soft); }
   font-size: var(--font-size-10);
   font-weight: 500;
 }
-.work-dept-hint-fixed {
+.work-dept-hint-fixed-left {
+  position: sticky !important;
+  left: 0;
+  z-index: 32 !important;
   color: #e2e8f0 !important;
   min-width: 240px;
+}
+.work-dept-hint-summary {
+  color: #e2e8f0 !important;
+  min-width: 80px;
 }
 .spreadsheet th.col-fixed {
   position: sticky; left: 0; z-index: 21;
@@ -1275,6 +1282,12 @@ tr:hover td { background: var(--surface-soft); }
   position: sticky; left: 0; background: var(--card-bg); z-index: 7;
   text-align: left; font-weight: 500; color: #000;
 }
+.spreadsheet th.work-sticky-action,
+.spreadsheet td.work-sticky-action { left: 0; min-width: 50px; width: 50px; }
+.spreadsheet th.work-sticky-order,
+.spreadsheet td.work-sticky-order { left: 50px; min-width: 100px; width: 100px; }
+.spreadsheet th.work-sticky-model,
+.spreadsheet td.work-sticky-model { left: 150px; min-width: 90px; width: 90px; }
 .spreadsheet td.col-fixed-2 {
   position: sticky; left: 100px; background: var(--card-bg); z-index: 6;
   text-align: left; color: var(--text);
