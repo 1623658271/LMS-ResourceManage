@@ -696,10 +696,24 @@ tr:hover td { background: var(--surface-soft); }
   gap: 8px;
   position: relative;
 }
+.overview-card[draggable="true"] {
+  cursor: grab;
+}
+.overview-card[draggable="true"]:active {
+  cursor: grabbing;
+}
 .overview-card:hover {
   border-color: var(--primary);
   box-shadow: 0 4px 16px rgba(59,130,246,0.15);
   transform: translateY(-2px);
+}
+.overview-card.dragging {
+  opacity: 0.48;
+  transform: scale(0.98);
+}
+.overview-card.drag-over {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
 }
 .overview-card .oc-icon {
   width: 44px; height: 44px;
@@ -714,6 +728,7 @@ tr:hover td { background: var(--surface-soft); }
   position: absolute;
   top: 10px;
   right: 10px;
+  z-index: 2;
   width: 28px;
   height: 28px;
   border: 1px solid var(--border);
