@@ -54,7 +54,7 @@
 
 总工资表按部门汇总全厂工资，支持做货编辑 / 快捷计算双数据源切换、显示顺序同步成员管理页、彩色打印和黑白打印。
 
-![总工资表](docs/images/screenshot-salary.png.png)
+![总工资表](docs/images/screenshot-salary.png)
 
 ### 订单管理与型号单价
 
