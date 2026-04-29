@@ -123,16 +123,16 @@ function renderQcDeptTables() {
         const row = _qcDeptRows[rowKey];
         const rowIdx = rowKey.split('_')[1];
 
-        // 计算行合计
+        // 计算行合计：对数视角合计对数，工资视角合计金额。
         let rowTotal = 0;
         for (const emp of deptEmps) {
           const qtyKey = `${rowKey},${emp.id}`;
           const qty = _qcState.qtyData[qtyKey] || 0;
           const empSubPrice = row[emp.sub_dept_id] || 0;
-          rowTotal += roundNumber(qty * empSubPrice);
+          rowTotal += isWage ? roundNumber(qty * empSubPrice) : qty;
         }
-        rowTotal = roundNumber(rowTotal);
-        const rowDisplay = rowTotal > 0 ? fmtCompact(rowTotal) : '';
+        rowTotal = isWage ? roundNumber(rowTotal) : rowTotal;
+        const rowDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
         const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
 
         html += `<tr data-row-key="${escHtml(rowKey)}">`;
@@ -391,16 +391,17 @@ function updateDeptRowTotals(rowKey) {
   const deptId = parseInt(rowKey.split('_')[0]);
   const row = _qcDeptRows[rowKey];
   const deptEmps = _qcState.employees.filter(e => e.dept_id === deptId);
+  const isWage = _qcState.qcViewMode === 'wage';
 
   let rowTotal = 0;
   for (const emp of deptEmps) {
     const qtyKey = `${rowKey},${emp.id}`;
     const qty = _qcState.qtyData[qtyKey] || 0;
     const empSubPrice = row[emp.sub_dept_id] || 0;
-    rowTotal += roundNumber(qty * empSubPrice);
+    rowTotal += isWage ? roundNumber(qty * empSubPrice) : qty;
 
     // 更新该成员的工资显示（工资视角下）
-    if (_qcState.qcViewMode === 'wage') {
+    if (isWage) {
       const wage = roundNumber(qty * empSubPrice);
       const displayVal = qty > 0 ? fmtCompact(wage) : '';
       const allDisplays = document.querySelectorAll(`.wage-cell-display[data-key="${qtyKey}"]`);
@@ -423,11 +424,11 @@ function updateDeptRowTotals(rowKey) {
       if (tr.dataset.rowKey === rowKey) {
         const totalEl = tr.querySelector('.row-total-display');
         if (totalEl) {
-          rowTotal = roundNumber(rowTotal);
-          const rowDisplay = rowTotal > 0 ? fmtCompact(rowTotal) : '';
+          rowTotal = isWage ? roundNumber(rowTotal) : rowTotal;
+          const rowDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
           const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
           totalEl.textContent = rowDisplay;
-          totalEl.className = `row-total-display${_qcState.qcViewMode === 'wage' ? ' wage' : ''}${rowCompact}`;
+          totalEl.className = `row-total-display${isWage ? ' wage' : ''}${rowCompact}`;
         }
         break;
       }
