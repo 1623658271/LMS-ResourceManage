@@ -8,6 +8,7 @@ let memberSuppressClickUntil = 0;
 async function loadMembers(options = {}) {
   const { animate = true } = options;
   const container = document.getElementById('memberList');
+  ensureMemberNameSortButton();
   const finishRefresh = animate
     ? beginContentRefresh(container, {
         loadingText: '正在刷新成员列表...',
@@ -26,6 +27,50 @@ async function loadMembers(options = {}) {
   } finally {
     finishRefresh();
   }
+}
+
+function ensureMemberNameSortButton() {
+  if (document.getElementById('memberNameSortWrap')) return;
+  const batchAddBtn = document.querySelector('#view-members button[onclick="showBatchAddMemberModal()"]');
+  if (!batchAddBtn || !batchAddBtn.parentElement) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'sort-menu-wrap';
+  wrap.id = 'memberNameSortWrap';
+  wrap.innerHTML = `
+    <button class="btn btn-sm btn-secondary" type="button" onclick="toggleMemberNameSortMenu(event)">按名称排序</button>
+    <div class="sort-menu" id="memberNameSortMenu">
+      <button type="button" onclick="sortMembersByName('asc')">升序</button>
+      <button type="button" onclick="sortMembersByName('desc')">降序</button>
+    </div>
+  `;
+  batchAddBtn.parentElement.insertBefore(wrap, batchAddBtn.nextSibling);
+}
+
+function toggleMemberNameSortMenu(event) {
+  event.stopPropagation();
+  const menu = document.getElementById('memberNameSortMenu');
+  if (!menu) return;
+  menu.classList.toggle('show');
+}
+
+document.addEventListener('click', event => {
+  const menu = document.getElementById('memberNameSortMenu');
+  if (!menu || event.target.closest('#memberNameSortWrap')) return;
+  menu.classList.remove('show');
+});
+
+function compareMemberNamesByUnicode(aName, bName) {
+  const aChars = Array.from(String(aName || ''));
+  const bChars = Array.from(String(bName || ''));
+  const minLength = Math.min(aChars.length, bChars.length);
+
+  for (let i = 0; i < minLength; i += 1) {
+    const diff = aChars[i].codePointAt(0) - bChars[i].codePointAt(0);
+    if (diff !== 0) return diff;
+  }
+
+  return aChars.length - bChars.length;
 }
 
 function buildMemberDepartmentBlocks(emps) {
@@ -58,6 +103,38 @@ function buildMemberDepartmentBlocks(emps) {
       </div>
     </div>
   `).join('');
+}
+
+async function sortMembersByName(direction) {
+  const menu = document.getElementById('memberNameSortMenu');
+  if (menu) menu.classList.remove('show');
+  const factor = direction === 'desc' ? -1 : 1;
+  const groups = new Map();
+  for (const emp of _state.employees || []) {
+    if (!groups.has(emp.dept_id)) groups.set(emp.dept_id, []);
+    groups.get(emp.dept_id).push(emp);
+  }
+
+  let ok = 0;
+  let fail = 0;
+  for (const [deptId, emps] of groups.entries()) {
+    const ids = [...emps]
+      .sort((a, b) => {
+        const diff = compareMemberNamesByUnicode(a.name, b.name);
+        if (diff !== 0) return diff * factor;
+        return Number(a.id || 0) - Number(b.id || 0);
+      })
+      .map(emp => emp.id);
+    const result = await put('/api/employees/order', { dept_id: deptId, emp_ids: ids });
+    if (result && result.ok !== false) ok += 1;
+    else fail += 1;
+  }
+
+  showToast(
+    fail ? `名称排序完成，${fail} 个部门保存失败` : `已按名称${direction === 'desc' ? '降序' : '升序'}排序`,
+    fail ? 'info' : 'success'
+  );
+  await loadMembers({ animate: false });
 }
 
 function buildMemberCard(emp) {
