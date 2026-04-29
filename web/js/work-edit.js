@@ -198,12 +198,8 @@ function renderSpreadsheet() {
         }
       }).join('');
 
-      const orderOptions = `<option value="0">请选择</option>` + orders.map(o =>
-        `<option value="${o.id}"${o.id === orderId ? ' selected' : ''}>${escHtml(o.order_no)}</option>`
-      ).join('');
-      const modelOptions = `<option value="0">请选择</option>` + models.map(m =>
-        `<option value="${m.id}"${m.id === modelId ? ' selected' : ''}>${escHtml(m.model_no)}</option>`
-      ).join('');
+      const orderLabel = (orders.find(o => o.id === orderId) || {}).order_no || '请选择';
+      const modelLabel = (models.find(m => m.id === modelId) || {}).model_no || '请选择';
 
       const totalDisplay = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
       const compact = String(totalDisplay).length > 8 ? ' compact' : '';
@@ -215,20 +211,16 @@ function renderSpreadsheet() {
             onclick="deleteWorkRow('${mapKey}')">删除</button>
         </td>
         <td class="col-fixed work-sticky-order" style="${orderColStyle}background:var(--work-select-bg);z-index:8;">
-          <select class="cell-input work-floating-select"
+          <button type="button" class="cell-input work-choice-button"
             style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:120px;"
-            data-row="${mapKey}" data-type="order"
-            onchange="onWorkSelectChange(this)">
-            ${orderOptions}
-          </select>
+            data-row="${escHtml(mapKey)}" data-type="order" data-value="${orderId}"
+            onclick="openWorkChoiceMenu(event,this)">${escHtml(orderLabel)}</button>
         </td>
         <td class="col-fixed work-sticky-model" style="${modelColStyle}background:var(--work-select-bg);z-index:7;">
-          <select class="cell-input work-floating-select"
+          <button type="button" class="cell-input work-choice-button"
             style="background:var(--work-select-bg);color:var(--work-select-text);font-weight:600;min-width:96px;"
-            data-row="${mapKey}" data-type="model"
-            onchange="onWorkSelectChange(this)">
-            ${modelOptions}
-          </select>
+            data-row="${escHtml(mapKey)}" data-type="model" data-value="${modelId}"
+            onclick="openWorkChoiceMenu(event,this)">${escHtml(modelLabel)}</button>
         </td>
         ${empCells}
         <td class="row-total${isWage ? ' wage' : ''}${compact}"
@@ -369,6 +361,74 @@ function onWorkCellKeydown(e, el) {
 //   - 若旧 combo 也是有效的 → 删旧 DB 记录，autoSave 保存新 combo
 //   - 若旧 combo 无效(lineId=0) → 分配 lineId，autoSave 保存新 combo
 // ─────────────────────────────────────────────────────────
+let _workChoiceMenu = null;
+
+function closeWorkChoiceMenu() {
+  if (_workChoiceMenu) {
+    _workChoiceMenu.remove();
+    _workChoiceMenu = null;
+  }
+}
+
+function getWorkChoiceItems(type) {
+  const source = type === 'order'
+    ? (_state.workOrders || []).map(o => ({ value: o.id, label: o.order_no }))
+    : (_state.workModels || []).map(m => ({ value: m.id, label: m.model_no }));
+  return [{ value: 0, label: '请选择' }, ...source];
+}
+
+function positionWorkChoiceMenu(menu, trigger) {
+  const rect = trigger.getBoundingClientRect();
+  const minWidth = trigger.dataset.type === 'order' ? 180 : 140;
+  const menuWidth = Math.max(rect.width, minWidth);
+  const left = Math.min(rect.left, window.innerWidth - menuWidth - 8);
+
+  menu.style.width = `${menuWidth}px`;
+  menu.style.left = `${Math.max(8, left)}px`;
+  menu.style.top = `${rect.bottom + 4}px`;
+
+  requestAnimationFrame(() => {
+    const menuRect = menu.getBoundingClientRect();
+    if (menuRect.bottom > window.innerHeight - 8) {
+      menu.style.top = `${Math.max(8, rect.top - menuRect.height - 4)}px`;
+    }
+  });
+}
+
+function openWorkChoiceMenu(event, trigger) {
+  event.stopPropagation();
+  closeWorkChoiceMenu();
+
+  const row = trigger.dataset.row;
+  const type = trigger.dataset.type;
+  const currentValue = parseInt(trigger.dataset.value || '0', 10);
+  const menu = document.createElement('div');
+  menu.className = 'work-choice-menu';
+  menu.innerHTML = getWorkChoiceItems(type).map(item => `
+    <button type="button"
+      class="work-choice-option${item.value === currentValue ? ' active' : ''}"
+      data-value="${item.value}">${escHtml(item.label)}</button>
+  `).join('');
+
+  menu.querySelectorAll('.work-choice-option').forEach(btn => {
+    btn.addEventListener('click', async e => {
+      e.stopPropagation();
+      closeWorkChoiceMenu();
+      await onWorkSelectChange({
+        dataset: { row, type },
+        value: btn.dataset.value
+      });
+    });
+  });
+
+  document.body.appendChild(menu);
+  _workChoiceMenu = menu;
+  positionWorkChoiceMenu(menu, trigger);
+}
+
+document.addEventListener('click', closeWorkChoiceMenu);
+window.addEventListener('resize', closeWorkChoiceMenu);
+
 async function onWorkSelectChange(sel) {
   const mapKey = sel.dataset.row;    // 直接用字符串 key（不再 parseInt）
   const type = sel.dataset.type;
