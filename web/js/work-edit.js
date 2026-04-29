@@ -16,16 +16,28 @@ let _workViewModeBusy = false;
 // loadWorkRecords：每条 DB 记录独立一行，不合并
 // ─────────────────────────────────────────────────────────
 function ensureWorkSaveButton() {
-  if (document.getElementById('workSaveBtn')) return;
+  const addBtn = document.querySelector('#view-work button[onclick="addWorkRow()"]');
   const undoBtn = document.getElementById('undoBtnWork');
-  if (!undoBtn || !undoBtn.parentElement) return;
-  const btn = document.createElement('button');
+  const parent = (addBtn && addBtn.parentElement) || (undoBtn && undoBtn.parentElement);
+  if (!parent) return;
+
+  let btn = document.getElementById('workSaveBtn');
+  if (!btn) {
+    btn = document.createElement('button');
+  }
   btn.className = 'btn btn-primary btn-sm';
   btn.id = 'workSaveBtn';
   btn.type = 'button';
   btn.textContent = '💾 保存';
   btn.onclick = saveWorkRecords;
-  undoBtn.parentElement.insertBefore(btn, undoBtn);
+
+  if (addBtn) {
+    parent.insertBefore(btn, addBtn.nextSibling);
+  } else if (undoBtn) {
+    parent.insertBefore(btn, undoBtn);
+  } else if (!btn.parentElement) {
+    parent.appendChild(btn);
+  }
 }
 
 async function loadWorkRecords() {
