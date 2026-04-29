@@ -6,6 +6,12 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function roundNumber(n, digits = 2) {
+  const value = Number(n) || 0;
+  const factor = 10 ** digits;
+  return Math.round((value + Number.EPSILON) * factor) / factor;
+}
+
 function toast(msg, type = 'info') {
   const c = document.getElementById('toastContainer');
   const el = document.createElement('div');
@@ -17,12 +23,13 @@ function toast(msg, type = 'info') {
 
 function fmt(n) {
   if (n == null) return '0.00';
-  return Number(n).toFixed(2);
+  return roundNumber(n).toFixed(2);
 }
 // 紧凑数字格式：用于工资显示，避免列宽溢出
 // < 10000: ¥1234.56  |  >= 10000: ¥1.2万  |  >= 100000: ¥10.1万  |  >= 1000000: ¥100.0万
 function fmtCompact(n) {
   if (n == null || n === 0) return '';
+  n = roundNumber(n);
   const abs = Math.abs(n);
   if (abs < 10000) return '¥' + n.toFixed(2);
   if (abs < 1000000) return '¥' + (n / 10000).toFixed(1) + '万';

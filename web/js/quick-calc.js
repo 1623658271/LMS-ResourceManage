@@ -129,8 +129,9 @@ function renderQcDeptTables() {
           const qtyKey = `${rowKey},${emp.id}`;
           const qty = _qcState.qtyData[qtyKey] || 0;
           const empSubPrice = row[emp.sub_dept_id] || 0;
-          rowTotal += qty * empSubPrice;
+          rowTotal += roundNumber(qty * empSubPrice);
         }
+        rowTotal = roundNumber(rowTotal);
         const rowDisplay = rowTotal > 0 ? fmtCompact(rowTotal) : '';
         const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
 
@@ -167,7 +168,7 @@ function renderQcDeptTables() {
           const qtyKey = `${rowKey},${emp.id}`;
           const qty = _qcState.qtyData[qtyKey] || 0;
           const empSubPrice = row[emp.sub_dept_id] || 0;
-          const wage = qty * empSubPrice;
+          const wage = roundNumber(qty * empSubPrice);
 
           if (isWage) {
             const displayVal = qty > 0 ? fmtCompact(wage) : '';
@@ -396,11 +397,11 @@ function updateDeptRowTotals(rowKey) {
     const qtyKey = `${rowKey},${emp.id}`;
     const qty = _qcState.qtyData[qtyKey] || 0;
     const empSubPrice = row[emp.sub_dept_id] || 0;
-    rowTotal += qty * empSubPrice;
+    rowTotal += roundNumber(qty * empSubPrice);
 
     // 更新该成员的工资显示（工资视角下）
     if (_qcState.qcViewMode === 'wage') {
-      const wage = qty * empSubPrice;
+      const wage = roundNumber(qty * empSubPrice);
       const displayVal = qty > 0 ? fmtCompact(wage) : '';
       const allDisplays = document.querySelectorAll(`.wage-cell-display[data-key="${qtyKey}"]`);
       for (const d of allDisplays) {
@@ -423,6 +424,7 @@ function updateDeptRowTotals(rowKey) {
       if (rowMarker) {
         const totalEl = tr.querySelector('.row-total-display');
         if (totalEl) {
+          rowTotal = roundNumber(rowTotal);
           const rowDisplay = rowTotal > 0 ? fmtCompact(rowTotal) : '';
           const rowCompact = String(rowDisplay).length > 8 ? ' compact' : '';
           totalEl.textContent = rowDisplay;

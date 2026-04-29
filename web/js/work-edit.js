@@ -111,7 +111,7 @@ function renderSpreadsheet() {
     if (!qty || qty <= 0) return 0;
     const priceKey = `${modelId},${empSubDeptId}`;
     const price = (_state.priceMap || {})[priceKey] || 0;
-    return qty * price;
+    return roundNumber(qty * price);
   }
 
   function calcRowTotal(rowData) {
@@ -119,9 +119,11 @@ function renderSpreadsheet() {
     let total = 0;
     for (const emp of emps) {
       const qty = rowData.emps[emp.id] || 0;
-      total += calcCellWage(emp.id, emp.sub_dept_id, rowData.modelId, qty);
+      total += isWage
+        ? calcCellWage(emp.id, emp.sub_dept_id, rowData.modelId, qty)
+        : qty;
     }
-    return total;
+    return isWage ? roundNumber(total) : total;
   }
 
   function buildDeptHintCells(groupEmps) {
@@ -590,6 +592,7 @@ function updateRowTotal(rowId) {
     }
   }
 
+  rowTotal = isWage ? roundNumber(rowTotal) : rowTotal;
   const displayVal = isWage ? (rowTotal > 0 ? fmtCompact(rowTotal) : '') : rowTotal;
   const compact = String(displayVal).length > 8 ? ' compact' : '';
   const allTables = document.querySelectorAll('#spreadsheetWrap .spreadsheet');
@@ -612,7 +615,7 @@ function calcCellWage(empId, empSubDeptId, modelId, qty) {
   if (!qty || qty <= 0) return 0;
   const priceKey = `${modelId},${empSubDeptId}`;
   const price = (_state.priceMap || {})[priceKey] || 0;
-  return qty * price;
+  return roundNumber(qty * price);
 }
 
 // ─────────────────────────────────────────────────────────
