@@ -112,3 +112,25 @@ function beginContentRefresh(container, options = {}) {
     }, 160);
   };
 }
+
+function beginButtonLoading(button, loadingText = '处理中...') {
+  if (!button) return () => {};
+
+  const previousHtml = button.innerHTML;
+  const previousDisabled = button.disabled;
+  const previousWidth = button.style.width;
+  const rect = button.getBoundingClientRect();
+  if (rect.width) button.style.width = `${Math.ceil(rect.width)}px`;
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  button.classList.add('is-loading');
+  button.innerHTML = `<span class="btn-loading-spinner" aria-hidden="true"></span>${escHtml(loadingText)}`;
+
+  return () => {
+    button.innerHTML = previousHtml;
+    button.disabled = previousDisabled;
+    button.style.width = previousWidth;
+    button.removeAttribute('aria-busy');
+    button.classList.remove('is-loading');
+  };
+}

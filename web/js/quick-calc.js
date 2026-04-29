@@ -1,6 +1,7 @@
 // ============================================================
 // 快捷计算 - 按大部门分组的多表格（无型号，纯手工输入）
 // ============================================================
+let _qcViewModeBusy = false;
 
 // ---- 初始化 ----
 async function initQuickCalc() {
@@ -566,28 +567,60 @@ function clearQcPrices() {
 
 // ---- 切换工资视角 ----
 async function qcToggleViewMode() {
-  await autoSaveQc();
-  if (_qcState.qcViewMode === 'qty') {
-    _qcState.qcViewMode = 'wage';
-    const btn = document.getElementById('qcViewModeBtn');
-    if (btn) {
-      btn.textContent = '切换对数视角';
-      btn.style.background = '#dcfce7';
-      btn.style.color = '#15803d';
+  if (_qcViewModeBusy) return;
+  _qcViewModeBusy = true;
+
+  const btn = document.getElementById('qcViewModeBtn');
+  const finishButton = beginButtonLoading(
+    btn,
+    _qcState.qcViewMode === 'qty' ? '正在计算工资...' : '正在切换...'
+  );
+  const finishRefresh = beginContentRefresh(document.getElementById('qcDeptTablesWrap'), {
+    loadingText: _qcState.qcViewMode === 'qty' ? '正在计算快捷工资视角...' : '正在恢复对数视角...',
+    minHeight: 260,
+    allowEntrance: false,
+  });
+
+  try {
+    await autoSaveQc();
+    if (_qcState.qcViewMode === 'qty') {
+      _qcState.qcViewMode = 'wage';
+      if (btn) {
+        btn.textContent = '切换对数视角';
+        btn.style.background = '#dcfce7';
+        btn.style.color = '#15803d';
+      }
+      toast('工资视角：对数 × 单价', 'info');
+    } else {
+      _qcState.qcViewMode = 'qty';
+      _qcState.qcWageDetail = null;
+      if (btn) {
+        btn.textContent = '切换工资视角';
+        btn.style.background = '#fef3c7';
+        btn.style.color = '#92400e';
+      }
+      toast('对数视角', 'info');
     }
-    toast('工资视角：对数 × 单价', 'info');
-  } else {
-    _qcState.qcViewMode = 'qty';
-    _qcState.qcWageDetail = null;
-    const btn = document.getElementById('qcViewModeBtn');
+    renderQcDeptTables();
+  } catch (e) {
+    console.error('快捷计算切换工资视角失败', e);
+    showToast('切换工资视角失败，请稍后重试', 'error');
+  } finally {
+    finishRefresh();
+    finishButton();
     if (btn) {
-      btn.textContent = '切换工资视角';
-      btn.style.background = '#fef3c7';
-      btn.style.color = '#92400e';
+      if (_qcState.qcViewMode === 'wage') {
+        btn.textContent = '切换对数视角';
+        btn.style.background = '#dcfce7';
+        btn.style.color = '#15803d';
+      } else {
+        btn.textContent = '切换工资视角';
+        btn.style.background = '#fef3c7';
+        btn.style.color = '#92400e';
+      }
     }
-    toast('对数视角', 'info');
+    _qcViewModeBusy = false;
   }
-  renderQcDeptTables();
 }
 
 // ---- 年月变化时重新加载 ----

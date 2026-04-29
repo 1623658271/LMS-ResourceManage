@@ -16,7 +16,11 @@ async function loadSalary(options = {}) {
   const month = parseInt(document.getElementById('salaryMonth').value, 10);
   const source = getSalarySource();
   const content = document.getElementById('salaryContent');
+  const queryBtn = document.getElementById('salaryQueryBtn');
   const sourceLabel = source === 'qc' ? '（快捷计算）' : '';
+  const finishButton = animate
+    ? beginButtonLoading(queryBtn, '正在查询...')
+    : () => {};
   const finishRefresh = animate
     ? beginContentRefresh(content, {
         loadingText: `正在刷新 ${year}-${pad(month)} 工资汇总...`,
@@ -73,6 +77,7 @@ async function loadSalary(options = {}) {
     content.innerHTML = html;
   } finally {
     finishRefresh();
+    finishButton();
   }
 }
 

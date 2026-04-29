@@ -10,6 +10,7 @@
 let _weRowMap = {};     // { rowId: { orderId, modelId, lineId, emps: {empId: qty} } }
 let _weRowCounter = 0;  // 新增行的 rowId 起始（正整数递增）
 let _weMaxLineId = 0;   // 当前年月最大 lineId（新增行从这里递增）
+let _workViewModeBusy = false;
 
 // ─────────────────────────────────────────────────────────
 // loadWorkRecords：每条 DB 记录独立一行，不合并
@@ -558,31 +559,62 @@ function calcCellWage(empId, empSubDeptId, modelId, qty) {
 // toggleViewMode：切换工资视角
 // ─────────────────────────────────────────────────────────
 async function toggleViewMode() {
+  if (_workViewModeBusy) return;
+  _workViewModeBusy = true;
+
   const year = _state.currentYear;
   const month = _state.currentMonth;
+  const btn = document.getElementById('viewModeBtn');
+  const finishButton = beginButtonLoading(
+    btn,
+    _state.viewMode === 'qty' ? '正在计算工资...' : '正在切换...'
+  );
+  const finishRefresh = beginContentRefresh(document.getElementById('spreadsheetWrap'), {
+    loadingText: _state.viewMode === 'qty' ? '正在实时计算工资视角...' : '正在恢复对数视角...',
+    minHeight: 260,
+    allowEntrance: false,
+  });
 
-  if (_state.viewMode === 'qty') {
-    await autoSaveWorkRecords();
-    _state.wageDetail = await get(`/api/wage-detail?year=${year}&month=${month}`);
-    if (_state.wageDetail && _state.wageDetail.price_map) {
-      _state.priceMap = _state.wageDetail.price_map;
+  try {
+    if (_state.viewMode === 'qty') {
+      await autoSaveWorkRecords();
+      _state.wageDetail = await get(`/api/wage-detail?year=${year}&month=${month}`);
+      if (_state.wageDetail && _state.wageDetail.price_map) {
+        _state.priceMap = _state.wageDetail.price_map;
+      }
+      _state.viewMode = 'wage';
+      btn.textContent = '切换对数视角';
+      btn.style.background = '#dcfce7';
+      btn.style.color = '#15803d';
+      toast('工资视角：对数 × 单价', 'info');
+    } else {
+      _state.viewMode = 'qty';
+      _state.wageDetail = null;
+      btn.textContent = '切换工资视角';
+      btn.style.background = '#fef3c7';
+      btn.style.color = '#92400e';
+      toast('对数视角', 'info');
     }
-    _state.viewMode = 'wage';
-    const btn = document.getElementById('viewModeBtn');
-    btn.textContent = '切换对数视角';
-    btn.style.background = '#dcfce7';
-    btn.style.color = '#15803d';
-    toast('工资视角：对数 × 单价', 'info');
-  } else {
-    _state.viewMode = 'qty';
-    _state.wageDetail = null;
-    const btn = document.getElementById('viewModeBtn');
-    btn.textContent = '切换工资视角';
-    btn.style.background = '#fef3c7';
-    btn.style.color = '#92400e';
-    toast('对数视角', 'info');
+    renderSpreadsheet();
+  } catch (e) {
+    console.error('切换工资视角失败', e);
+    showToast('切换工资视角失败，请稍后重试', 'error');
+  } finally {
+    finishRefresh();
+    finishButton();
+    if (btn) {
+      if (_state.viewMode === 'wage') {
+        btn.textContent = '切换对数视角';
+        btn.style.background = '#dcfce7';
+        btn.style.color = '#15803d';
+      } else {
+        btn.textContent = '切换工资视角';
+        btn.style.background = '#fef3c7';
+        btn.style.color = '#92400e';
+      }
+    }
+    _workViewModeBusy = false;
   }
-  renderSpreadsheet();
 }
 
 // ─────────────────────────────────────────────────────────
