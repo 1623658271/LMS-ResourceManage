@@ -259,12 +259,12 @@ function onQcColumnDragOver(event) {
   event.preventDefault();
   const th = event.currentTarget;
   if (parseInt(th.dataset.empId, 10) !== qcColumnDraggingEmpId) {
-    th.classList.add('drag-over');
+    markDragOverPosition(th, event, 'horizontal');
   }
 }
 
 function onQcColumnDragLeave(event) {
-  event.currentTarget.classList.remove('drag-over');
+  clearDragOverPosition(event.currentTarget);
 }
 
 function onQcColumnDrop(event) {
@@ -282,14 +282,18 @@ function onQcColumnDrop(event) {
   const headers = Array.from(th.closest('tr').querySelectorAll('.quick-employee-header[data-emp-id]'))
     .filter(item => parseInt(item.dataset.deptId, 10) === targetDeptId);
   const currentIds = headers.map(item => parseInt(item.dataset.empId, 10));
-  setManualEmployeeOrder('quickcalc', targetDeptId, moveIdBefore(currentIds, qcColumnDraggingEmpId, targetEmpId));
+  setManualEmployeeOrder(
+    'quickcalc',
+    targetDeptId,
+    moveIdRelative(currentIds, qcColumnDraggingEmpId, targetEmpId, isDropAfterTarget(event, th, 'horizontal'))
+  );
   renderQcDeptTables();
 }
 
 function onQcColumnDragEnd(event) {
   const th = event.currentTarget.closest('th');
   if (th) th.classList.remove('dragging');
-  document.querySelectorAll('.quick-employee-header.drag-over').forEach(item => item.classList.remove('drag-over'));
+  document.querySelectorAll('.quick-employee-header.drag-over').forEach(item => clearDragOverPosition(item));
   qcColumnDraggingEmpId = 0;
   qcColumnDraggingDeptId = 0;
 }

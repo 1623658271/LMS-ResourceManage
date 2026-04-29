@@ -416,12 +416,12 @@ function onWorkColumnDragOver(event) {
   event.preventDefault();
   const th = event.currentTarget;
   if (parseInt(th.dataset.empId, 10) !== workColumnDraggingEmpId) {
-    th.classList.add('drag-over');
+    markDragOverPosition(th, event, 'horizontal');
   }
 }
 
 function onWorkColumnDragLeave(event) {
-  event.currentTarget.classList.remove('drag-over');
+  clearDragOverPosition(event.currentTarget);
 }
 
 function onWorkColumnDrop(event) {
@@ -439,14 +439,18 @@ function onWorkColumnDrop(event) {
   const headers = Array.from(th.closest('tr').querySelectorAll('.work-employee-header[data-emp-id]'))
     .filter(item => parseInt(item.dataset.deptId, 10) === targetDeptId);
   const currentIds = headers.map(item => parseInt(item.dataset.empId, 10));
-  setManualEmployeeOrder('work', targetDeptId, moveIdBefore(currentIds, workColumnDraggingEmpId, targetEmpId));
+  setManualEmployeeOrder(
+    'work',
+    targetDeptId,
+    moveIdRelative(currentIds, workColumnDraggingEmpId, targetEmpId, isDropAfterTarget(event, th, 'horizontal'))
+  );
   renderSpreadsheet();
 }
 
 function onWorkColumnDragEnd(event) {
   const th = event.currentTarget.closest('th');
   if (th) th.classList.remove('dragging');
-  document.querySelectorAll('.work-employee-header.drag-over').forEach(item => item.classList.remove('drag-over'));
+  document.querySelectorAll('.work-employee-header.drag-over').forEach(item => clearDragOverPosition(item));
   workColumnDraggingEmpId = 0;
   workColumnDraggingDeptId = 0;
 }

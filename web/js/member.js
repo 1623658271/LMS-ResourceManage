@@ -110,19 +110,23 @@ function onMemberDragOver(event) {
   event.preventDefault();
   const card = event.currentTarget;
   if (parseInt(card.dataset.empId, 10) !== memberDraggingId) {
-    card.classList.add('drag-over');
+    markDragOverPosition(card, event, 'vertical');
   }
 }
 
 function onMemberDragLeave(event) {
-  event.currentTarget.classList.remove('drag-over');
+  clearDragOverPosition(event.currentTarget);
 }
 
 function onMemberDrop(event) {
   event.preventDefault();
   event.stopPropagation();
   const card = event.currentTarget;
-  applyMemberDrop(parseInt(card.dataset.deptId, 10), parseInt(card.dataset.empId, 10));
+  applyMemberDrop(
+    parseInt(card.dataset.deptId, 10),
+    parseInt(card.dataset.empId, 10),
+    isDropAfterTarget(event, card, 'vertical')
+  );
 }
 
 function onMemberGroupDragOver(event) {
@@ -145,24 +149,11 @@ function onMemberDragEnd(event) {
 
 function clearMemberDragState() {
   document.querySelectorAll('.member-card.drag-over').forEach(card => {
-    card.classList.remove('drag-over');
+    clearDragOverPosition(card);
   });
 }
 
-function moveMemberId(list, empId, beforeId) {
-  const next = list.filter(id => id !== empId);
-  if (beforeId && beforeId !== empId) {
-    const index = next.indexOf(beforeId);
-    if (index >= 0) {
-      next.splice(index, 0, empId);
-      return next;
-    }
-  }
-  next.push(empId);
-  return next;
-}
-
-async function applyMemberDrop(targetDeptId, beforeEmpId) {
+async function applyMemberDrop(targetDeptId, targetEmpId, placeAfter = false) {
   const empId = memberDraggingId;
   if (!empId) return;
   if (targetDeptId !== memberDraggingDeptId) {
@@ -171,12 +162,14 @@ async function applyMemberDrop(targetDeptId, beforeEmpId) {
   }
 
   memberSuppressClickUntil = Date.now() + 300;
-  if (beforeEmpId === empId) return;
+  if (targetEmpId === empId) return;
 
   const currentIds = _state.employees
     .filter(emp => emp.dept_id === targetDeptId)
     .map(emp => emp.id);
-  const nextIds = moveMemberId(currentIds, empId, beforeEmpId);
+  const nextIds = targetEmpId
+    ? moveIdRelative(currentIds, empId, targetEmpId, placeAfter)
+    : currentIds.filter(id => id !== empId).concat(empId);
   const result = await put('/api/employees/order', {
     dept_id: targetDeptId,
     emp_ids: nextIds,

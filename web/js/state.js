@@ -128,6 +128,44 @@ function moveIdBefore(list, movingId, beforeId) {
   return next;
 }
 
+function moveIdRelative(list, movingId, targetId, placeAfter = false) {
+  const id = parseInt(movingId, 10);
+  const target = parseInt(targetId, 10);
+  const original = (list || []).map(v => parseInt(v, 10)).filter(Boolean);
+  if (!id || !target || id === target) return original;
+
+  const next = original.filter(v => v !== id);
+  const targetIndex = next.indexOf(target);
+  if (targetIndex < 0) {
+    next.push(id);
+    return next;
+  }
+
+  next.splice(targetIndex + (placeAfter ? 1 : 0), 0, id);
+  return next;
+}
+
+function isDropAfterTarget(event, target, axis = 'vertical') {
+  const rect = target.getBoundingClientRect();
+  if (axis === 'horizontal') {
+    return event.clientX > rect.left + rect.width / 2;
+  }
+  return event.clientY > rect.top + rect.height / 2;
+}
+
+function markDragOverPosition(target, event, axis = 'vertical') {
+  if (!target) return;
+  const after = isDropAfterTarget(event, target, axis);
+  target.classList.add('drag-over');
+  target.classList.toggle('drag-over-before', !after);
+  target.classList.toggle('drag-over-after', after);
+}
+
+function clearDragOverPosition(target) {
+  if (!target) return;
+  target.classList.remove('drag-over', 'drag-over-before', 'drag-over-after');
+}
+
 function ensureMemberOrderSyncSwitch(page, toolbar, onChange) {
   if (!toolbar) return null;
   const id = `memberOrderSync_${page}`;

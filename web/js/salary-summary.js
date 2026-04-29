@@ -120,12 +120,12 @@ function onSalaryRowDragOver(event) {
   event.preventDefault();
   const row = event.currentTarget;
   if (parseInt(row.dataset.empId, 10) !== salaryDraggingEmpId) {
-    row.classList.add('drag-over');
+    markDragOverPosition(row, event, 'vertical');
   }
 }
 
 function onSalaryRowDragLeave(event) {
-  event.currentTarget.classList.remove('drag-over');
+  clearDragOverPosition(event.currentTarget);
 }
 
 function onSalaryRowDrop(event) {
@@ -142,14 +142,18 @@ function onSalaryRowDrop(event) {
 
   const rows = Array.from(row.closest('tbody').querySelectorAll('tr[data-emp-id]'));
   const currentIds = rows.map(tr => parseInt(tr.dataset.empId, 10));
-  setManualEmployeeOrder('salary', targetDeptId, moveIdBefore(currentIds, salaryDraggingEmpId, targetEmpId));
+  setManualEmployeeOrder(
+    'salary',
+    targetDeptId,
+    moveIdRelative(currentIds, salaryDraggingEmpId, targetEmpId, isDropAfterTarget(event, row, 'vertical'))
+  );
   loadSalary({ animate: false });
 }
 
 function onSalaryRowDragEnd(event) {
   const row = event.currentTarget.closest('tr');
   if (row) row.classList.remove('dragging');
-  document.querySelectorAll('.salary-dept-block tr.drag-over').forEach(tr => tr.classList.remove('drag-over'));
+  document.querySelectorAll('.salary-dept-block tr.drag-over').forEach(tr => clearDragOverPosition(tr));
   salaryDraggingEmpId = 0;
   salaryDraggingDeptId = 0;
 }

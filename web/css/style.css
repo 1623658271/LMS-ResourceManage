@@ -1887,6 +1887,30 @@ body * {
   box-shadow: inset 0 0 0 999px rgba(37,99,235,0.06);
 }
 
+.member-card.drag-over-before {
+  box-shadow: inset 0 3px 0 var(--primary), 0 0 0 3px rgba(37,99,235,0.12);
+}
+
+.member-card.drag-over-after {
+  box-shadow: inset 0 -3px 0 var(--primary), 0 0 0 3px rgba(37,99,235,0.12);
+}
+
+.salary-dept-block tr.drag-over-before td {
+  box-shadow: inset 0 3px 0 var(--primary);
+}
+
+.salary-dept-block tr.drag-over-after td {
+  box-shadow: inset 0 -3px 0 var(--primary);
+}
+
+.employee-order-header.drag-over-before {
+  box-shadow: inset 3px 0 0 var(--primary), inset 0 0 0 999px rgba(37,99,235,0.06);
+}
+
+.employee-order-header.drag-over-after {
+  box-shadow: inset -3px 0 0 var(--primary), inset 0 0 0 999px rgba(37,99,235,0.06);
+}
+
 .order-sync-toggle {
   display: inline-flex;
   align-items: center;
