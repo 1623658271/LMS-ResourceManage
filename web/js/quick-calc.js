@@ -105,13 +105,13 @@ function renderQcDeptTables() {
       html += `<th style="min-width:60px;background:#059669;color:#fff;position:sticky;top:0;z-index:10;text-align:center;">操作</th>`;
       for (const sub of deptSubs) {
         html += `<th style="min-width:75px;background:#d1fae5;color:#065f46;position:sticky;top:0;z-index:10;text-align:center;">
-          ${escHtml(sub.name)}<br><span style="font-size:var(--font-size-10);font-weight:400;color:#6b7280;">单价</span>
+          ${escHtml(sub.name)}<br><span class="qc-th-subtext">单价</span>
         </th>`;
       }
       for (const emp of deptEmps) {
         html += `<th style="min-width:75px;background:#e0e7ff;color:#3730a3;position:sticky;top:0;z-index:10;text-align:center;">
           <span class="member-list-name-color" onclick="showEmployeeDetail(${emp.id})">${escHtml(emp.name)}</span>
-          <br><span style="font-size:var(--font-size-10);font-weight:400;color:#6b7280;">${escHtml(emp.sub_dept_name)}</span>
+          <br><span class="qc-th-subtext">${escHtml(emp.sub_dept_name)}</span>
         </th>`;
       }
       html += `<th style="min-width:70px;background:#fef9c3;color:#92400e;position:sticky;top:0;z-index:10;text-align:center;">行合计</th>`;
@@ -138,7 +138,7 @@ function renderQcDeptTables() {
 
         // 操作列（删除按钮）- 移到最左边
         html += `<td style="text-align:center;">
-          <button class="btn btn-sm" style="padding:4px 10px;font-size:var(--font-size-11);background:#fee2e2;color:#dc2626;" onclick="removeQcDeptRow('${escHtml(rowKey)}')">删除</button>
+          <button class="btn btn-sm qc-row-delete-btn" style="padding:4px 10px;background:#fee2e2;color:#dc2626;" onclick="removeQcDeptRow('${escHtml(rowKey)}')">删除</button>
         </td>`;
 
         // 各小部门单价列（纯手动输入）
@@ -146,12 +146,12 @@ function renderQcDeptTables() {
           const priceVal = row[sub.id] || 0;
           if (isWage) {
             html += `<td class="qc-price-cell" style="text-align:center;background:#f0fdf4;">
-              <div class="cell-input" style="width:65px;color:#374151;" title="￥${priceVal.toFixed(2)}">￥${priceVal.toFixed(2)}</div>
+              <div class="cell-input qc-price-display" title="￥${priceVal.toFixed(2)}">￥${priceVal.toFixed(2)}</div>
             </td>`;
           } else {
             html += `<td class="qc-price-cell" style="text-align:center;background:#f0fdf4;">
               <input type="number" min="0" step="0.01" class="cell-input qc-price-input"
-                style="width:65px;text-align:center;"
+                style="text-align:center;"
                 value="${priceVal || ''}" placeholder="0"
                 data-row-key="${escHtml(rowKey)}" data-sub-id="${sub.id}"
                 onfocus="onQcCellFocus(this, 'price')"
@@ -173,7 +173,7 @@ function renderQcDeptTables() {
             const displayVal = qty > 0 ? fmtCompact(wage) : '';
             const compactClass = String(displayVal).length > 6 ? ' compact' : '';
             html += `<td class="emp-cell">
-              <div class="cell-input wage-cell-display${compactClass}" style="width:65px;"
+              <div class="cell-input wage-cell-display${compactClass}"
                 data-key="${qtyKey}"
                 title="${qty > 0 ? '¥' + fmt(wage) : ''}">${displayVal}</div>
             </td>`;
@@ -183,7 +183,7 @@ function renderQcDeptTables() {
             const bgStyle = hasQty ? 'background:#bfdbfe;' : '';
             html += `<td class="emp-cell" style="text-align:center;">
               <input type="number" min="0" class="cell-input qc-qty-input"
-                style="width:65px;text-align:center;${bgStyle}"
+                style="text-align:center;${bgStyle}"
                 value="${qty || ''}" placeholder="0"
                 data-key="${qtyKey}"
                 data-row-key="${escHtml(rowKey)}"
@@ -406,6 +406,7 @@ function updateDeptRowTotals(rowKey) {
       for (const d of allDisplays) {
         d.textContent = displayVal;
         d.title = qty > 0 ? '¥' + fmt(wage) : '';
+        d.className = `cell-input wage-cell-display${String(displayVal).length > 6 ? ' compact' : ''}`;
       }
     }
   }
@@ -418,8 +419,8 @@ function updateDeptRowTotals(rowKey) {
     const rows = table.querySelectorAll('tbody tr');
     // 找出 rowKey 对应的行（通过 data-row-key 属性在单价 input 上匹配）
     for (const tr of rows) {
-      const priceInput = tr.querySelector(`.qc-price-input[data-row-key="${rowKey}"]`);
-      if (priceInput) {
+      const rowMarker = tr.querySelector(`.qc-price-input[data-row-key="${rowKey}"], .wage-cell-display[data-key^="${rowKey},"]`);
+      if (rowMarker) {
         const totalEl = tr.querySelector('.row-total-display');
         if (totalEl) {
           const rowDisplay = rowTotal > 0 ? fmtCompact(rowTotal) : '';

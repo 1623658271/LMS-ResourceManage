@@ -1359,10 +1359,26 @@ tr:hover td { background: var(--surface-soft); }
 .single-scroll-wrap { overflow-x: auto; }
 .single-table-mode { min-width: max-content; }
 /* 工资格紧凑显示（数字过长时缩小字号） */
-.cell-input.wage-cell-display { font-size: calc(var(--table-font-size) - 2px); }
-.cell-input.wage-cell-display.compact { font-size: calc(var(--table-font-size) - 3px); }
+.cell-input.wage-cell-display {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--table-font-size-xs);
+}
+.cell-input.wage-cell-display.compact { font-size: var(--table-font-size-xxs); }
 /* 行合计紧凑样式 */
-.row-total-display.compact { font-size: calc(var(--table-font-size) - 2px) !important; }
+.row-total-display {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+  font-size: var(--table-font-size);
+}
+.row-total-display.compact { font-size: var(--table-font-size-xs) !important; }
 .row-total.compact { font-size: calc(var(--table-font-size) - 2px) !important; }
 
 .row-add-btn {
@@ -1424,6 +1440,41 @@ tr:hover td { background: var(--surface-soft); }
 .qc-dept-emps::before { content: '成员：'; color: #94a3b8; font-weight: 500; }
 .qc-dept-table-wrap {
   overflow: auto;
+}
+.qc-dept-table-wrap .spreadsheet {
+  table-layout: fixed;
+}
+.qc-dept-table-wrap .spreadsheet th,
+.qc-dept-table-wrap .spreadsheet td,
+.qc-dept-table-wrap .cell-input {
+  font-size: var(--table-font-size);
+}
+.qc-dept-table-wrap .spreadsheet th {
+  line-height: 1.25;
+}
+.qc-dept-table-wrap .cell-input {
+  min-width: 0;
+}
+.qc-dept-table-wrap .qc-th-subtext,
+.qc-dept-table-wrap .qc-row-delete-btn {
+  font-size: var(--table-font-size-xs) !important;
+}
+.qc-dept-table-wrap .qc-th-subtext {
+  font-weight: 400;
+  color: #6b7280;
+}
+.qc-dept-table-wrap .qc-price-display {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #374151;
+}
+.qc-dept-table-wrap .wage-cell-display,
+.qc-dept-table-wrap .row-total-display {
+  line-height: var(--table-row-height);
 }
 
 /* ============================================================
