@@ -27,7 +27,6 @@ async function loadSalary(options = {}) {
   const source = getSalarySource();
   const content = document.getElementById('salaryContent');
   const queryBtn = document.getElementById('salaryQueryBtn');
-  ensureMemberOrderSyncSwitch('salary', queryBtn?.parentElement, () => loadSalary({ animate: false }));
   const sourceLabel = source === 'qc' ? '（快捷计算）' : '';
   const finishButton = animate
     ? beginButtonLoading(queryBtn, '正在查询...')
@@ -41,8 +40,10 @@ async function loadSalary(options = {}) {
 
   try {
     const data = await get(`/api/salary-summary?year=${year}&month=${month}&source=${source}`);
-    const memberOrder = getMemberOrderSync('salary') ? await get('/api/employees') : [];
-    if (memberOrder && memberOrder.length) _state.employees = memberOrder;
+    await ensureMemberOrderPrefsLoaded('salary', (data || []).map(dept => dept.dept_id));
+    ensureMemberOrderSyncSwitch('salary', queryBtn?.parentElement, () => loadSalary({ animate: false }));
+    const syncedMemberOrder = getMemberOrderSync('salary') ? await get('/api/employees') : [];
+    if (syncedMemberOrder && syncedMemberOrder.length) _state.employees = syncedMemberOrder;
 
     if (!data || !data.length) {
       content.innerHTML = '<div class="empty-state">暂无工资数据</div>';
@@ -51,7 +52,7 @@ async function loadSalary(options = {}) {
 
     const displayData = data.map(dept => ({
       ...dept,
-      employees: orderSalaryEmployees(dept, memberOrder),
+      employees: orderSalaryEmployees(dept, syncedMemberOrder),
     }));
 
     const grandTotalWage = data.reduce((sum, dept) => sum + dept.total_wage, 0);

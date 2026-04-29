@@ -51,20 +51,53 @@ let _deletedRowKeys = new Set();
 // 当前视图
 let _currentView = 'overview';
 
-const MEMBER_ORDER_SYNC_PREFIX = 'lms.memberOrderSync.';
-const MANUAL_EMP_ORDER_PREFIX = 'lms.manualEmployeeOrder.';
+const MEMBER_ORDER_SYNC_PREFIX = 'memberOrderSync.';
+const MANUAL_EMP_ORDER_PREFIX = 'manualEmployeeOrder.';
+const _orderPreferenceCache = {};
+
+function getOrderPreferenceKey(prefix, page, deptId = null) {
+  return deptId == null ? `${prefix}${page}` : `${prefix}${page}.${deptId}`;
+}
+
+async function loadOrderPreference(key, fallback = '') {
+  if (Object.prototype.hasOwnProperty.call(_orderPreferenceCache, key)) {
+    return _orderPreferenceCache[key];
+  }
+  try {
+    const result = await get(`/api/app-settings/${encodeURIComponent(key)}`);
+    _orderPreferenceCache[key] = String(result?.value ?? fallback);
+  } catch (e) {
+    _orderPreferenceCache[key] = fallback;
+  }
+  return _orderPreferenceCache[key];
+}
+
+async function saveOrderPreference(key, value) {
+  const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+  _orderPreferenceCache[key] = stringValue;
+  return post('/api/app-settings', { key, value: stringValue });
+}
+
+async function ensureMemberOrderPrefsLoaded(page, deptIds = []) {
+  const ids = Array.from(new Set((deptIds || []).map(id => parseInt(id, 10)).filter(Boolean)));
+  const syncKey = getOrderPreferenceKey(MEMBER_ORDER_SYNC_PREFIX, page);
+  await loadOrderPreference(syncKey, 'false');
+  await Promise.all(ids.map(deptId =>
+    loadOrderPreference(getOrderPreferenceKey(MANUAL_EMP_ORDER_PREFIX, page, deptId), '[]')
+  ));
+}
 
 function getMemberOrderSync(page) {
-  return localStorage.getItem(MEMBER_ORDER_SYNC_PREFIX + page) === 'true';
+  return _orderPreferenceCache[getOrderPreferenceKey(MEMBER_ORDER_SYNC_PREFIX, page)] === 'true';
 }
 
 function setMemberOrderSync(page, enabled) {
-  localStorage.setItem(MEMBER_ORDER_SYNC_PREFIX + page, enabled ? 'true' : 'false');
+  return saveOrderPreference(getOrderPreferenceKey(MEMBER_ORDER_SYNC_PREFIX, page), enabled ? 'true' : 'false');
 }
 
 function getManualEmployeeOrder(page, deptId) {
   try {
-    const raw = localStorage.getItem(`${MANUAL_EMP_ORDER_PREFIX}${page}.${deptId}`);
+    const raw = _orderPreferenceCache[getOrderPreferenceKey(MANUAL_EMP_ORDER_PREFIX, page, deptId)] || '[]';
     const ids = raw ? JSON.parse(raw) : [];
     return Array.isArray(ids) ? ids.map(id => parseInt(id, 10)).filter(Boolean) : [];
   } catch (e) {
@@ -73,8 +106,8 @@ function getManualEmployeeOrder(page, deptId) {
 }
 
 function setManualEmployeeOrder(page, deptId, empIds) {
-  localStorage.setItem(
-    `${MANUAL_EMP_ORDER_PREFIX}${page}.${deptId}`,
+  return saveOrderPreference(
+    getOrderPreferenceKey(MANUAL_EMP_ORDER_PREFIX, page, deptId),
     JSON.stringify((empIds || []).map(id => parseInt(id, 10)).filter(Boolean))
   );
 }

@@ -3,6 +3,8 @@
 // ============================================================
 
 let _bankAccountRows = [];
+let bankDraggingEmpId = 0;
+let bankDraggingDeptId = 0;
 const _bankAutoSaveTimers = {};
 const BANK_CARD_VISIBILITY_KEY = 'bankCardVisible';
 const BANK_CARD_VISIBILITY_SETTING_KEY = 'bankCardVisible';
@@ -19,6 +21,30 @@ function getBankSalarySourceLabel(source) {
 
 function getBankAccountRow(empId) {
   return (_bankAccountRows || []).find(item => item.emp_id === empId) || null;
+}
+
+function orderBankRows(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  const normalized = list.map(item => ({ ...item, id: item.emp_id }));
+  if (getMemberOrderSync('banking') && Array.isArray(_state.employees) && _state.employees.length) {
+    const groups = [];
+    const groupMap = new Map();
+    for (const item of normalized) {
+      if (!groupMap.has(item.dept_id)) {
+        const group = { deptId: item.dept_id, rows: [] };
+        groups.push(group);
+        groupMap.set(item.dept_id, group);
+      }
+      groupMap.get(item.dept_id).rows.push(item);
+    }
+    return groups.flatMap(group => {
+      const ids = _state.employees
+        .filter(emp => emp.dept_id === group.deptId)
+        .map(emp => emp.id);
+      return sortItemsByIds(group.rows, ids, item => item.emp_id);
+    });
+  }
+  return orderEmployeesByDisplayPreference('banking', normalized);
 }
 
 function handleBankCardDblClick(event, empId) {
@@ -131,8 +157,17 @@ function renderBankCards(rows, year, month, source) {
     return;
   }
 
-  container.innerHTML = rows.map(item => `
-    <div class="bank-card bank-card-editable" ondblclick="handleBankCardDblClick(event, ${item.emp_id})" title="双击卡片可编辑银行卡信息">
+  const displayRows = orderBankRows(rows);
+
+  container.innerHTML = displayRows.map(item => `
+    <div class="bank-card bank-card-editable bank-card-sortable"
+      data-emp-id="${item.emp_id}" data-dept-id="${item.dept_id}"
+      ondragover="onBankCardDragOver(event)" ondragleave="onBankCardDragLeave(event)" ondrop="onBankCardDrop(event)"
+      ondblclick="handleBankCardDblClick(event, ${item.emp_id})" title="双击卡片可编辑银行卡信息">
+      <span class="bank-drag-handle" draggable="true"
+        data-emp-id="${item.emp_id}" data-dept-id="${item.dept_id}"
+        ondragstart="onBankCardDragStart(event)" ondragend="onBankCardDragEnd(event)"
+        title="按住拖拽调整同部门内顺序">⋮</span>
       <div class="bank-card-header">
         <div>
           <div class="bank-card-title">
@@ -189,6 +224,66 @@ function renderBankCards(rows, year, month, source) {
   `).join('');
 }
 
+function onBankCardDragStart(event) {
+  const handle = event.currentTarget;
+  const card = handle.closest('.bank-card');
+  bankDraggingEmpId = parseInt(handle.dataset.empId, 10);
+  bankDraggingDeptId = parseInt(handle.dataset.deptId, 10);
+  if (getMemberOrderSync('banking')) {
+    setMemberOrderSync('banking', false);
+    const syncInput = document.querySelector('#memberOrderSync_banking input');
+    if (syncInput) syncInput.checked = false;
+  }
+  if (card) card.classList.add('dragging');
+  event.stopPropagation();
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(bankDraggingEmpId));
+}
+
+function onBankCardDragOver(event) {
+  event.preventDefault();
+  const card = event.currentTarget;
+  if (parseInt(card.dataset.empId, 10) !== bankDraggingEmpId) {
+    markDragOverPosition(card, event, 'vertical');
+  }
+}
+
+function onBankCardDragLeave(event) {
+  clearDragOverPosition(event.currentTarget);
+}
+
+function onBankCardDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  const card = event.currentTarget;
+  const targetDeptId = parseInt(card.dataset.deptId, 10);
+  const targetEmpId = parseInt(card.dataset.empId, 10);
+  if (!bankDraggingEmpId) return;
+  if (targetDeptId !== bankDraggingDeptId) {
+    showToast('只能在同一部门内调整顺序', 'info');
+    return;
+  }
+
+  const cards = Array.from(card.parentElement.querySelectorAll('.bank-card-sortable[data-emp-id]'))
+    .filter(item => parseInt(item.dataset.deptId, 10) === targetDeptId);
+  const currentIds = cards.map(item => parseInt(item.dataset.empId, 10));
+  setManualEmployeeOrder(
+    'banking',
+    targetDeptId,
+    moveIdRelative(currentIds, bankDraggingEmpId, targetEmpId, isDropAfterTarget(event, card, 'vertical'))
+  );
+  const { year, month } = getBankTargetMonth();
+  renderBankCards(_bankAccountRows, year, month, getBankSalarySource());
+}
+
+function onBankCardDragEnd(event) {
+  const card = event.currentTarget.closest('.bank-card');
+  if (card) card.classList.remove('dragging');
+  document.querySelectorAll('.bank-card-sortable.drag-over').forEach(item => clearDragOverPosition(item));
+  bankDraggingEmpId = 0;
+  bankDraggingDeptId = 0;
+}
+
 async function loadBankAccounts(options = {}) {
   const { animate = true } = options;
   const { year, month } = getBankTargetMonth();
@@ -208,6 +303,13 @@ async function loadBankAccounts(options = {}) {
     updateBankVisibilityButton();
     const data = await get(`/api/bank-accounts?year=${year}&month=${month}&source=${source}`);
     _bankAccountRows = Array.isArray(data) ? data : [];
+    await ensureMemberOrderPrefsLoaded('banking', _bankAccountRows.map(item => item.dept_id));
+    if (getMemberOrderSync('banking')) {
+      _state.employees = await get('/api/employees');
+    }
+    ensureMemberOrderSyncSwitch('banking', document.querySelector('#view-banking .bank-toolbar-actions'), () => {
+      loadBankAccounts({ animate: false });
+    });
     renderBankCards(_bankAccountRows, year, month, source);
   } finally {
     finishRefresh();

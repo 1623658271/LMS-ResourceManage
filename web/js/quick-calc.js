@@ -18,6 +18,7 @@ async function initQuickCalc() {
   _qcState.qtyData = {};
   _qcState.qcViewMode = 'qty';
   _qcState.qcWageDetail = null;
+  await ensureMemberOrderPrefsLoaded('quickcalc', _qcState.employees.map(emp => emp.dept_id));
 
   // 自动加载上次保存的状态
   const year = parseInt(document.getElementById('qcYear')?.value || _state.currentYear);

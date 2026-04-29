@@ -59,6 +59,8 @@ async function loadWorkRecords() {
   _state.workOrders = data.orders || [];
   _state.workOrderModels = data.order_models || {};
   _state.workRecords = data.records || [];
+  await ensureMemberOrderPrefsLoaded('work', _state.workEmployees.map(emp => emp.dept_id));
+  ensureMemberOrderSyncSwitch('work', document.querySelector('#view-work .work-toolbar'), () => renderSpreadsheet());
 
   // 重置
   _weRowMap = {};
