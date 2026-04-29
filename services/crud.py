@@ -771,10 +771,12 @@ def get_work_records(year: int, month: int):
 
     # 所有员工（用于表格列）
     emps = conn.execute("""
-        SELECT e.id, e.name, e.sub_dept_id, sd.name AS sub_dept_name
+        SELECT e.id, e.name, e.dept_id, e.sub_dept_id,
+               d.name AS dept_name, sd.name AS sub_dept_name
         FROM employees e
+        JOIN departments d ON e.dept_id=d.id
         JOIN sub_departments sd ON e.sub_dept_id=sd.id
-        ORDER BY e.id
+        ORDER BY d.id, COALESCE(NULLIF(e.sort_order, 0), e.id), e.id
     """).fetchall()
 
     # 所有订单

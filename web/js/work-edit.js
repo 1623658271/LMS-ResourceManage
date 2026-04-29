@@ -80,8 +80,8 @@ function renderSpreadsheet() {
   const orders = _state.workOrders;
   const models = _state.workModels;
   const isWage = _state.viewMode === 'wage';
-  const isSingleMode = _currentSettings['table-displayMode'] === 'single';
-  const empsPerGroup = isSingleMode ? emps.length : parseInt(_currentSettings['table-groupSize'] || 8);
+  const isSingleMode = true;
+  const empsPerGroup = emps.length;
   const wrap = document.getElementById('spreadsheetWrap');
 
   if (!emps.length) {
@@ -123,10 +123,34 @@ function renderSpreadsheet() {
     return total;
   }
 
+  function buildDeptHintCells(groupEmps) {
+    const cells = [];
+    let idx = 0;
+    while (idx < groupEmps.length) {
+      const deptId = groupEmps[idx].dept_id;
+      const deptName = groupEmps[idx].dept_name || groupEmps[idx].sub_dept_name || '未分部门';
+      let count = 1;
+      while (idx + count < groupEmps.length && groupEmps[idx + count].dept_id === deptId) {
+        count += 1;
+      }
+      cells.push(`<th class="work-dept-hint-cell" colspan="${count}">
+        ${escHtml(deptName)}<span>${count} 人</span>
+      </th>`);
+      idx += count;
+    }
+    return cells.join('');
+  }
+
   function buildGroupTable(groupIdx, groupEmps, isOnlyGroup) {
     const stickyStyle = !isOnlyGroup ? 'left:0;' : '';
 
-    const headerHtml = `<thead><tr>
+    const headerHtml = `<thead>
+    <tr class="work-dept-hint-row">
+      <th class="work-dept-hint-fixed" colspan="3">成员所属部门</th>
+      ${buildDeptHintCells(groupEmps)}
+      <th class="work-dept-hint-fixed">汇总</th>
+    </tr>
+    <tr class="work-member-header-row">
       <th class="col-fixed" style="min-width:50px;background:var(--work-header-bg);color:var(--work-header-text);${stickyStyle}z-index:21;">操作</th>
       <th class="col-fixed" style="min-width:100px;background:var(--work-header-bg);color:var(--work-header-text);${stickyStyle}z-index:20;">订单号</th>
       <th class="col-fixed" style="min-width:90px;background:var(--work-header-bg);color:var(--work-header-text);${stickyStyle}z-index:19;">型号</th>

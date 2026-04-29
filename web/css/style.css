@@ -1241,6 +1241,27 @@ tr:hover td { background: var(--surface-soft); }
   z-index: 10; white-space: nowrap;
   min-width: 70px; user-select: none;
 }
+.spreadsheet .work-dept-hint-row th {
+  top: 0;
+  background: #0f172a;
+  color: #fbbf24;
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  font-weight: 700;
+  z-index: 25;
+}
+.spreadsheet .work-member-header-row th {
+  top: 34px;
+}
+.work-dept-hint-cell span {
+  margin-left: 6px;
+  color: #cbd5e1;
+  font-size: var(--font-size-10);
+  font-weight: 500;
+}
+.work-dept-hint-fixed {
+  color: #e2e8f0 !important;
+  min-width: 240px;
+}
 .spreadsheet th.col-fixed {
   position: sticky; left: 0; z-index: 21;
   background: #f8fafc; min-width: 100px;
